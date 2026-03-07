@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useEvolucaoClinica, type EvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useSessoesStats } from "@/hooks/useSessoesStats";
 import { useGlobalEvolucao } from "@/hooks/useGlobalEvolucao";
-import { useAlunos } from "@/hooks/useAlunos";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import {
     Dialog,
@@ -53,13 +52,12 @@ const Estatisticas = () => {
     const { data: progressData, isLoading: isLoadingProgress } = useEvolucaoClinica();
     const { data: sessoesData, isLoading: isLoadingSessoes } = useSessoesStats();
     const { data: globalEvolucao, isLoading: isLoadingGlobal } = useGlobalEvolucao();
-    const { alunos, isLoading: isLoadingAlunos } = useAlunos();
     const [selectedStudent, setSelectedStudent] = useState<EvolucaoClinica | null>(null);
 
-    const donutData = [
-        { name: 'Ativos', value: alunos.filter(a => a.ativo !== false && !a.arquivado).length, color: '#a7f3d0' },
-        { name: 'Inativos', value: alunos.filter(a => a.ativo === false && !a.arquivado).length, color: '#fecdd3' },
-        { name: 'Arquivados', value: alunos.filter(a => a.arquivado).length, color: '#bae6fd' },
+    const evolutionData = [
+        { name: 'Melhoraram', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) > 0).length || 0, color: '#a7f3d0' },
+        { name: 'Estáveis', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) === 0).length || 0, color: '#e2e8f0' },
+        { name: 'Atenção', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) < 0).length || 0, color: '#fecdd3' },
     ];
 
     return (
@@ -90,77 +88,58 @@ const Estatisticas = () => {
 
             <div className="max-w-lg mx-auto px-5 space-y-8">
 
-                {/* KPI Cards */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white rounded-[28px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
-                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-4">
-                            <Users size={20} strokeWidth={2} />
-                        </div>
-                        {isLoadingAlunos ? (
-                            <Loader2 size={24} className="animate-spin text-slate-200 mb-2" />
-                        ) : (
-                            <p className="text-[28px] font-black text-[#1A1D1E] leading-none mb-2">{alunos.length}</p>
-                        )}
-                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Total Alunos</p>
-                    </div>
-
-                    <div className="bg-white rounded-[28px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
-                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-4">
-                            <Activity size={20} strokeWidth={2} />
-                        </div>
-                        <div className="flex items-baseline gap-1 mb-1">
-                            {isLoadingGlobal ? (
-                                <Loader2 size={24} className="animate-spin text-slate-200" />
-                            ) : (
-                                <p className={`text-[28px] font-black leading-none ${globalEvolucao && globalEvolucao > 0 ? 'text-[#2E8B57]' : globalEvolucao && globalEvolucao < 0 ? 'text-rose-500' : 'text-slate-400'}`}>
-                                    {globalEvolucao && globalEvolucao > 0 ? '+' : ''}{globalEvolucao}%
-                                </p>
-                            )}
-                        </div>
-                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-1">Evolução Global</p>
-                        <p className="text-[10px] font-medium text-slate-400 leading-tight">Média de crescimento nas últimas sessões</p>
-                    </div>
-                </div>
-
                 {/* Charts */}
                 <div className="space-y-6">
-                    {/* Donut Chart with Center Text */}
+                    {/* Donut Chart - NOW Global Evolution */}
                     <div className="bg-white rounded-[32px] p-6 pt-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col mb-4 gap-0.5">
                             <h3 className="text-[17px] font-extrabold text-[#1A1D1E] tracking-tight">Status dos Alunos</h3>
-                            <button className="text-sm font-bold text-slate-400">Ver det.</button>
-                        </div>
-                        <div className="relative h-[220px] w-full flex items-center justify-center">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={donutData}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={65}
-                                        outerRadius={90}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        stroke="none"
-                                        cornerRadius={8}
-                                    >
-                                        {donutData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip content={<CustomTooltip />} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                            {/* Center Text */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <p className="text-[32px] font-black text-[#1A1D1E] leading-none mb-1">
-                                    {isLoadingAlunos ? "..." : alunos.length}
-                                </p>
-                                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
+                            <div className="flex items-center justify-between">
+                                <p className="text-[13px] font-bold text-slate-400">Evolução Global</p>
+                                <button className="text-sm font-bold text-slate-400">Ver det.</button>
                             </div>
                         </div>
+
+                        <div className="relative h-[220px] w-full flex items-center justify-center">
+                            {isLoadingProgress || isLoadingGlobal ? (
+                                <div className="flex flex-col items-center gap-2">
+                                    <Loader2 className="animate-spin text-primary/40" size={32} />
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Calculando...</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <PieChart>
+                                            <Pie
+                                                data={evolutionData}
+                                                cx="50%"
+                                                cy="50%"
+                                                innerRadius={65}
+                                                outerRadius={90}
+                                                paddingAngle={5}
+                                                dataKey="value"
+                                                stroke="none"
+                                                cornerRadius={8}
+                                            >
+                                                {evolutionData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={entry.color} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    {/* Center Text - Métrica de Ouro */}
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                        <p className={`text-[32px] font-black leading-none mb-1 ${globalEvolucao && globalEvolucao > 0 ? 'text-[#2E8B57]' : globalEvolucao && globalEvolucao < 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                            {globalEvolucao && globalEvolucao > 0 ? '+' : ''}{globalEvolucao}%
+                                        </p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Média Global</p>
+                                    </div>
+                                </>
+                            )}
+                        </div>
                         <div className="flex justify-center gap-6 mt-2">
-                            {donutData.map((item, i) => (
+                            {evolutionData.map((item, i) => (
                                 <div key={i} className="flex items-center gap-2">
                                     <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                                     <span className="text-xs font-bold text-slate-500">{item.name}</span>
