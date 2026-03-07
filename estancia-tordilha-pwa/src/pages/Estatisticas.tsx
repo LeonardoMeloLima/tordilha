@@ -3,6 +3,8 @@ import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, Message
 import { useState } from "react";
 import { useEvolucaoClinica, type EvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useSessoesStats } from "@/hooks/useSessoesStats";
+import { useGlobalEvolucao } from "@/hooks/useGlobalEvolucao";
+import { useAlunos } from "@/hooks/useAlunos";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import {
     Dialog,
@@ -50,12 +52,14 @@ const Estatisticas = () => {
     const navigate = useNavigate();
     const { data: progressData, isLoading: isLoadingProgress } = useEvolucaoClinica();
     const { data: sessoesData, isLoading: isLoadingSessoes } = useSessoesStats();
+    const { data: globalEvolucao, isLoading: isLoadingGlobal } = useGlobalEvolucao();
+    const { alunos, isLoading: isLoadingAlunos } = useAlunos();
     const [selectedStudent, setSelectedStudent] = useState<EvolucaoClinica | null>(null);
 
     const donutData = [
-        { name: 'Ativos', value: 45, color: '#a7f3d0' },
-        { name: 'Inativos', value: 5, color: '#fecdd3' },
-        { name: 'Em Teste', value: 12, color: '#bae6fd' },
+        { name: 'Ativos', value: alunos.filter(a => a.ativo !== false && !a.arquivado).length, color: '#a7f3d0' },
+        { name: 'Inativos', value: alunos.filter(a => a.ativo === false && !a.arquivado).length, color: '#fecdd3' },
+        { name: 'Arquivados', value: alunos.filter(a => a.arquivado).length, color: '#bae6fd' },
     ];
 
     return (
@@ -85,6 +89,38 @@ const Estatisticas = () => {
             </div>
 
             <div className="max-w-lg mx-auto px-5 space-y-8">
+
+                {/* KPI Cards */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white rounded-[28px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-4">
+                            <Users size={20} strokeWidth={2} />
+                        </div>
+                        {isLoadingAlunos ? (
+                            <Loader2 size={24} className="animate-spin text-slate-200 mb-2" />
+                        ) : (
+                            <p className="text-[28px] font-black text-[#1A1D1E] leading-none mb-2">{alunos.length}</p>
+                        )}
+                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider">Total Alunos</p>
+                    </div>
+
+                    <div className="bg-white rounded-[28px] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 mb-4">
+                            <Activity size={20} strokeWidth={2} />
+                        </div>
+                        <div className="flex items-baseline gap-1 mb-1">
+                            {isLoadingGlobal ? (
+                                <Loader2 size={24} className="animate-spin text-slate-200" />
+                            ) : (
+                                <p className={`text-[28px] font-black leading-none ${globalEvolucao && globalEvolucao > 0 ? 'text-[#2E8B57]' : globalEvolucao && globalEvolucao < 0 ? 'text-rose-500' : 'text-slate-400'}`}>
+                                    {globalEvolucao && globalEvolucao > 0 ? '+' : ''}{globalEvolucao}%
+                                </p>
+                            )}
+                        </div>
+                        <p className="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-1">Evolução Global</p>
+                        <p className="text-[10px] font-medium text-slate-400 leading-tight">Média de crescimento nas últimas sessões</p>
+                    </div>
+                </div>
 
                 {/* Charts */}
                 <div className="space-y-6">
@@ -117,7 +153,9 @@ const Estatisticas = () => {
                             </ResponsiveContainer>
                             {/* Center Text */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <p className="text-[32px] font-black text-[#1A1D1E] leading-none mb-1">62</p>
+                                <p className="text-[32px] font-black text-[#1A1D1E] leading-none mb-1">
+                                    {isLoadingAlunos ? "..." : alunos.length}
+                                </p>
                                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total</p>
                             </div>
                         </div>
@@ -208,10 +246,10 @@ const Estatisticas = () => {
                                             <span className="text-[15px] font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{student.nome}</span>
                                             <div className="flex items-center gap-1">
                                                 <div className={`px-2 py-0.5 rounded-full text-[11px] font-black flex items-center gap-0.5 ${student.evolucao_percentual > 0
-                                                        ? 'bg-emerald-50 text-emerald-600'
-                                                        : student.evolucao_percentual < 0
-                                                            ? 'bg-rose-50 text-rose-500'
-                                                            : 'bg-slate-100 text-slate-500'
+                                                    ? 'bg-emerald-50 text-emerald-600'
+                                                    : student.evolucao_percentual < 0
+                                                        ? 'bg-rose-50 text-rose-500'
+                                                        : 'bg-slate-100 text-slate-500'
                                                     }`}>
                                                     {student.evolucao_percentual > 0 && <span className="text-[10px]">▲</span>}
                                                     {student.evolucao_percentual < 0 && <span className="text-[10px]">▼</span>}

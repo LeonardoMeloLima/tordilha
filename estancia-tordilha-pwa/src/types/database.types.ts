@@ -437,6 +437,10 @@ export type Database = {
           media_agitacao: number
           media_interacao: number
         }[]
+      },
+      get_kpi_evolucao_global: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
     }
     Enums: {
