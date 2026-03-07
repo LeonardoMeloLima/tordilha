@@ -96,7 +96,13 @@ export const GestorDashboard = () => {
       <div className="pt-2">
         <div className="flex items-center justify-between mb-6 px-1">
           <h2 className="font-extrabold text-xl text-[#1A1D1E] tracking-tight">Próximas Sessões</h2>
-          <button type="button" className="text-sm font-semibold text-slate-400">Ver todas</button>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('change-tab', { detail: { tab: 'agenda' } }))}
+            className="text-sm font-semibold text-slate-400 hover:text-slate-600 transition-colors"
+          >
+            Ver todas
+          </button>
         </div>
 
         <div className="space-y-4">

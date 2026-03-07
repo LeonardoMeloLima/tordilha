@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle, Mic, Save, Loader2, Brain, BookOpen, Users, Heart, Activity, MessageCircle } from "lucide-react";
+import { CheckCircle, Mic, Save, Loader2, Brain, BookOpen, Users, Heart, Activity, MessageCircle, LogIn } from "lucide-react";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useEvolucao } from "@/hooks/useEvolucao";
 import { format, parseISO } from "date-fns";
@@ -27,12 +27,12 @@ export const ProfessorEvolucao = () => {
     [sessoes, selectedSessaoId]
   );
 
-  // Listen for 'sessao-preselect' → pre-select the session and auto check-in
+  // Listen for 'sessao-preselect' → pre-select the session only
   useEffect(() => {
     const handler = (e: Event) => {
       const { sessaoId } = (e as CustomEvent).detail;
       setSelectedSessaoId(sessaoId);
-      setCheckedIn(true);
+      // Removed auto check-in: let the professor click the button
       // Scroll the page to top so user sees the form
       window.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -52,6 +52,25 @@ export const ProfessorEvolucao = () => {
       return;
     }
 
+    if (!notas.trim()) {
+      toast({
+        title: "Campo Obrigatório",
+        description: "Por favor, descreva as notas da sessão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const hasClinicalValue = [cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0);
+    if (!hasClinicalValue) {
+      toast({
+        title: "Avaliação incompleta",
+        description: "Por favor, preencha ao menos um item da avaliação clínica.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await createEvolucao.mutateAsync({
         sessao_id: selectedSessaoId,
@@ -62,7 +81,6 @@ export const ProfessorEvolucao = () => {
         emocional,
         agitacao,
         interacao,
-        // fotos_urls can be handled later with file upload
       });
 
       toast({
@@ -70,6 +88,7 @@ export const ProfessorEvolucao = () => {
         description: "Evolução salva com sucesso.",
       });
 
+      // Reset state
       setNotas("");
       setCognitivo(0);
       setPedagogico(0);
@@ -78,6 +97,12 @@ export const ProfessorEvolucao = () => {
       setAgitacao(0);
       setInteracao(0);
       setCheckedIn(false);
+      setSelectedSessaoId("");
+
+      // Navigate back to agenda
+      window.dispatchEvent(new CustomEvent('change-tab', {
+        detail: { tab: 'agenda' }
+      }));
     } catch (error) {
       console.error(error);
       toast({
@@ -136,7 +161,7 @@ export const ProfessorEvolucao = () => {
               }`}
             style={!checkedIn ? { boxShadow: '0 8px 24px hsla(45, 93%, 47%, 0.35)' } : {}}
           >
-            <CheckCircle size={24} />
+            {checkedIn ? <CheckCircle size={24} /> : <LogIn size={24} />}
             {checkedIn ? "Check-in Realizado ✓" : "Realizar Check-in"}
           </button>
 
@@ -208,9 +233,13 @@ export const ProfessorEvolucao = () => {
 
           <button
             onClick={handleSave}
-            disabled={createEvolucao.isPending}
-            className="w-full py-5 bg-primary text-primary-foreground rounded-3xl font-extrabold text-base touch-target flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ boxShadow: '0 8px 24px hsla(45, 93%, 47%, 0.35)' }}
+            disabled={createEvolucao.isPending || !selectedSessaoId || !notas.trim() || ![cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0)}
+            className="w-full py-5 bg-primary text-primary-foreground rounded-3xl font-extrabold text-base touch-target flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed transition-all"
+            style={{
+              boxShadow: ![cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0) || !selectedSessaoId || !notas.trim()
+                ? 'none'
+                : '0 8px 24px hsla(45, 93%, 47%, 0.35)'
+            }}
           >
             {createEvolucao.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
             Salvar Evolução

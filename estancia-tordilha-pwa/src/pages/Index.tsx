@@ -81,11 +81,19 @@ const Index = () => {
         window.dispatchEvent(new CustomEvent('sessao-preselect', { detail: { sessaoId } }));
       }, 100);
     };
+
+    const handleChangeTab = (e: Event) => {
+      const { tab } = (e as CustomEvent).detail;
+      if (tab) setActiveTab(tab);
+    };
+
     window.addEventListener('fab-click', handleFAB);
     window.addEventListener('iniciar-sessao', handleIniciarSessao);
+    window.addEventListener('change-tab', handleChangeTab);
     return () => {
       window.removeEventListener('fab-click', handleFAB);
       window.removeEventListener('iniciar-sessao', handleIniciarSessao);
+      window.removeEventListener('change-tab', handleChangeTab);
     };
   }, [safeRole, activeTab]);
 

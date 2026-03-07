@@ -8,6 +8,8 @@ import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useProfessores } from "@/hooks/useProfessores";
+import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
+import { Mail, Plus, Trash2, Users } from "lucide-react";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
@@ -18,6 +20,16 @@ export const GestorAlunos = () => {
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
   const [form, setForm] = useState({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "" });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
+
+  // For responsible linking
+  const {
+    responsaveis,
+    linkResponsavel,
+    unlinkResponsavel
+  } = useAlunosResponsaveis(selectedAluno?.id || null);
+
+  const [showAddResp, setShowAddResp] = useState(false);
+  const [respForm, setRespForm] = useState({ email: "", nome: "", parentesco: "Pai/Mãe" });
 
   const handleAddNew = () => {
     setShowForm(true);
@@ -88,6 +100,31 @@ export const GestorAlunos = () => {
       toast({ variant: "destructive", title: "Erro ao remover", description: e.message });
     } finally {
       setDeleteTarget(null);
+    }
+  };
+
+  const handleAddResponsavel = async () => {
+    if (!respForm.email || !respForm.nome) {
+      toast({ variant: "destructive", title: "Erro", description: "Preencha o nome e email do responsável." });
+      return;
+    }
+
+    try {
+      await linkResponsavel.mutateAsync(respForm);
+      setShowAddResp(false);
+      setRespForm({ email: "", nome: "", parentesco: "Pai/Mãe" });
+      toast({ title: "Sucesso", description: "Responsável vinculado!" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro", description: err.message });
+    }
+  };
+
+  const handleRemoveResponsavel = async (id: string) => {
+    try {
+      await unlinkResponsavel.mutateAsync(id);
+      toast({ title: "Removido", description: "Vínculo removido." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro", description: err.message });
     }
   };
 
@@ -330,6 +367,103 @@ export const GestorAlunos = () => {
               <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-emerald-500" : "bg-slate-400"}`} />
               {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
             </button>
+          )}
+
+          {/* Responsáveis Section */}
+          {selectedAluno && (
+            <div className="pt-6 border-t border-slate-100 space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                  <Users size={16} className="text-primary" />
+                  Responsáveis Vinculados
+                </label>
+                {!showAddResp && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAddResp(true)}
+                    className="text-primary text-xs font-bold flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
+                  >
+                    <Plus size={14} />
+                    Vincular Novo
+                  </button>
+                )}
+              </div>
+
+              {showAddResp && (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2">
+                  <div className="grid grid-cols-2 gap-3">
+                    <input
+                      placeholder="Nome do Resp."
+                      value={respForm.nome}
+                      onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
+                      className="h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
+                    />
+                    <input
+                      placeholder="Email"
+                      value={respForm.email}
+                      type="email"
+                      onChange={(e) => setRespForm({ ...respForm, email: e.target.value })}
+                      className="h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <select
+                      value={respForm.parentesco}
+                      onChange={(e) => setRespForm({ ...respForm, parentesco: e.target.value })}
+                      className="flex-1 h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm outline-none"
+                    >
+                      <option>Pai</option>
+                      <option>Mãe</option>
+                      <option>Responsável Legal</option>
+                      <option>Outros</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={handleAddResponsavel}
+                      className="h-11 px-4 bg-primary text-white rounded-xl font-bold text-sm shadow-md"
+                    >
+                      Vincular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddResp(false)}
+                      className="h-11 px-4 bg-slate-200 text-slate-600 rounded-xl font-bold text-sm"
+                    >
+                      X
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {responsaveis.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    Nenhum responsável vinculado a este e-mail.
+                  </p>
+                ) : (
+                  responsaveis.map((resp) => (
+                    <div key={resp.id} className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
+                          <Mail size={16} className="text-slate-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-800">{resp.nome} <span className="text-[10px] text-primary bg-primary/5 px-1.5 py-0.5 rounded-full ml-1">{resp.parentesco}</span></p>
+                          <p className="text-[11px] text-slate-500">{resp.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveResponsavel(resp.id)}
+                        className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
         </div>
       </ActionSheet>

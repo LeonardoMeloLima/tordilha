@@ -81,9 +81,10 @@ const Estatisticas = () => {
                         <button
                             type="button"
                             onClick={() => setIsExportModalOpen(true)}
-                            className="flex items-center justify-center w-12 h-12 bg-slate-50 rounded-full text-slate-700 hover:bg-slate-100 transition-colors"
+                            className="flex items-center gap-2 px-5 h-11 bg-[#EAB308]/10 hover:bg-[#EAB308]/20 text-[#EAB308] rounded-full transition-all active:scale-95 border border-[#EAB308]/20 group"
                         >
-                            <Download size={20} strokeWidth={2} />
+                            <Download size={18} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
+                            <span className="text-[14px] font-black tracking-tight">Exportar</span>
                         </button>
                     </div>
                 </div>

@@ -1,8 +1,38 @@
 import { useMural } from "@/hooks/useMural";
 import { Lock, Award, Camera, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ConsentModal } from "./ConsentModal";
+import { supabase } from "@/lib/supabase";
 
 export const PaisMural = () => {
   const { posts, isLoading } = useMural();
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [hasConsented, setHasConsented] = useState(false);
+
+  useEffect(() => {
+    checkConsent();
+    const handleUpdate = () => checkConsent();
+    window.addEventListener('consent-updated', handleUpdate);
+    return () => window.removeEventListener('consent-updated', handleUpdate);
+  }, []);
+
+  const checkConsent = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user?.email) return;
+
+    const { data } = await supabase
+      .from('aluno_responsavel')
+      .select('alunos (lgpd_assinado), responsaveis!inner (email)')
+      .eq('responsaveis.email', session.user.email)
+      .maybeSingle();
+
+    if (data && (data as any).alunos?.lgpd_assinado) {
+      setHasConsented(true);
+    } else {
+      setHasConsented(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
@@ -12,23 +42,34 @@ export const PaisMural = () => {
       </div>
 
       {/* LGPD Glassmorphism card */}
-      <div className="relative rounded-[32px] overflow-hidden card-shadow">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#EAB308]/10 via-amber-50/5 to-orange-50/10 backdrop-blur-sm" />
-        <div className="relative p-7 space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/80 backdrop-blur flex items-center justify-center shadow-sm">
-            <Lock size={24} className="text-[#EAB308]" strokeWidth={1.5} />
+      {!hasConsented && (
+        <div className="relative rounded-[32px] overflow-hidden card-shadow">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#EAB308]/10 via-amber-50/5 to-orange-50/10 backdrop-blur-sm" />
+          <div className="relative p-7 space-y-4">
+            <div className="w-14 h-14 rounded-2xl bg-white/80 backdrop-blur flex items-center justify-center shadow-sm">
+              <Lock size={24} className="text-[#EAB308]" strokeWidth={1.5} />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-slate-900 tracking-tight">Privacidade & Imagem</h3>
+              <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1">
+                Para visualizar novas fotos, confirme o consentimento de imagem conforme a LGPD.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowConsentModal(true)}
+              className="w-full px-6 py-4 bg-white text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-sm"
+            >
+              Gerenciar Consentimento
+            </button>
           </div>
-          <div>
-            <h3 className="text-base font-black text-slate-900 tracking-tight">Privacidade & Imagem</h3>
-            <p className="text-xs text-slate-500 font-medium leading-relaxed mt-1">
-              Para visualizar novas fotos, confirme o consentimento de imagem conforme a LGPD.
-            </p>
-          </div>
-          <button type="button" className="w-full px-6 py-4 bg-white text-slate-900 rounded-2xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-sm">
-            Gerenciar Consentimento
-          </button>
         </div>
-      </div>
+      )}
+
+      <ConsentModal
+        isOpen={showConsentModal}
+        onClose={() => setShowConsentModal(false)}
+      />
 
       <div className="space-y-4">
         {isLoading ? (
@@ -48,7 +89,7 @@ export const PaisMural = () => {
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhuma postagem ainda</p>
           </div>
         ) : (
-          posts.map((post) => (
+          posts.map((post: any) => (
             <div key={post.id} className="bg-card rounded-[32px] card-shadow overflow-hidden group">
               {post.tipo === "foto" ? (
                 <div className="aspect-square bg-slate-100 relative overflow-hidden">
