@@ -86,11 +86,21 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans antialiased;
+    @apply bg-background text-foreground font-sans antialiased overflow-x-hidden;
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     /* Prevent pinch to zoom for native app feel */
     touch-action: pan-x pan-y;
+    overscroll-behavior-y: none;
+    width: 100%;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  #root {
+    width: 100%;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
 
   input,

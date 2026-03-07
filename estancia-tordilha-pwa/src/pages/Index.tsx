@@ -120,8 +120,8 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] max-w-lg mx-auto relative" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
-      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-5 pt-8 pb-4">
+    <div className="min-h-screen bg-[#F8F9FA] w-full max-w-lg mx-auto relative overflow-x-hidden" style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 96px)" }}>
+      <header className="sticky top-0 z-30 bg-[#F8F9FA]/95 backdrop-blur-md px-5 pt-8 pb-4 overflow-hidden">
         <ProfileHeader
           userName={userName}
           avatarUrl={avatarUrl}

@@ -169,7 +169,7 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
                     </DropdownMenu>
 
                     <div className="flex flex-col">
-                        <span className="text-slate-800 font-bold text-lg leading-tight">
+                        <span className="text-slate-800 font-bold text-lg leading-tight truncate max-w-[120px] xs:max-w-none">
                             Olá, {firstName}
                         </span>
                         <div className="mt-0.5">
