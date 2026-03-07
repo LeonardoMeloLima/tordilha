@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Loader2, CalendarCheck } from "lucide-react";
 import { useState } from "react";
-import { useProgressoAlunos, type StudentProgress } from "@/hooks/useProgressoAlunos";
+import { useEvolucaoClinica, type EvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useSessoesStats } from "@/hooks/useSessoesStats";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import {
@@ -48,9 +48,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 const Estatisticas = () => {
     const navigate = useNavigate();
-    const { data: progressData, isLoading: isLoadingProgress } = useProgressoAlunos();
+    const { data: progressData, isLoading: isLoadingProgress } = useEvolucaoClinica();
     const { data: sessoesData, isLoading: isLoadingSessoes } = useSessoesStats();
-    const [selectedStudent, setSelectedStudent] = useState<StudentProgress | null>(null);
+    const [selectedStudent, setSelectedStudent] = useState<EvolucaoClinica | null>(null);
 
     const donutData = [
         { name: 'Ativos', value: 45, color: '#a7f3d0' },
@@ -191,7 +191,7 @@ const Estatisticas = () => {
                                 </div>
                             ) : progressData?.map((student) => (
                                 <button
-                                    key={student.id}
+                                    key={student.aluno_id}
                                     onClick={() => setSelectedStudent(student)}
                                     className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
                                 >
@@ -207,16 +207,23 @@ const Estatisticas = () => {
                                         <div className="flex justify-between items-center leading-none">
                                             <span className="text-[15px] font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{student.nome}</span>
                                             <div className="flex items-center gap-1">
-                                                <span className={`text-[13px] font-black ${student.currentProgress >= 0 ? 'text-[#EAB308]' : 'text-rose-500'}`}>
-                                                    {student.currentProgress > 0 ? '+' : ''}{student.currentProgress}%
-                                                </span>
+                                                <div className={`px-2 py-0.5 rounded-full text-[11px] font-black flex items-center gap-0.5 ${student.evolucao_percentual > 0
+                                                        ? 'bg-emerald-50 text-emerald-600'
+                                                        : student.evolucao_percentual < 0
+                                                            ? 'bg-rose-50 text-rose-500'
+                                                            : 'bg-slate-100 text-slate-500'
+                                                    }`}>
+                                                    {student.evolucao_percentual > 0 && <span className="text-[10px]">▲</span>}
+                                                    {student.evolucao_percentual < 0 && <span className="text-[10px]">▼</span>}
+                                                    {student.evolucao_percentual === 0 ? 'Mantido' : `${student.evolucao_percentual > 0 ? '+' : ''}${student.evolucao_percentual}%`}
+                                                </div>
                                             </div>
                                         </div>
                                         {/* Progress Track (Fininho) */}
                                         <div className="h-[4px] w-full bg-slate-50 rounded-full overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full transition-all duration-1000 ${student.currentProgress >= 0 ? 'bg-[#EAB308]' : 'bg-rose-500'}`}
-                                                style={{ width: `${Math.max(5, Math.abs(student.currentProgress))}%` }}
+                                                className={`h-full rounded-full transition-all duration-1000 ${student.evolucao_percentual >= 0 ? 'bg-[#EAB308]' : 'bg-rose-400'}`}
+                                                style={{ width: `${Math.min(100, Math.max(5, (student.media_cognitivo + student.media_pedagogico + student.media_social + student.media_emocional + student.media_agitacao + student.media_interacao) / 30 * 100))}%` }}
                                             />
                                         </div>
                                     </div>
@@ -246,12 +253,12 @@ const Estatisticas = () => {
                             </DialogHeader>
 
                             <div className="space-y-5">
-                                <ClinicalCategory label="Cognitivo" icon={Brain} value={selectedStudent.averages.cognitivo} />
-                                <ClinicalCategory label="Pedagógico" icon={BookOpen} value={selectedStudent.averages.pedagogico} />
-                                <ClinicalCategory label="Social" icon={Users} value={selectedStudent.averages.social} />
-                                <ClinicalCategory label="Emocional" icon={Heart} value={selectedStudent.averages.emocional} />
-                                <ClinicalCategory label="Agitação" icon={Activity} value={selectedStudent.averages.agitacao} />
-                                <ClinicalCategory label="Interação" icon={MessageCircle} value={selectedStudent.averages.interacao} />
+                                <ClinicalCategory label="Cognitivo" icon={Brain} value={selectedStudent.media_cognitivo} />
+                                <ClinicalCategory label="Pedagógico" icon={BookOpen} value={selectedStudent.media_pedagogico} />
+                                <ClinicalCategory label="Social" icon={Users} value={selectedStudent.media_social} />
+                                <ClinicalCategory label="Emocional" icon={Heart} value={selectedStudent.media_emocional} />
+                                <ClinicalCategory label="Agitação" icon={Activity} value={selectedStudent.media_agitacao} />
+                                <ClinicalCategory label="Interação" icon={MessageCircle} value={selectedStudent.media_interacao} />
                             </div>
                         </>
                     )}
