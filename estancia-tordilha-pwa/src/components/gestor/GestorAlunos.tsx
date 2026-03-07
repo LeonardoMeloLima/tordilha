@@ -375,44 +375,44 @@ export const GestorAlunos = () => {
               </div>
 
               {showAddResp && (
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 animate-in fade-in slide-in-from-top-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      placeholder="Nome do Resp."
-                      value={respForm.nome}
-                      onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
-                      className="h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
-                    />
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 animate-in fade-in slide-in-from-top-2">
+                  <input
+                    placeholder="Nome do Responsável"
+                    value={respForm.nome}
+                    onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
+                    className="w-full h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
+                  />
+                  <div className="flex gap-2">
                     <input
                       placeholder="Email"
                       value={respForm.email}
                       type="email"
                       onChange={(e) => setRespForm({ ...respForm, email: e.target.value })}
-                      className="h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
+                      className="flex-1 h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
                     />
-                  </div>
-                  <div className="flex gap-2">
                     <select
                       value={respForm.parentesco}
                       onChange={(e) => setRespForm({ ...respForm, parentesco: e.target.value })}
-                      className="flex-1 h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm outline-none"
+                      className="w-28 h-11 px-2 rounded-xl bg-white border border-slate-200 text-sm outline-none"
                     >
                       <option>Pai</option>
                       <option>Mãe</option>
-                      <option>Responsável Legal</option>
+                      <option>Tutor</option>
                       <option>Outros</option>
                     </select>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       type="button"
                       onClick={handleAddResponsavel}
-                      className="h-11 px-4 bg-primary text-white rounded-xl font-bold text-sm shadow-md"
+                      className="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all"
                     >
-                      Vincular
+                      Vincular Responsável
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowAddResp(false)}
-                      className="h-11 px-4 bg-slate-200 text-slate-600 rounded-xl font-bold text-sm"
+                      className="w-11 h-11 flex items-center justify-center bg-slate-200 text-slate-600 rounded-xl font-bold text-sm"
                     >
                       X
                     </button>
@@ -466,8 +466,8 @@ export const GestorAlunos = () => {
             </button>
           )}
 
-          {/* Spacer for bottom sheet comfort */}
-          <div className="h-10 shrink-0" />
+          {/* Final Spacer with extra height for mobile safe area */}
+          <div className="h-32 shrink-0 lg:h-12" />
         </div>
       </ActionSheet>
 
