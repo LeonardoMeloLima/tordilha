@@ -354,21 +354,6 @@ export const GestorAlunos = () => {
             <span className="text-sm font-medium text-slate-700">Consentimento LGPD Assinado</span>
           </label>
 
-          {/* Ativo/Inativo toggle — only show when editing */}
-          {selectedAluno && (
-            <button
-              type="button"
-              onClick={() => setForm({ ...form, ativo: !form.ativo })}
-              className={`flex items-center gap-2.5 self-start px-4 py-2 rounded-full border transition-all text-sm font-semibold ${form.ativo
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : "bg-slate-100 border-slate-200 text-slate-500"
-                }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-emerald-500" : "bg-slate-400"}`} />
-              {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
-            </button>
-          )}
-
           {/* Responsáveis Section */}
           {selectedAluno && (
             <div className="pt-6 border-t border-slate-100 space-y-4">
@@ -464,6 +449,21 @@ export const GestorAlunos = () => {
                 )}
               </div>
             </div>
+          )}
+
+          {/* Ativo/Inativo toggle — only show when editing */}
+          {selectedAluno && (
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, ativo: !form.ativo })}
+              className={`flex items-center gap-2.5 self-start px-4 py-2 rounded-full border transition-all text-sm font-semibold ${form.ativo
+                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                : "bg-slate-100 border-slate-200 text-slate-500"
+                }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-emerald-500" : "bg-slate-400"}`} />
+              {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
+            </button>
           )}
         </div>
       </ActionSheet>
