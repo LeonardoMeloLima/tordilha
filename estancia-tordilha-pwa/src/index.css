@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 165 20% 96%;
+    /* #F4F7F6 */
+    --foreground: 195 7% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 195 7% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 195 7% 11%;
+
+    --primary: 45 93% 47%;
+    /* #EAB308 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 45 93% 47%;
+    /* #EAB308 */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+
+    --accent: 45 93% 47%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 45 93% 47%;
+
+    --radius: 2rem;
+
+    --sidebar-background: 165 20% 96%;
+    --sidebar-foreground: 195 7% 11%;
+    --sidebar-primary: 45 93% 47%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 195 7% 11%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 45 93% 47%;
+  }
+
+  .dark {
+    --background: 0 0% 5%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 10%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 98 12% 40%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 93 17% 30%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 65%;
+    --accent: 93 17% 30%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 98 12% 40%;
+    --sidebar-background: 0 0% 5%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 98 12% 40%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 98 12% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .touch-target {
+    @apply min-w-[56px] min-h-[56px];
+  }
+
+  .card-shadow {
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05);
+  }
+
+  .card-shadow-lg {
+    box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.08);
+  }
+
+  .glass {
+    @apply backdrop-blur-[24px] bg-background/80;
+  }
+}
