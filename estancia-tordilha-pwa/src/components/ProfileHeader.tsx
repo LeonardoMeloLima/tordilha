@@ -168,8 +168,8 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <div className="flex flex-col">
-                        <span className="text-slate-800 font-bold text-lg leading-tight truncate max-w-[120px] xs:max-w-none">
+                    <div className="flex flex-col min-w-0">
+                        <span className="text-slate-800 font-bold text-lg leading-tight truncate">
                             Olá, {firstName}
                         </span>
                         <div className="mt-0.5">
@@ -180,14 +180,7 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
                     </div>
                 </div>
 
-                <div className="flex items-center">
-                    {isSuperUser && onDevRoleChange && (
-                        <DevRoleSwitcher
-                            isSuperUser={isSuperUser}
-                            activeRole={role}
-                            onRoleChange={onDevRoleChange}
-                        />
-                    )}
+                <div className="flex items-center gap-2">
                     <button
                         onClick={onNotificationClick}
                         className="w-12 h-12 shrink-0 rounded-full bg-white shadow-sm flex items-center justify-center text-slate-500 hover:text-slate-800 transition-colors relative"
@@ -205,6 +198,17 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
                     className="hidden"
                 />
             </div>
+
+            {/* Dev Switcher - Moved to separate line to avoid crowding */}
+            {isSuperUser && onDevRoleChange && (
+                <div className="mt-3 flex justify-start">
+                    <DevRoleSwitcher
+                        isSuperUser={isSuperUser}
+                        activeRole={role}
+                        onRoleChange={onDevRoleChange}
+                    />
+                </div>
+            )}
 
             {/* Camera Capture Modal */}
             <CameraCaptureModal
