@@ -29,7 +29,7 @@ export const GestorAlunos = () => {
   } = useAlunosResponsaveis(selectedAluno?.id || null);
 
   const [showAddResp, setShowAddResp] = useState(false);
-  const [respForm, setRespForm] = useState({ email: "", nome: "", parentesco: "Pai/Mãe" });
+  const [respForm, setRespForm] = useState({ email: "", nome: "", parentesco: "Pai" });
 
   const handleAddNew = () => {
     setShowForm(true);
@@ -112,7 +112,7 @@ export const GestorAlunos = () => {
     try {
       await linkResponsavel.mutateAsync(respForm);
       setShowAddResp(false);
-      setRespForm({ email: "", nome: "", parentesco: "Pai/Mãe" });
+      setRespForm({ email: "", nome: "", parentesco: "Pai" });
       toast({ title: "Sucesso", description: "Responsável vinculado!" });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro", description: err.message });
@@ -465,6 +465,9 @@ export const GestorAlunos = () => {
               {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
             </button>
           )}
+
+          {/* Spacer for bottom sheet comfort */}
+          <div className="h-10 shrink-0" />
         </div>
       </ActionSheet>
 

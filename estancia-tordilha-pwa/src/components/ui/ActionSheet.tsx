@@ -27,7 +27,7 @@ export const ActionSheet = ({
 
     return (
         <div
-            className="fixed inset-0 bg-slate-900/40 backdrop-blur-[2px] z-[100] flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-[80] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200"
             onPointerDown={(e) => setMouseDownTarget(e.target)}
             onClick={(e) => {
                 if (e.target === e.currentTarget && mouseDownTarget === e.currentTarget) {
@@ -37,7 +37,7 @@ export const ActionSheet = ({
         >
             <div
                 className={cn(
-                    "bg-white w-full max-w-[420px] rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-300 max-h-[90vh] mx-auto",
+                    "bg-white w-full max-w-[420px] rounded-t-[32px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 max-h-[92vh] sm:max-h-[90vh] mx-auto",
                     className
                 )}
                 onClick={(e) => e.stopPropagation()}
