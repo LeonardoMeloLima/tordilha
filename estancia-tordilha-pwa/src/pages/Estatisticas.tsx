@@ -24,6 +24,7 @@ import {
     Cell,
     Legend
 } from 'recharts';
+import { ExportReportModal } from "@/components/estatisticas/ExportReportModal";
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -53,6 +54,7 @@ const Estatisticas = () => {
     const { data: sessoesData, isLoading: isLoadingSessoes } = useSessoesStats();
     const { data: globalEvolucao, isLoading: isLoadingGlobal } = useGlobalEvolucao();
     const [selectedStudent, setSelectedStudent] = useState<EvolucaoClinica | null>(null);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     const evolutionData = [
         { name: 'Melhoraram', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) > 0).length || 0, color: '#a7f3d0' },
@@ -78,6 +80,7 @@ const Estatisticas = () => {
                         </div>
                         <button
                             type="button"
+                            onClick={() => setIsExportModalOpen(true)}
                             className="flex items-center justify-center w-12 h-12 bg-slate-50 rounded-full text-slate-700 hover:bg-slate-100 transition-colors"
                         >
                             <Download size={20} strokeWidth={2} />
@@ -250,6 +253,11 @@ const Estatisticas = () => {
                     </div>
                 </div>
             </div>
+
+            <ExportReportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+            />
 
             {/* Modal de Detalhes Clínicos */}
             <Dialog open={!!selectedStudent} onOpenChange={(open) => !open && setSelectedStudent(null)}>

@@ -441,6 +441,15 @@ export type Database = {
       get_kpi_evolucao_global: {
         Args: Record<PropertyKey, never>
         Returns: number
+      },
+      get_relatorio_professores: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          professor_id: string
+          nome_professor: string
+          total_sessoes: number
+          total_alunos_unicos: number
+        }[]
       }
     }
     Enums: {
