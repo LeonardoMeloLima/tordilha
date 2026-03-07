@@ -404,10 +404,11 @@ export const GestorAlunos = () => {
                   <div className="flex gap-2">
                     <button
                       type="button"
+                      disabled={linkResponsavel.isPending}
                       onClick={handleAddResponsavel}
-                      className="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all"
+                      className="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
                     >
-                      Vincular Responsável
+                      {linkResponsavel.isPending ? "Vinculando..." : "Vincular Responsável"}
                     </button>
                     <button
                       type="button"
