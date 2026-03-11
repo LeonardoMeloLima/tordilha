@@ -56,6 +56,7 @@ const Index = () => {
 
   useEffect(() => {
     const handleFAB = () => {
+      console.log(`FAB clicked Profile: ${safeRole}, Tab: ${activeTab}`);
       if (safeRole === 'gestor') {
         if (activeTab === 'dashboard') {
           setShowQuickActions(true);
@@ -69,6 +70,7 @@ const Index = () => {
           setShowQuickActions(true);
         }
       } else {
+        // Parents and Professors
         window.dispatchEvent(new CustomEvent('fab-click-local'));
       }
     };

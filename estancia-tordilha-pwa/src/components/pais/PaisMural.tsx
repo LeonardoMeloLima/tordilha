@@ -64,9 +64,18 @@ export const PaisMural = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground tracking-tight">Mural</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">Momentos especiais do seu pequeno</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-foreground tracking-tight">Mural</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Momentos especiais do seu pequeno</p>
+        </div>
+        <button
+          onClick={() => setIsPostModalOpen(true)}
+          className="h-12 px-5 bg-[#EAB308] text-white rounded-2xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-[#EAB308]/20 active:scale-95 transition-all"
+        >
+          <Send size={18} strokeWidth={2.5} />
+          Postar
+        </button>
       </div>
 
       {/* LGPD Glassmorphism card */}

@@ -35,9 +35,18 @@ export const PaisAgenda = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
-      <div>
-        <h1 className="text-xl font-extrabold text-foreground tracking-tight">Agenda</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">Próximas sessões agendadas</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-extrabold text-foreground tracking-tight">Agenda</h1>
+          <p className="text-sm text-muted-foreground font-medium mt-0.5">Próximas sessões agendadas</p>
+        </div>
+        <button
+          onClick={() => setShowAgendar(true)}
+          className="h-12 px-5 bg-[#EAB308] text-white rounded-2xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-[#EAB308]/20 active:scale-95 transition-all"
+        >
+          <Calendar size={18} strokeWidth={2.5} />
+          Agendar
+        </button>
       </div>
 
       <div className="space-y-4">
