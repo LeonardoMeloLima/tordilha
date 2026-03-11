@@ -87,7 +87,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         <ActionSheet
             isOpen={isOpen}
             onClose={onClose}
-            title="Agendar Nova Sessão (V3)"
+            title="Agendar Nova Sessão"
             subtitle="Preencha os dados abaixo para agendar"
             footer={
                 <button
