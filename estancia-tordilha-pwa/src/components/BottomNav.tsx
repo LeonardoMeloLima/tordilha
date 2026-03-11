@@ -24,7 +24,7 @@ const navConfig: Record<string, NavItem[]> = {
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
-    { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
+    { label: "AGENDA (V4)", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
     { label: "Avisos", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "avisos" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
   ],
