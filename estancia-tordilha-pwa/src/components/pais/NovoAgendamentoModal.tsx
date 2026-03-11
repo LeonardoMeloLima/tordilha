@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Check, User, Calendar, Clock, Loader2, HeartPulse, Sparkles } from "lucide-react";
+import { Check, User, Calendar, Clock, Loader2, HeartPulse } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 import { useSessoes } from "@/hooks/useSessoes";
