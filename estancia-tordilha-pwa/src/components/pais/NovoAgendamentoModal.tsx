@@ -149,7 +149,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                             <button
                                 key={aluno.id}
                                 type="button"
-                                onClick={() => setSelectedAluno(aluno.id || "")}
+                                onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
                                 className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
                                     ? "bg-[#EAB308]/5 border-[#EAB308] shadow-sm"
                                     : "bg-slate-50 border-transparent hover:border-slate-200"
@@ -232,7 +232,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 key={slot.hora}
                                 type="button"
                                 disabled={slot.ocupado}
-                                onClick={() => setSelectedTime(slot.hora)}
+                                onClick={() => setSelectedTime(prev => prev === slot.hora ? "" : slot.hora)}
                                 className={`h-12 rounded-[16px] font-bold text-sm transition-all flex flex-col items-center justify-center border-2 ${selectedTime === slot.hora
                                     ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
                                     : slot.ocupado 
