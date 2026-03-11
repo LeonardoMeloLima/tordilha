@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,7 @@ export const ActionSheet = ({
 
     if (!isOpen) return null;
 
-    return (
+    return createPortal(
         <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-[80] flex items-end sm:items-center justify-center p-0 sm:p-6 animate-in fade-in duration-200"
             onPointerDown={(e) => setMouseDownTarget(e.target)}
@@ -71,6 +72,7 @@ export const ActionSheet = ({
                     </div>
                 )}
             </div>
-        </div>
+        </div>,
+        document.body
     );
 };

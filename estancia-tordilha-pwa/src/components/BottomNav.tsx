@@ -20,7 +20,7 @@ const navConfig: Record<string, NavItem[]> = {
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
     { label: "Alunos", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Evolução", icon: <TrendingUp size={22} strokeWidth={1.5} />, activeIcon: <TrendingUp size={22} strokeWidth={1.5} />, id: "evolucao" },
-    { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
+    { label: "Avisos", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "avisos" },
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
@@ -85,7 +85,13 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
         })}
       </div>
 
-      <ContextualFAB activeTab={activeTab} onClick={onFabClick} />
+      {(() => {
+        if (role === 'pais') return ['agenda', 'mural'].includes(activeTab);
+        if (role === 'professor') return !['alunos', 'cavalos'].includes(activeTab);
+        return true; // gestor
+      })() && (
+          <ContextualFAB activeTab={activeTab} onClick={onFabClick} />
+        )}
 
       <div className="flex flex-1 justify-around">
         {items.slice(2, 4).map((item) => {

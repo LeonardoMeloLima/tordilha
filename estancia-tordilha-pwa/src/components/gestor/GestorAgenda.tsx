@@ -5,13 +5,14 @@ import { useToast } from "@/components/ui/use-toast";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
-import { format, addDays, parseISO, isSameDay } from "date-fns";
+import { format, addDays, parseISO, isSameDay, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SwipeableCard } from "../ui/SwipeableCard";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 
 export const GestorAgenda = () => {
   const { toast } = useToast();
-  const { sessoes, isLoading: loadingSessoes, createSessao } = useSessoes();
+  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao } = useSessoes();
   const { alunos, isLoading: loadingAlunos } = useAlunos();
   const { cavalos, isLoading: loadingCavalos } = useCavalos();
 
@@ -49,7 +50,21 @@ export const GestorAgenda = () => {
     }
 
     try {
-      const data_hora = `${selectedDay}T${newSession.hora}:00Z`; // Construct ISO string
+      const [hours, minutes] = newSession.hora.split(':').map(Number);
+      const selectedDateTime = parseISO(selectedDay);
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      // Validation: Prevent scheduling in the past
+      if (isBefore(selectedDateTime, new Date())) {
+        toast({
+          variant: "destructive",
+          title: "Horário Inválido",
+          description: "Não é possível agendar sessões no passado."
+        });
+        return;
+      }
+
+      const data_hora = selectedDateTime.toISOString();
       await createSessao.mutateAsync({
         aluno_id: newSession.alunoId,
         cavalo_id: newSession.cavaloId,
@@ -62,6 +77,15 @@ export const GestorAgenda = () => {
       toast({ title: "Sucesso", description: "Sessão agendada com sucesso!" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteSessao.mutateAsync(id);
+      toast({ title: "Sucesso", description: "Agendamento excluído." });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao excluir", description: error.message });
     }
   };
 
@@ -105,33 +129,39 @@ export const GestorAgenda = () => {
           </div>
         ) : (
           daySessoes.map((s) => (
-            <div key={s.id} className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow group transition-all active:scale-[0.99]">
-              <div className="w-12 h-12 rounded-2xl bg-[#EAB308]/10 flex items-center justify-center">
-                <AvatarWithFallback
-                  src={s.aluno?.avatar_url}
-                  className="w-10 h-10 rounded-xl"
-                  type="user"
-                />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
+            <SwipeableCard
+              key={s.id}
+              onDelete={() => handleDelete(s.id)}
+              deleteLabel="Excluir"
+            >
+              <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow group transition-all active:scale-[0.99]">
+                <div className="w-12 h-12 rounded-2xl bg-[#EAB308]/10 flex items-center justify-center">
+                  <AvatarWithFallback
+                    src={s.aluno?.avatar_url}
+                    className="w-10 h-10 rounded-xl"
+                    type="user"
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                    <Clock size={14} className="text-[#EAB308]" strokeWidth={2.5} />
+                    {format(parseISO(s.data_hora), "HH:mm")}
+                  </div>
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${s.status === "confirmada" ? "text-[#EAB308]" : "text-muted-foreground"}`}>
+                    {s.status}
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                  <Clock size={14} className="text-[#EAB308]" strokeWidth={2.5} />
-                  {format(parseISO(s.data_hora), "HH:mm")}
-                </div>
-                <span className={`text-[10px] font-black uppercase tracking-tighter ${s.status === "confirmada" ? "text-[#EAB308]" : "text-muted-foreground"}`}>
-                  {s.status}
-                </span>
-              </div>
-            </div>
+            </SwipeableCard>
           ))
         )}
       </div>

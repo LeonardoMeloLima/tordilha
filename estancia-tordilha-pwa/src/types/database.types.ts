@@ -165,9 +165,11 @@ export type Database = {
       cavalos: {
         Row: {
           atualizado_em: string | null
+          comentario: string | null
           cor: string | null
           criado_em: string | null
           foto_url: string | null
+          humor: string | null
           id: string
           nome: string
           raca: string | null
@@ -175,9 +177,11 @@ export type Database = {
         }
         Insert: {
           atualizado_em?: string | null
+          comentario?: string | null
           cor?: string | null
           criado_em?: string | null
           foto_url?: string | null
+          humor?: string | null
           id?: string
           nome: string
           raca?: string | null
@@ -185,9 +189,11 @@ export type Database = {
         }
         Update: {
           atualizado_em?: string | null
+          comentario?: string | null
           cor?: string | null
           criado_em?: string | null
           foto_url?: string | null
+          humor?: string | null
           id?: string
           nome?: string
           raca?: string | null
@@ -254,8 +260,84 @@ export type Database = {
           },
         ]
       }
+      mural_comentarios: {
+        Row: {
+          conteudo: string
+          criado_em: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          conteudo: string
+          criado_em?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          conteudo?: string
+          criado_em?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mural_comentarios_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "mural_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mural_comentarios_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      mural_likes: {
+        Row: {
+          criado_em: string | null
+          id: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mural_likes_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "mural_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mural_likes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       mural_posts: {
         Row: {
+          aluno_id: string | null
           atualizado_em: string | null
           badge: string | null
           criado_em: string | null
@@ -263,9 +345,12 @@ export type Database = {
           descricao: string
           id: string
           media_url: string | null
+          sessao_id: string | null
           tipo: string
+          user_id: string | null
         }
         Insert: {
+          aluno_id?: string | null
           atualizado_em?: string | null
           badge?: string | null
           criado_em?: string | null
@@ -273,9 +358,12 @@ export type Database = {
           descricao: string
           id?: string
           media_url?: string | null
+          sessao_id?: string | null
           tipo: string
+          user_id?: string | null
         }
         Update: {
+          aluno_id?: string | null
           atualizado_em?: string | null
           badge?: string | null
           criado_em?: string | null
@@ -283,9 +371,67 @@ export type Database = {
           descricao?: string
           id?: string
           media_url?: string | null
+          sessao_id?: string | null
           tipo?: string
+          user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "mural_posts_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mural_posts_sessao_id_fkey"
+            columns: ["sessao_id"]
+            isOneToOne: false
+            referencedRelation: "sessoes"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notificacoes: {
+        Row: {
+          criado_em: string | null
+          id: string
+          lida: boolean | null
+          link: string | null
+          mensagem: string
+          tipo: string | null
+          titulo: string
+          user_id: string
+        }
+        Insert: {
+          criado_em?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem: string
+          tipo?: string | null
+          titulo: string
+          user_id: string
+        }
+        Update: {
+          criado_em?: string | null
+          id?: string
+          lida?: boolean | null
+          link?: string | null
+          mensagem?: string
+          tipo?: string | null
+          titulo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacoes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       profiles: {
         Row: {
@@ -423,32 +569,29 @@ export type Database = {
     }
     Functions: {
       get_evolucao_clinica_recente: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           aluno_id: string
-          nome: string
-          avatar_url: string | null
-          ultima_sessao_data: string
+          avatar_url: string
           evolucao_percentual: number
+          media_agitacao: number
           media_cognitivo: number
+          media_emocional: number
+          media_interacao: number
           media_pedagogico: number
           media_social: number
-          media_emocional: number
-          media_agitacao: number
-          media_interacao: number
+          nome: string
+          ultima_sessao_data: string
         }[]
-      },
-      get_kpi_evolucao_global: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      },
+      }
+      get_kpi_evolucao_global: { Args: never; Returns: number }
       get_relatorio_professores: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
-          professor_id: string
           nome_professor: string
-          total_sessoes: number
+          professor_id: string
           total_alunos_unicos: number
+          total_sessoes: number
         }[]
       }
     }

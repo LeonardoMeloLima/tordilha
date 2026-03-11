@@ -2,13 +2,33 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Database } from "@/types/database.types";
 
+import { useEffect } from "react";
+
 type SessaoUpdate = Database["public"]["Tables"]["sessoes"]["Update"];
 
-export function useSessoes(professorId?: string) {
+export function useSessoes(professorId?: string, alunoIds?: string[]) {
     const queryClient = useQueryClient();
 
+    // Invalidate sessions across all components/roles when anything changes in the DB
+    useEffect(() => {
+        const channel = supabase
+            .channel('schema-db-changes')
+            .on(
+                'postgres_changes',
+                { event: '*', schema: 'public', table: 'sessoes' },
+                () => {
+                    queryClient.invalidateQueries({ queryKey: ["sessoes"] });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [queryClient]);
+
     const sessoesQuery = useQuery({
-        queryKey: ["sessoes", professorId],
+        queryKey: ["sessoes", professorId, alunoIds],
         queryFn: async () => {
             let query = supabase
                 .from("sessoes")
@@ -21,6 +41,15 @@ export function useSessoes(professorId?: string) {
 
             if (professorId) {
                 query = query.eq("professor_id", professorId);
+            }
+
+            if (alunoIds !== undefined) {
+                if (alunoIds.length > 0) {
+                    query = query.in("aluno_id", alunoIds);
+                } else {
+                    // Force zero results if an empty array is provided
+                    query = query.eq("aluno_id", "00000000-0000-0000-0000-000000000000");
+                }
             }
 
             const { data, error } = await query.order("data_hora", { ascending: true });

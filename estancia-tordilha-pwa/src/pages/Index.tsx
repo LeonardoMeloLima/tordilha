@@ -9,7 +9,7 @@ import { GestorAgenda } from "@/components/gestor/GestorAgenda";
 import { ProfessorAgenda } from "@/components/professor/ProfessorAgenda";
 import { ProfessorAlunos } from "@/components/professor/ProfessorAlunos";
 import { ProfessorEvolucao } from "@/components/professor/ProfessorEvolucao";
-import { ProfessorCavalos } from "@/components/professor/ProfessorCavalos";
+import { ProfessorAvisos } from "@/components/professor/ProfessorAvisos";
 import { PaisMural } from "@/components/pais/PaisMural";
 import { PaisAgenda } from "@/components/pais/PaisAgenda";
 import { PaisAvisos } from "@/components/pais/PaisAvisos";
@@ -34,7 +34,7 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     agenda: <ProfessorAgenda />,
     alunos: <ProfessorAlunos />,
     evolucao: <ProfessorEvolucao />,
-    cavalos: <ProfessorCavalos />,
+    avisos: <ProfessorAvisos />,
   },
   pais: {
     mural: <PaisMural />,

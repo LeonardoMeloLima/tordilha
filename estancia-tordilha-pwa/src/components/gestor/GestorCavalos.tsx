@@ -13,13 +13,20 @@ export const GestorCavalos = () => {
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [selected, setSelected] = useState<any>(null);
-  const [form, setForm] = useState({ nome: "", raca: "", status: "Ativo" as "Ativo" | "Repouso", foto_url: "" });
+  const [form, setForm] = useState({
+    nome: "",
+    raca: "",
+    status: "Ativo" as "Ativo" | "Repouso",
+    foto_url: "",
+    humor: "Dócil",
+    comentario: ""
+  });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   const handleAddNew = () => {
     setShowForm(true);
     setSelected(null);
-    setForm({ nome: "", raca: "", status: "Ativo", foto_url: "" });
+    setForm({ nome: "", raca: "", status: "Ativo", foto_url: "", humor: "Dócil", comentario: "" });
   };
 
   useEffect(() => {
@@ -52,7 +59,9 @@ export const GestorCavalos = () => {
       nome: c.nome,
       raca: c.raca || "",
       status: (c.status as any) || "Ativo",
-      foto_url: c.foto_url || ""
+      foto_url: c.foto_url || "",
+      humor: c.humor || "Dócil",
+      comentario: c.comentario || ""
     });
     setShowForm(true);
   };
@@ -188,6 +197,35 @@ export const GestorCavalos = () => {
               onChange={(e) => setForm({ ...form, raca: e.target.value })}
               placeholder="Ex: Mangalarga Marchador"
               className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Humor do Cavalo</label>
+            <div className="flex gap-2">
+              {["Dócil", "Moderado", "Arredio"].map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  onClick={() => setForm({ ...form, humor: h })}
+                  className={`px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.humor === h
+                    ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#EAB308]"
+                    }`}
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Comentário sobre o Cavalo</label>
+            <textarea
+              value={form.comentario}
+              onChange={(e) => setForm({ ...form, comentario: e.target.value })}
+              placeholder="Descreva o perfil, personalidade ou observações importantes sobre o cavalo..."
+              className="w-full h-32 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white resize-none"
             />
           </div>
 

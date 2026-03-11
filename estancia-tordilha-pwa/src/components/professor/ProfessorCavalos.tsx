@@ -1,26 +1,8 @@
-import { useState } from "react";
 import { useCavalos } from "@/hooks/useCavalos";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
-import { SwipeableCard } from "@/components/ui/SwipeableCard";
-import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
-import { useToast } from "@/components/ui/use-toast";
 
 export const ProfessorCavalos = () => {
-  const { cavalos, isLoading, deleteCavalo } = useCavalos();
-  const { toast } = useToast();
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
-
-  const handleConfirmDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await deleteCavalo.mutateAsync(deleteTarget.id);
-      toast({ title: "Removido", description: `${deleteTarget.nome} foi arquivado.` });
-    } catch (e: any) {
-      toast({ variant: "destructive", title: "Erro ao remover", description: e.message });
-    } finally {
-      setDeleteTarget(null);
-    }
-  };
+  const { cavalos, isLoading } = useCavalos();
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
@@ -46,45 +28,29 @@ export const ProfessorCavalos = () => {
           </div>
         ) : (
           cavalos.map((c) => (
-            <SwipeableCard
-              key={c.id}
-              onDelete={() => setDeleteTarget({ id: c.id, nome: c.nome })}
-              deleteLabel="Remover"
-            >
-              {({ isOpen }) => (
-                <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow transition-all active:scale-[0.98]">
-                  <AvatarWithFallback
-                    src={c.foto_url}
-                    className="w-14 h-14 rounded-2xl"
-                    type="horse"
-                  />
-                  <div className="flex-1">
-                    <p className="text-base font-bold text-slate-900">{c.nome}</p>
-                    <p className="text-xs text-slate-500 font-medium mt-0.5">
-                      {c.raca || "Raça não informada"}
-                    </p>
-                  </div>
-                  <div className={`transition-opacity duration-200 ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-                    <span className={`px-3 py-1 text-[11px] font-extrabold uppercase rounded-full tracking-wide ${c.status === "Ativo" ? "bg-[#EAB308] text-white" : "bg-amber-100 text-amber-600 border border-amber-300"}`}>
-                      {c.status}
-                    </span>
-                  </div>
-                </div>
-              )}
-            </SwipeableCard>
+            <div key={c.id} className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow transition-all active:scale-[0.98]">
+              <AvatarWithFallback
+                src={c.foto_url}
+                className="w-14 h-14 rounded-2xl"
+                type="horse"
+              />
+              <div className="flex-1">
+                <p className="text-base font-bold text-slate-900">{c.nome}</p>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  {c.raca || "Raça não informada"}
+                </p>
+              </div>
+              <div>
+                <span className={`px-3 py-1 text-[11px] font-extrabold uppercase rounded-full tracking-wide ${c.status === "Ativo" ? "bg-[#EAB308] text-white" : "bg-amber-100 text-amber-600 border border-amber-300"}`}>
+                  {c.status}
+                </span>
+              </div>
+            </div>
           ))
         )}
       </div>
-
-      <ConfirmDeleteModal
-        isOpen={!!deleteTarget}
-        title="Remover Cavalo?"
-        description={`Tem certeza que deseja remover ${deleteTarget?.nome ?? ""}? O histórico de sessões será mantido.`}
-        confirmLabel="Sim, remover"
-        isLoading={deleteCavalo.isPending}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
     </div>
   );
 };
+
+export default ProfessorCavalos;

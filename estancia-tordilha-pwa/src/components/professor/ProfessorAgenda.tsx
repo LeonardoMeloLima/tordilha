@@ -25,7 +25,11 @@ export const ProfessorAgenda = () => {
 
   const daySessoes = useMemo(() => {
     return sessoes
-      .filter((s) => isSameDay(parseISO(s.data_hora), parseISO(selectedDay)))
+      .filter((s) => {
+        const isSelectedDay = isSameDay(parseISO(s.data_hora), parseISO(selectedDay));
+        const isNotConcluida = s.status !== "concluida";
+        return isSelectedDay && isNotConcluida;
+      })
       .sort((a, b) => a.data_hora.localeCompare(b.data_hora));
   }, [sessoes, selectedDay]);
 

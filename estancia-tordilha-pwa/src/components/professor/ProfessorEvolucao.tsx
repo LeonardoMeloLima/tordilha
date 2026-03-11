@@ -9,8 +9,13 @@ import { ClinicalSlice } from "@/components/ui/ClinicalSlice";
 
 export const ProfessorEvolucao = () => {
   const { toast } = useToast();
-  const { sessoes, isLoading: loadingSessoes } = useSessoes();
+  const { sessoes, isLoading: loadingSessoes, updateSessao } = useSessoes();
   const { createEvolucao } = useEvolucao();
+
+  const activeSessoes = useMemo(() => 
+    sessoes.filter(s => s.status !== "concluida"),
+    [sessoes]
+  );
 
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
   const [checkedIn, setCheckedIn] = useState(false);
@@ -83,6 +88,12 @@ export const ProfessorEvolucao = () => {
         interacao,
       });
 
+      // Update session status to completed
+      await updateSessao.mutateAsync({
+        id: selectedSessaoId,
+        status: "concluida",
+      });
+
       toast({
         title: "Sucesso!",
         description: "Evolução salva com sucesso.",
@@ -138,14 +149,14 @@ export const ProfessorEvolucao = () => {
           className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm appearance-none"
         >
           <option value="">Selecione uma sessão...</option>
-          {sessoes.map((s) => (
+          {activeSessoes.map((s) => (
             <option key={s.id} value={s.id}>
               {s.aluno?.nome} - {format(parseISO(s.data_hora), "dd/MM 'às' HH:mm", { locale: ptBR })}
             </option>
           ))}
         </select>
-        {!sessoes.length && (
-          <p className="text-xs text-amber-600 mt-2 ml-1">Nenhuma sessão agendada para você.</p>
+        {!activeSessoes.length && (
+          <p className="text-xs text-amber-600 mt-2 ml-1">Nenhuma sessão pendente para você.</p>
         )}
       </div>
 

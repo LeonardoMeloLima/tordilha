@@ -14,7 +14,7 @@ export function ClinicalSlice({
     icon: Icon,
     value,
     onChange,
-    activeColor = "bg-[#2E8B57]",
+    activeColor = "bg-[#EAB308]",
     iconColor = "text-[#8B4513]",
 }: ClinicalSliceProps) {
     return (

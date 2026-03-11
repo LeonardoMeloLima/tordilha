@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Camera, Upload, Loader2, X } from "lucide-react";
 import { CameraCaptureModal } from "@/components/CameraCaptureModal";
 import { supabase } from "@/lib/supabase";
+import { useToast } from "./use-toast";
 
 interface ImageUploadFieldProps {
     /** The Supabase Storage bucket name (e.g. 'cavalos', 'alunos', 'avatars') */
@@ -16,6 +17,8 @@ interface ImageUploadFieldProps {
     shape?: "circle" | "rounded";
     /** Label to display above the field */
     label?: string;
+    /** Callback when uploading state changes */
+    onUploadingChange?: (isUploading: boolean) => void;
 }
 
 export function ImageUploadField({
@@ -25,7 +28,9 @@ export function ImageUploadField({
     defaultFacingMode = "environment",
     shape = "rounded",
     label = "Foto",
+    onUploadingChange,
 }: ImageUploadFieldProps) {
+    const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -33,6 +38,7 @@ export function ImageUploadField({
     const uploadFile = async (fileOrBlob: File | Blob, extension = "jpg") => {
         try {
             setIsUploading(true);
+            onUploadingChange?.(true);
 
             const { data: { session }, error: refreshError } = await supabase.auth.getSession();
             if (refreshError || !session) {
@@ -61,9 +67,15 @@ export function ImageUploadField({
             onChange(`${publicUrl}?t=${Date.now()}`);
         } catch (error: any) {
             console.error("Upload error:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro no upload",
+                description: "Não foi possível salvar a imagem. Verifique sua conexão ou tente novamente.",
+            });
             throw error;
         } finally {
             setIsUploading(false);
+            onUploadingChange?.(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };

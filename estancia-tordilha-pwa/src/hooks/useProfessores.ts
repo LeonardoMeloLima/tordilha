@@ -15,11 +15,11 @@ export function useProfessores() {
     const query = useQuery({
         queryKey: ["professores"],
         queryFn: async (): Promise<Professor[]> => {
-            // Get all user_ids with role 'professor'
+            // Get all user_ids with roles 'professor' or 'gestor'
             const { data: roles, error: rolesError } = await supabase
                 .from("user_roles")
                 .select("user_id")
-                .eq("role", "professor");
+                .in("role", ["professor", "gestor"]);
 
             if (rolesError) throw rolesError;
             if (!roles || roles.length === 0) return [];
