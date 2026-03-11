@@ -165,23 +165,25 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                         <Clock size={16} />
                         Horários Disponíveis
                     </label>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                         {horários.map((slot: { hora: string; ocupado: boolean }) => (
                             <button
                                 key={slot.hora}
                                 type="button"
                                 disabled={slot.ocupado}
                                 onClick={() => setSelectedTime(slot.hora)}
-                                className={`h-14 rounded-[20px] font-bold text-base transition-all flex items-center justify-center gap-2 border-2 ${selectedTime === slot.hora
+                                className={`h-12 rounded-[16px] font-bold text-sm transition-all flex flex-col items-center justify-center border-2 ${selectedTime === slot.hora
                                     ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
                                     : slot.ocupado 
                                         ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
                                         : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
                                     }`}
                             >
-                                <Clock size={16} className={selectedTime === slot.hora ? "text-white" : "text-slate-400"} />
-                                {slot.hora}
-                                {slot.ocupado && <span className="text-[8px] uppercase tracking-tighter">(Ocupado)</span>}
+                                <span className="flex items-center gap-1">
+                                    <Clock size={12} className={selectedTime === slot.hora ? "text-white" : "text-slate-400"} />
+                                    {slot.hora}
+                                </span>
+                                {slot.ocupado && <span className="text-[7px] uppercase tracking-tighter leading-none">(Ocupado)</span>}
                             </button>
                         ))}
                     </div>
