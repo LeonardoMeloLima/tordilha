@@ -1,10 +1,14 @@
 import { useState, useMemo } from "react";
-import { Check, User, Calendar, Clock, Loader2 } from "lucide-react";
+import { Check, User, Calendar, Clock, Loader2, HeartPulse, Sparkles } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 import { useSessoes } from "@/hooks/useSessoes";
+import { useAlunos } from "@/hooks/useAlunos";
+import { useCavalos } from "@/hooks/useCavalos";
+import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { useToast } from "@/components/ui/use-toast";
-import { format, parseISO, isSameDay, setHours, setMinutes } from "date-fns";
+import { format, parseISO, isSameDay, setHours, setMinutes, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface NovoAgendamentoModalProps {
     isOpen: boolean;
@@ -14,19 +18,41 @@ interface NovoAgendamentoModalProps {
 export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalProps) => {
     const { toast } = useToast();
     const [selectedAluno, setSelectedAluno] = useState("");
+    const [selectedCavalo, setSelectedCavalo] = useState("");
     const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [selectedTime, setSelectedTime] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { data: vinculos, isLoading: loadingAlunos } = useResponsavelAlunos();
+    const { isSuperUser } = useRoleSession();
+    const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
+    const { alunos: allAlunos, isLoading: loadingAllAlunos } = useAlunos();
+    const { cavalos, isLoading: loadingCavalos } = useCavalos();
     const { sessoes, createSessao } = useSessoes();
 
+    const loadingAlunos = loadingVinculos || (isSuperUser && loadingAllAlunos);
+
     const alunos = useMemo(() => {
+        if (isSuperUser && (!vinculos || vinculos.length === 0)) {
+            return allAlunos.map(a => ({ id: a.id, nome: a.nome }));
+        }
         return vinculos?.map(v => ({
             id: v.aluno_id,
             nome: v.alunos?.nome
         })) || [];
-    }, [vinculos]);
+    }, [vinculos, allAlunos, isSuperUser]);
+
+    // Generate 14 days for horizontal calendar
+    const calendarDays = useMemo(() => {
+        return Array.from({ length: 14 }).map((_, i) => {
+            const date = addDays(new Date(), i);
+            return {
+                date: format(date, "yyyy-MM-dd"),
+                day: format(date, "d"),
+                weekday: format(date, "EEE", { locale: ptBR }).replace('.', ''),
+                fullDate: date
+            };
+        });
+    }, []);
 
     // Available slots (standard hours)
     const horáriosBase = [
@@ -60,6 +86,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
 
             await createSessao.mutateAsync({
                 aluno_id: selectedAluno,
+                cavalo_id: selectedCavalo || null,
                 data_hora: finalDate.toISOString(),
                 status: "confirmada"
             });
@@ -71,6 +98,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
             
             onClose();
             setSelectedAluno("");
+            setSelectedCavalo("");
             setSelectedTime("");
         } catch (error: any) {
             toast({
@@ -87,8 +115,9 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         <ActionSheet
             isOpen={isOpen}
             onClose={onClose}
-            title="Agendar Nova Sessão"
-            subtitle="Preencha os dados abaixo para agendar"
+            title="Agendar Sessão"
+            subtitle="Verifique a disponibilidade e escolha os dados"
+            className="sm:max-w-[480px]"
             footer={
                 <button
                     type="button"
@@ -139,23 +168,55 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     </div>
                 </div>
 
-                {/* 2. Seleção de Data */}
+                {/* 2. Seleção de Data - Horizontal */}
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <Calendar size={16} />
                         Data da Sessão
                     </label>
-                    <div className="relative">
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            min={format(new Date(), "yyyy-MM-dd")}
-                            onChange={(e) => setSelectedDate(e.target.value)}
-                            className="w-full h-16 px-6 rounded-[24px] bg-slate-50 border-2 border-transparent focus:border-[#EAB308] focus:bg-white text-slate-900 font-bold text-lg outline-none transition-all appearance-none"
-                        />
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                            <Calendar size={20} />
-                        </div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+                        {calendarDays.map((d) => (
+                            <button
+                                key={d.date}
+                                onClick={() => setSelectedDate(d.date)}
+                                className={`flex flex-col items-center justify-center min-w-[64px] h-[76px] rounded-2xl transition-all border-2 ${selectedDate === d.date
+                                    ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
+                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                                    }`}
+                            >
+                                <span className={`text-[10px] font-bold uppercase ${selectedDate === d.date ? "text-white/80" : "text-slate-400"}`}>
+                                    {d.weekday}
+                                </span>
+                                <span className="text-lg font-black tracking-tight">{d.day}</span>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 2.5 Seleção de Cavalo (Opcional para pais, mas recomendado) */}
+                <div className="space-y-4">
+                    <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
+                        <HeartPulse size={16} />
+                        Cavalo (Opcional)
+                    </label>
+                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
+                        {loadingCavalos ? (
+                            <div className="flex gap-2">
+                                {[1, 2, 3].map(i => <div key={i} className="w-24 h-12 bg-slate-100 rounded-xl animate-pulse" />)}
+                            </div>
+                        ) : cavalos.map(c => (
+                            <button
+                                key={c.id}
+                                onClick={() => setSelectedCavalo(selectedCavalo === c.id ? "" : c.id)}
+                                className={`whitespace-nowrap px-4 h-12 rounded-xl font-bold text-sm transition-all border-2 flex items-center gap-2 ${selectedCavalo === c.id
+                                    ? "bg-[#8B4513]/10 border-[#8B4513] text-[#8B4513]"
+                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                                    }`}
+                            >
+                                <div className={`w-2 h-2 rounded-full ${selectedCavalo === c.id ? "bg-[#8B4513]" : "bg-slate-300"}`} />
+                                {c.nome}
+                            </button>
+                        ))}
                     </div>
                 </div>
 
