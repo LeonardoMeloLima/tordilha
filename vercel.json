@@ -1,8 +1,11 @@
 {
+  "buildCommand": "cd estancia-tordilha-pwa && npm install && npm run build",
+  "outputDirectory": "estancia-tordilha-pwa/dist",
+  "framework": "vite",
   "rewrites": [
     {
       "source": "/(.*)",
-      "destination": "/"
+      "destination": "/index.html"
     }
   ]
 }

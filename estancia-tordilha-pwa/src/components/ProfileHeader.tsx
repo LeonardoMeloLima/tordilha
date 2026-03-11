@@ -191,7 +191,7 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
 
                     <div className="flex flex-col min-w-0">
                         <span className="text-slate-800 font-bold text-lg leading-tight truncate">
-                            Olá, {firstName}
+                            Olá, {firstName} (v4-final)
                         </span>
                         <div className="mt-0.5">
                             <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.className}`}>
