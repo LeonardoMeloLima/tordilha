@@ -1,9 +1,0 @@
-{
-  "name": "tordilha-root",
-  "private": true,
-  "scripts": {
-    "build": "cd estancia-tordilha-pwa && npm install && npm run build",
-    "dev": "cd estancia-tordilha-pwa && npm run dev",
-    "install": "cd estancia-tordilha-pwa && npm install"
-  }
-}
