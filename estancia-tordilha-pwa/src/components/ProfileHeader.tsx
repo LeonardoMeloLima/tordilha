@@ -31,15 +31,15 @@ interface ProfileHeaderProps {
 
 const roleBadges: Record<Role, { label: string; className: string }> = {
     professor: {
-        label: "Professor",
+        label: "Professor (v12:30)",
         className: "bg-[#EAB308]/10 text-[#EAB308]",
     },
     pais: {
-        label: "Responsável/Aluno",
+        label: "Responsável/Aluno (v12:30)",
         className: "bg-[#8B4513]/10 text-[#8B4513]",
     },
     gestor: {
-        label: "Gestor",
+        label: "Gestor (v12:30)",
         className: "bg-slate-100 text-slate-700",
     },
 };
@@ -195,7 +195,7 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, onDevRol
                         </span>
                         <div className="mt-0.5">
                             <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${badge.className}`}>
-                                {badge.label}
+                                {badge.label} (v12:30)
                             </span>
                         </div>
                     </div>
