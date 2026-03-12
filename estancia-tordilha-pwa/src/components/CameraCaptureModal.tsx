@@ -135,10 +135,10 @@ export function CameraCaptureModal({ open, onClose, onCapture, defaultFacingMode
 
     return (
         <div
-            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
-            style={{ backgroundColor: "rgba(0,0,0,0.7)", backdropFilter: "blur(8px)" }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4"
+            style={{ backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
         >
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[360px] overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[360px] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[96vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-2">
                     <h3 className="text-lg font-bold text-slate-800">Tirar Foto</h3>
@@ -152,7 +152,7 @@ export function CameraCaptureModal({ open, onClose, onCapture, defaultFacingMode
                 </div>
 
                 {/* Camera / Preview Area */}
-                <div className="px-5 pb-4">
+                <div className="px-5 pb-4 overflow-y-auto overflow-x-hidden flex-1 scrollbar-none">
                     <div className="relative w-full aspect-square rounded-2xl overflow-hidden bg-slate-900">
                         {/* Loading state */}
                         {isLoading && !error && (

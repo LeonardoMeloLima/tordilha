@@ -44,16 +44,21 @@ export const PaisMural = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user?.email) return;
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('aluno_responsavel')
       .select('aluno_id, alunos (nome, lgpd_assinado), responsaveis!inner (email)')
-      .eq('responsaveis.email', session.user.email)
-      .maybeSingle();
+      .eq('responsaveis.email', session.user.email);
 
-    if (data) {
-      setAlunoId(data.aluno_id);
-      setAlunoNome((data as any).alunos?.nome || "");
-      if ((data as any).alunos?.lgpd_assinado) {
+    if (error) {
+      console.error("Erro ao buscar vínculo do aluno:", error);
+      return;
+    }
+
+    if (data && data.length > 0) {
+      const activeLink = data[0];
+      setAlunoId(activeLink.aluno_id);
+      setAlunoNome((activeLink as any).alunos?.nome || "");
+      if ((activeLink as any).alunos?.lgpd_assinado) {
         setHasConsented(true);
       } else {
         setHasConsented(false);

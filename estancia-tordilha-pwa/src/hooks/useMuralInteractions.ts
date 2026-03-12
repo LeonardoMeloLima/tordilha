@@ -29,7 +29,7 @@ export function useMuralInteractions(postId?: string) {
                     user_id, 
                     conteudo, 
                     criado_em,
-                    profiles:user_id (full_name, avatar_url)
+                    profiles (full_name, avatar_url)
                 `)
                 .eq("post_id", postId)
                 .order("criado_em", { ascending: true });

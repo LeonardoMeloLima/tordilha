@@ -4,8 +4,10 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake } from "lucide-react";
+import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ActionSheet } from "@/components/ui/ActionSheet";
+import { ImageRightsForm } from "@/components/auth/ImageRightsForm";
 
 const Login = () => {
     const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
@@ -14,10 +16,18 @@ const Login = () => {
     const [alunos, setAlunos] = useState<{ nome: string; idade: string; diagnostico: string }[]>([{ nome: "", idade: "", diagnostico: "" }]);
     const [patrocinador, setPatrocinador] = useState("");
     const [telefone, setTelefone] = useState("");
+    const [rg, setRg] = useState("");
+    const [cpf, setCpf] = useState("");
+    const [endereco, setEndereco] = useState("");
+    const [cidade, setCidade] = useState("");
+    const [estado, setEstado] = useState("");
+    const [autorizaImagem, setAutorizaImagem] = useState(true);
     const [lgpd, setLgpd] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [showImageRights, setShowImageRights] = useState(false);
+    const [imageRightsConfirmed, setImageRightsConfirmed] = useState(false);
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
@@ -95,6 +105,13 @@ const Login = () => {
                             role: selectedRole,
                             telefone,
                             lgpd_assinado: lgpd,
+                            autoriza_imagem: selectedRole === "pais" ? autorizaImagem : undefined,
+                            data_autorizacao_imagem: selectedRole === "pais" ? new Date().toISOString() : undefined,
+                            rg: selectedRole === "pais" ? rg : undefined,
+                            cpf: selectedRole === "pais" ? cpf : undefined,
+                            endereco: selectedRole === "pais" ? endereco : undefined,
+                            cidade: selectedRole === "pais" ? cidade : undefined,
+                            estado: selectedRole === "pais" ? estado : undefined,
                             aluno_nomes: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.nome).join(", ") : undefined,
                             aluno_idades: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.idade).join(", ") : undefined,
                             aluno_diagnosticos: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.diagnostico).join(", ") : undefined,
@@ -103,6 +120,75 @@ const Login = () => {
                     }
                 });
                 if (error) throw error;
+                if (mode === "signUp" && selectedRole === "pais") {
+                    // 1. Create/Get Responsavel record
+                    let { data: resp } = await supabase
+                        .from('responsaveis')
+                        .select('id')
+                        .eq('email', email)
+                        .maybeSingle();
+
+                    let responsavelId = resp?.id;
+
+                    if (!responsavelId) {
+                        const { data: newResp, error: createError } = await supabase
+                            .from('responsaveis')
+                            .insert({
+                                nome: fullName,
+                                email: email,
+                                telefone: telefone,
+                                cpf: cpf,
+                                rg: rg,
+                                endereco: endereco,
+                                cidade: cidade,
+                                estado: estado
+                            })
+                            .select('id')
+                            .single();
+
+                        if (!createError) responsavelId = newResp.id;
+                    } else {
+                        // Update existing record with any new info
+                        await supabase
+                            .from('responsaveis')
+                            .update({
+                                nome: fullName,
+                                telefone: telefone,
+                                cpf: cpf,
+                                rg: rg,
+                                endereco: endereco,
+                                cidade: cidade,
+                                estado: estado
+                            })
+                            .eq('id', responsavelId);
+                    }
+
+                    // 2. Create Students and Link them
+                    if (responsavelId) {
+                        for (const aluno of alunos.filter(a => a.nome.trim() !== "")) {
+                            const { data: newAluno, error: alunoError } = await supabase
+                                .from('alunos')
+                                .insert({
+                                    nome: aluno.nome,
+                                    // Use idade and diagnostico if tables support it, 
+                                    // but primarily we link it.
+                                })
+                                .select('id')
+                                .single();
+
+                            if (!alunoError && newAluno) {
+                                await supabase
+                                    .from('aluno_responsavel')
+                                    .insert({
+                                        aluno_id: newAluno.id,
+                                        responsavel_id: responsavelId,
+                                        parentesco: 'Responsável'
+                                    });
+                            }
+                        }
+                    }
+                }
+
                 toast({
                     title: "Conta criada com sucesso!",
                     description: "Agora você já pode fazer o seu login.",
@@ -179,11 +265,17 @@ const Login = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setSelectedRole("pais")}
+                                        onClick={() => {
+                                            setSelectedRole("pais");
+                                            if (!imageRightsConfirmed) {
+                                                setShowImageRights(true);
+                                            }
+                                        }}
                                         className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "pais" ? "border-[#EAB308] bg-[#EAB308]/10 text-[#EAB308]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <Users size={24} strokeWidth={1.5} className="mb-2" />
                                         <span className="text-xs font-bold">Responsável</span>
+                                        {imageRightsConfirmed && <Check size={12} className="mt-1" />}
                                     </button>
                                 </div>
                             </div>
@@ -310,14 +402,61 @@ const Login = () => {
                                                 htmlFor="lgpd"
                                                 className="text-[13px] font-medium text-slate-600 leading-tight cursor-pointer select-none"
                                             >
-                                                Autorizo o uso de dados e imagens conforme a Lei Geral de Proteção de Dados (LGPD).
+                                                Autorizo o uso de dados conforme a Lei Geral de Proteção de Dados (LGPD).
                                             </label>
                                         </div>
                                     </div>
+
+                                    {selectedRole === "pais" && imageRightsConfirmed && (
+                                        <div className="p-4 bg-[#EAB308]/5 rounded-2xl border border-[#EAB308]/20 flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-[#EAB308] flex items-center justify-center">
+                                                    <Check size={16} className="text-white" />
+                                                </div>
+                                                <span className="text-xs font-bold text-[#EAB308]">Autorização de Imagem Concluída</span>
+                                            </div>
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setShowImageRights(true)}
+                                                className="text-[10px] font-bold uppercase underline text-[#EAB308]"
+                                            >
+                                                Editar
+                                            </button>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </>
                     )}
+
+                    <ActionSheet
+                        isOpen={showImageRights}
+                        onClose={() => setShowImageRights(false)}
+                        title="Autorização de Imagem"
+                        subtitle="Preencha os dados e confirme sua autorização"
+                    >
+                        <ImageRightsForm 
+                            responsibleName={fullName}
+                            rg={rg}
+                            setRg={setRg}
+                            cpf={cpf}
+                            setCpf={setCpf}
+                            address={endereco}
+                            setAddress={setEndereco}
+                            city={cidade}
+                            setCity={setCidade}
+                            state={estado}
+                            setState={setEstado}
+                            setResponsibleName={setFullName}
+                            studentNames={alunos.filter(a => a.nome.trim() !== "").map(a => a.nome).join(", ")}
+                            authorized={autorizaImagem}
+                            setAuthorized={setAutorizaImagem}
+                            onConfirm={() => {
+                                setImageRightsConfirmed(true);
+                                setShowImageRights(false);
+                            }}
+                        />
+                    </ActionSheet>
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-slate-700 ml-1">E-mail</label>
@@ -376,7 +515,7 @@ const Login = () => {
 
                     <Button
                         type="submit"
-                        disabled={loading}
+                        disabled={loading || (mode === "signUp" && selectedRole === "pais" && !imageRightsConfirmed)}
                         className="w-full h-14 rounded-full bg-[#EAB308] hover:bg-[#D97706] text-white font-bold text-lg mt-6 shadow-lg shadow-[#EAB308]/20 transition-all active:scale-[0.98]"
                     >
                         {loading ? "Processando..." : (

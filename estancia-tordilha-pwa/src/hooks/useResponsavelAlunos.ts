@@ -6,12 +6,12 @@ export function useResponsavelAlunos() {
         queryKey: ["responsavel-alunos-vinculo"],
         queryFn: async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.user?.id) return [];
+            if (!session?.user?.email) return [];
 
             const { data, error } = await supabase
                 .from('aluno_responsavel')
-                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado)')
-                .eq('responsavel_id', session.user.id);
+                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado), responsaveis!inner(email)')
+                .eq('responsaveis.email', session.user.email);
 
             if (error) throw error;
             return data || [];

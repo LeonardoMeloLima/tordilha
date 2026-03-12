@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap } from "lucide-react";
+import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap, FileText } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { useAlunos } from "@/hooks/useAlunos";
@@ -10,6 +10,7 @@ import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useProfessores } from "@/hooks/useProfessores";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { Mail, Plus, Trash2, Users } from "lucide-react";
+import { generateImageRightsPDF } from "@/services/pdfService";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
@@ -454,13 +455,35 @@ export const GestorAlunos = () => {
                           <p className="text-[11px] text-slate-500">{resp.email}</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveResponsavel(resp.id)}
-                        className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          title="Baixar Termo de Imagem"
+                          onClick={() => generateImageRightsPDF({
+                            responsibleName: resp.nome,
+                            rg: resp.rg || "_________________",
+                            cpf: "_________________",
+                            address: resp.endereco || "_________________",
+                            city: resp.cidade || "_________________",
+                            state: resp.estado || "__",
+                            studentNames: selectedAluno.nome,
+                            authorized: !!selectedAluno.autoriza_imagem,
+                            date: selectedAluno.data_autorizacao_imagem 
+                              ? new Date(selectedAluno.data_autorizacao_imagem).toLocaleDateString('pt-BR')
+                              : new Date().toLocaleDateString('pt-BR')
+                          })}
+                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                        >
+                          <FileText size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveResponsavel(resp.id)}
+                          className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}

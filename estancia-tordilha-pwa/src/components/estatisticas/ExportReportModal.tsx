@@ -54,7 +54,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                 }
             } else if (selectedType === "social") {
                 // Mock data for social impact - to be replaced with real data from Supabase
-                const columns = ["Indicador", "Valor", "Status"];
+                const columns = ["Indicador", "Quantidade", "Status"];
                 const data = [
                     ["Total de Alunos Atendidos", "42", "Ativo"],
                     ["Sessões Realizadas (Mês)", "156", "Concluído"],

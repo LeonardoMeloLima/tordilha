@@ -6,6 +6,10 @@ export interface ResponsavelLink {
     nome: string;
     email: string;
     parentesco: string;
+    rg?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
 }
 
 export function useAlunosResponsaveis(alunoId: string | null) {
@@ -22,7 +26,11 @@ export function useAlunosResponsaveis(alunoId: string | null) {
           responsaveis (
             id,
             nome,
-            email
+            email,
+            rg,
+            endereco,
+            cidade,
+            estado
           )
         `)
                 .eq("aluno_id", alunoId);
@@ -33,6 +41,10 @@ export function useAlunosResponsaveis(alunoId: string | null) {
                 id: item.responsaveis.id,
                 nome: item.responsaveis.nome,
                 email: item.responsaveis.email,
+                rg: item.responsaveis.rg,
+                endereco: item.responsaveis.endereco,
+                cidade: item.responsaveis.cidade,
+                estado: item.responsaveis.estado,
                 parentesco: item.parentesco,
             })) as ResponsavelLink[];
         },
