@@ -32,13 +32,20 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
     const loadingAlunos = loadingVinculos || (isSuperUser && loadingAllAlunos);
 
     const alunos = useMemo(() => {
-        if (isSuperUser && (!vinculos || vinculos.length === 0)) {
+        // Se houver vínculos (filhos do responsável), mostramos eles
+        if (vinculos && vinculos.length > 0) {
+            return vinculos.map(v => ({
+                id: v.aluno_id,
+                nome: v.alunos?.nome
+            }));
+        }
+
+        // Se for administrador e não tiver vínculos específicos, mostramos todos
+        if (isSuperUser) {
             return allAlunos.map(a => ({ id: a.id, nome: a.nome }));
         }
-        return vinculos?.map(v => ({
-            id: v.aluno_id,
-            nome: v.alunos?.nome
-        })) || [];
+
+        return [];
     }, [vinculos, allAlunos, isSuperUser]);
 
     // Generate 14 days for horizontal calendar

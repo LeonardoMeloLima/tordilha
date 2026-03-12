@@ -4,18 +4,37 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle } from "lucide-react";
+import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const Login = () => {
     const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
     const [fullName, setFullName] = useState("");
     const [selectedRole, setSelectedRole] = useState<"gestor" | "professor" | "pais" | "">("");
+    const [alunos, setAlunos] = useState<{ nome: string; idade: string; diagnostico: string }[]>([{ nome: "", idade: "", diagnostico: "" }]);
+    const [patrocinador, setPatrocinador] = useState("");
+    const [telefone, setTelefone] = useState("");
+    const [lgpd, setLgpd] = useState(false);
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
+
+    const addAluno = () => setAlunos([...alunos, { nome: "", idade: "", diagnostico: "" }]);
+    const updateAlunoField = (index: number, field: "nome" | "idade" | "diagnostico", val: string) => {
+        const newAlunos = [...alunos];
+        newAlunos[index][field] = val;
+        setAlunos(newAlunos);
+    };
+    const removeAluno = (index: number) => {
+        if (alunos.length > 1) {
+            setAlunos(alunos.filter((_, i) => i !== index));
+        } else {
+            setAlunos([{ nome: "", idade: "", diagnostico: "" }]);
+        }
+    };
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -70,17 +89,28 @@ const Login = () => {
                     email,
                     password,
                     options: {
+                        emailRedirectTo: window.location.origin,
                         data: {
                             nome_completo: fullName,
                             role: selectedRole,
+                            telefone,
+                            lgpd_assinado: lgpd,
+                            aluno_nomes: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.nome).join(", ") : undefined,
+                            aluno_idades: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.idade).join(", ") : undefined,
+                            aluno_diagnosticos: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.diagnostico).join(", ") : undefined,
+                            patrocinador: selectedRole === "pais" ? patrocinador : undefined,
                         }
                     }
                 });
                 if (error) throw error;
                 toast({
-                    title: "Conta criada!",
-                    description: "Verifique seu e-mail para confirmar o cadastro.",
+                    title: "Conta criada com sucesso!",
+                    description: "Agora você já pode fazer o seu login.",
                 });
+                setMode("signIn");
+                setEmail("");
+                setPassword("");
+                setConfirmPassword("");
             }
         } catch (error: any) {
             console.error("Auth error:", error);
@@ -157,6 +187,135 @@ const Login = () => {
                                     </button>
                                 </div>
                             </div>
+
+                            {selectedRole === "pais" && (
+                                <>
+                                    <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                                        <div className="flex items-center justify-between ml-1">
+                                            <label className="text-sm font-bold text-slate-700">Aluno(s) Sob sua Responsabilidade</label>
+                                            <button
+                                                type="button"
+                                                onClick={addAluno}
+                                                className="text-[10px] font-bold uppercase tracking-wider text-[#EAB308] bg-[#EAB308]/10 px-2.5 py-1.5 rounded-lg hover:bg-[#EAB308]/20 transition-all"
+                                            >
+                                                + Adicionar
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {alunos.map((aluno, index) => (
+                                                <div key={index} className="space-y-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                            Aluno {index + 1}
+                                                        </span>
+                                                        {alunos.length > 1 && (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => removeAluno(index)}
+                                                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                                            >
+                                                                <Users size={16} strokeWidth={1.5} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                                        <div className="sm:col-span-3 relative group transition-all">
+                                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                                <User size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
+                                                            </div>
+                                                            <Input
+                                                                type="text"
+                                                                placeholder="Nome do Aluno"
+                                                                value={aluno.nome}
+                                                                onChange={(e) => updateAlunoField(index, "nome", e.target.value)}
+                                                                className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium"
+                                                                required={index === 0}
+                                                            />
+                                                        </div>
+                                                        <div className="relative group transition-all">
+                                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                                <Cake size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
+                                                            </div>
+                                                            <Input
+                                                                type="number"
+                                                                placeholder="Idade"
+                                                                value={aluno.idade}
+                                                                onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
+                                                                className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                required={index === 0}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="relative group transition-all">
+                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                            <Briefcase size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
+                                                        </div>
+                                                        <Input
+                                                            type="text"
+                                                            placeholder="Diagnóstico (Ex: TDAH, TEA...)"
+                                                            value={aluno.diagnostico}
+                                                            onChange={(e) => updateAlunoField(index, "diagnostico", e.target.value)}
+                                                            className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                        <label className="text-sm font-medium text-slate-700 ml-1">Patrocinador</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <Briefcase size={20} strokeWidth={1.5} className="text-slate-400" />
+                                            </div>
+                                            <Input
+                                                type="text"
+                                                placeholder="Ex: Prefeitura, Empresa X, Particular..."
+                                                value={patrocinador}
+                                                onChange={(e) => setPatrocinador(e.target.value)}
+                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                        <label className="text-sm font-medium text-slate-700 ml-1">Telefone / WhatsApp</label>
+                                        <div className="relative">
+                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                                <Phone size={20} strokeWidth={1.5} className="text-slate-400" />
+                                            </div>
+                                            <Input
+                                                type="tel"
+                                                placeholder="(00) 00000-0000"
+                                                value={telefone}
+                                                onChange={(e) => setTelefone(e.target.value)}
+                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                                required={selectedRole === "pais"}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-start items-center space-x-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 animate-in fade-in slide-in-from-top-2">
+                                        <Checkbox 
+                                            id="lgpd" 
+                                            checked={lgpd} 
+                                            onCheckedChange={(checked) => setLgpd(checked === true)}
+                                            required={selectedRole === "pais"}
+                                            className="h-5 w-5 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-[#EAB308] data-[state=checked]:border-[#EAB308]"
+                                        />
+                                        <div className="grid gap-1.5 leading-none">
+                                            <label
+                                                htmlFor="lgpd"
+                                                className="text-[13px] font-medium text-slate-600 leading-tight cursor-pointer select-none"
+                                            >
+                                                Autorizo o uso de dados e imagens conforme a Lei Geral de Proteção de Dados (LGPD).
+                                            </label>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </>
                     )}
 

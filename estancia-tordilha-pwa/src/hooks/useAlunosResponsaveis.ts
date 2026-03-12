@@ -56,6 +56,7 @@ export function useAlunosResponsaveis(alunoId: string | null) {
                 .from("responsaveis")
                 .select("id")
                 .eq("email", email)
+                .limit(1)
                 .maybeSingle();
 
             if (fetchError) throw fetchError;

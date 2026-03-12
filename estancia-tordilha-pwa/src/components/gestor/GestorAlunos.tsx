@@ -18,7 +18,7 @@ export const GestorAlunos = () => {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
-  const [form, setForm] = useState({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "" });
+  const [form, setForm] = useState({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   // For responsible linking
@@ -34,7 +34,7 @@ export const GestorAlunos = () => {
   const handleAddNew = () => {
     setShowForm(true);
     setSelectedAluno(null);
-    setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "" });
+    setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
   };
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export const GestorAlunos = () => {
       }
       setShowForm(false);
       setSelectedAluno(null);
-      setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "" });
+      setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
     }
@@ -87,6 +87,7 @@ export const GestorAlunos = () => {
       avatar_url: aluno.avatar_url || "",
       ativo: aluno.ativo !== false,
       professor_id: aluno.professor_id || "",
+      patrocinador: aluno.patrocinador || "",
     });
     setShowForm(true);
   };
@@ -104,13 +105,16 @@ export const GestorAlunos = () => {
   };
 
   const handleAddResponsavel = async () => {
-    if (!respForm.email || !respForm.nome) {
+    const emailTrimmed = respForm.email.trim().toLowerCase();
+    const nomeTrimmed = respForm.nome.trim();
+
+    if (!emailTrimmed || !nomeTrimmed) {
       toast({ variant: "destructive", title: "Erro", description: "Preencha o nome e email do responsável." });
       return;
     }
 
     try {
-      await linkResponsavel.mutateAsync(respForm);
+      await linkResponsavel.mutateAsync({ ...respForm, email: emailTrimmed, nome: nomeTrimmed });
       setShowAddResp(false);
       setRespForm({ email: "", nome: "", parentesco: "Pai" });
       toast({ title: "Sucesso", description: "Responsável vinculado!" });
@@ -204,7 +208,9 @@ export const GestorAlunos = () => {
                 />
                 <div className="flex-1">
                   <p className="font-bold text-sm text-foreground">{aluno.nome}</p>
-                  <p className="text-xs text-muted-foreground font-medium mt-0.5">{aluno.diagnostico || "Sem diagnóstico"} · {aluno.idade || "?"} anos</p>
+                  <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                    {aluno.diagnostico || "Sem diagnóstico"} · {aluno.idade || "?"} anos
+                  </p>
                   {aluno.professor_id && (() => {
                     const prof = professores.find(p => p.id === aluno.professor_id);
                     return prof ? (
@@ -317,6 +323,16 @@ export const GestorAlunos = () => {
             />
           </div>
 
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Patrocinador</label>
+            <input
+              value={form.patrocinador}
+              onChange={(e) => setForm({ ...form, patrocinador: e.target.value })}
+              placeholder="Ex: Particular, Prefeitura..."
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+
           {/* Professor assignment */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1 flex items-center gap-1.5">
@@ -424,7 +440,7 @@ export const GestorAlunos = () => {
               <div className="space-y-2">
                 {responsaveis.length === 0 ? (
                   <p className="text-xs text-muted-foreground text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    Nenhum responsável vinculado a este e-mail.
+                    Nenhum responsável vinculado a este aluno.
                   </p>
                 ) : (
                   responsaveis.map((resp) => (

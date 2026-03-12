@@ -92,6 +92,7 @@ export type Database = {
           idade: number | null
           lgpd_assinado: boolean | null
           nome: string
+          patrocinador: string | null
           professor_id: string | null
         }
         Insert: {
@@ -106,6 +107,7 @@ export type Database = {
           idade?: number | null
           lgpd_assinado?: boolean | null
           nome: string
+          patrocinador?: string | null
           professor_id?: string | null
         }
         Update: {
@@ -120,6 +122,7 @@ export type Database = {
           idade?: number | null
           lgpd_assinado?: boolean | null
           nome?: string
+          patrocinador?: string | null
           professor_id?: string | null
         }
         Relationships: [
@@ -439,18 +442,24 @@ export type Database = {
           full_name: string | null
           id: string
           updated_at: string | null
+          aluno_nomes: string | null
+          patrocinador: string | null
         }
         Insert: {
           avatar_url?: string | null
           full_name?: string | null
           id: string
           updated_at?: string | null
+          aluno_nomes?: string | null
+          patrocinador?: string | null
         }
         Update: {
           avatar_url?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string | null
+          aluno_nomes?: string | null
+          patrocinador?: string | null
         }
         Relationships: []
       }
