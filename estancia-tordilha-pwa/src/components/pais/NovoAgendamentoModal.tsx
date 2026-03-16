@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import { Check, User, Calendar, Clock, Loader2, HeartPulse } from "lucide-react";
+import { Check, User, Calendar, Clock, Loader2, HeartPulse, Repeat } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 import { useSessoes } from "@/hooks/useSessoes";
+import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { useRoleSession } from "@/hooks/supabase/useRoleSession";
@@ -22,12 +23,15 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
     const [selectedDate, setSelectedDate] = useState(format(new Date(), "yyyy-MM-dd"));
     const [selectedTime, setSelectedTime] = useState("");
     const [loading, setLoading] = useState(false);
+    const [isRecorrente, setIsRecorrente] = useState(false);
+    const [diaSemana, setDiaSemana] = useState(1);
 
     const { isSuperUser } = useRoleSession();
     const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
     const { alunos: allAlunos, isLoading: loadingAllAlunos } = useAlunos();
     const { cavalos, isLoading: loadingCavalos } = useCavalos();
     const { sessoes, createSessao } = useSessoes();
+    const { createRecorrente } = useSessoesRecorrentes();
 
     const loadingAlunos = loadingVinculos || (isSuperUser && loadingAllAlunos);
 
@@ -48,9 +52,9 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         return [];
     }, [vinculos, allAlunos, isSuperUser]);
 
-    // Generate 14 days for horizontal calendar
+    // Generate 30 days for horizontal calendar
     const calendarDays = useMemo(() => {
-        return Array.from({ length: 14 }).map((_, i) => {
+        return Array.from({ length: 30 }).map((_, i) => {
             const date = addDays(new Date(), i);
             return {
                 date: format(date, "yyyy-MM-dd"),
@@ -83,30 +87,40 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
     }, [selectedDate, sessoes]);
 
     const handleConfirm = async () => {
-        if (!selectedAluno || !selectedDate || !selectedTime) return;
+        if (!selectedAluno) return;
+        if (!isRecorrente && (!selectedDate || !selectedTime)) return;
+        if (isRecorrente && !selectedTime) return;
 
         setLoading(true);
         try {
-            const [hours, minutes] = selectedTime.split(':').map(Number);
-            const dateObj = parseISO(selectedDate);
-            const finalDate = setMinutes(setHours(dateObj, hours), minutes);
+            if (isRecorrente) {
+                await createRecorrente.mutateAsync({
+                    aluno_id: selectedAluno,
+                    cavalo_id: selectedCavalo || null,
+                    dia_semana: diaSemana,
+                    horario: selectedTime + ":00",
+                    ativo: true,
+                });
+                toast({ title: "Sucesso!", description: "Aula recorrente solicitada com sucesso." });
+            } else {
+                const [hours, minutes] = selectedTime.split(':').map(Number);
+                const dateObj = parseISO(selectedDate);
+                const finalDate = setMinutes(setHours(dateObj, hours), minutes);
 
-            await createSessao.mutateAsync({
-                aluno_id: selectedAluno,
-                cavalo_id: selectedCavalo || null,
-                data_hora: finalDate.toISOString(),
-                status: "confirmada"
-            });
+                await createSessao.mutateAsync({
+                    aluno_id: selectedAluno,
+                    cavalo_id: selectedCavalo || null,
+                    data_hora: finalDate.toISOString(),
+                    status: "confirmada"
+                });
+                toast({ title: "Sucesso!", description: "Sessão agendada com sucesso." });
+            }
 
-            toast({
-                title: "Sucesso!",
-                description: "Sessão agendada com sucesso.",
-            });
-            
             onClose();
             setSelectedAluno("");
             setSelectedCavalo("");
             setSelectedTime("");
+            setIsRecorrente(false);
         } catch (error: any) {
             toast({
                 variant: "destructive",
@@ -129,18 +143,35 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 <button
                     type="button"
                     onClick={handleConfirm}
-                    disabled={!selectedAluno || !selectedDate || !selectedTime || loading || createSessao.isPending}
+                    disabled={!selectedAluno || (!isRecorrente && (!selectedDate || !selectedTime)) || (isRecorrente && !selectedTime) || loading || createSessao.isPending || createRecorrente.isPending}
                     className="w-full h-16 bg-[#4E593F] text-white rounded-[24px] font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
-                    {loading ? (
+                    {loading || createRecorrente.isPending ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : (
+                    ) : isRecorrente ? "Criar Aula Recorrente" : (
                         "Confirmar Agendamento"
                     )}
                 </button>
             }
         >
             <div className="space-y-8 py-2">
+                {/* Toggle recorrente */}
+                <div
+                    onClick={() => setIsRecorrente(v => !v)}
+                    className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${isRecorrente ? "border-[#4E593F] bg-[#4E593F]/5" : "border-slate-200 bg-slate-50"}`}
+                >
+                    <div className="flex items-center gap-2">
+                        <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
+                        <div>
+                            <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Aula Recorrente</p>
+                            <p className="text-[11px] text-slate-400">Ex: toda terça às 10h</p>
+                        </div>
+                    </div>
+                    <div className={`w-10 h-6 rounded-full transition-colors ${isRecorrente ? "bg-[#4E593F]" : "bg-slate-200"} flex items-center px-1`}>
+                        <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${isRecorrente ? "translate-x-4" : "translate-x-0"}`} />
+                    </div>
+                </div>
+
                 {/* 1. Seleção de Aluno */}
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
@@ -175,7 +206,33 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     </div>
                 </div>
 
-                {/* 2. Seleção de Data - Horizontal */}
+                {/* 1.5 Dia da semana (só em recorrente) */}
+                {isRecorrente && (
+                    <div className="space-y-4">
+                        <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
+                            <Repeat size={16} />
+                            Dia da Semana
+                        </label>
+                        <div className="flex gap-2 flex-wrap">
+                            {DIAS_SEMANA.map(d => (
+                                <button
+                                    key={d.value}
+                                    type="button"
+                                    onClick={() => setDiaSemana(d.value)}
+                                    className={`h-10 px-4 rounded-xl font-bold text-sm transition-all border-2 ${diaSemana === d.value
+                                        ? "bg-[#4E593F] border-[#4E593F] text-white"
+                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                                    }`}
+                                >
+                                    {d.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 2. Seleção de Data - Horizontal (só em avulso) */}
+                {!isRecorrente && (
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <Calendar size={16} />
@@ -199,6 +256,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                         ))}
                     </div>
                 </div>
+                )}
 
                 {/* 2.5 Seleção de Cavalo (Opcional para pais, mas recomendado) */}
                 <div className="space-y-4">

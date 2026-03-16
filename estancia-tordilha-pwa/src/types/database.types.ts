@@ -551,6 +551,64 @@ export type Database = {
         }
         Relationships: []
       }
+      sessoes_recorrentes: {
+        Row: {
+          id: string
+          aluno_id: string | null
+          cavalo_id: string | null
+          professor_id: string | null
+          dia_semana: number
+          horario: string
+          ativo: boolean
+          criado_em: string | null
+          atualizado_em: string | null
+        }
+        Insert: {
+          id?: string
+          aluno_id?: string | null
+          cavalo_id?: string | null
+          professor_id?: string | null
+          dia_semana: number
+          horario: string
+          ativo?: boolean
+          criado_em?: string | null
+          atualizado_em?: string | null
+        }
+        Update: {
+          id?: string
+          aluno_id?: string | null
+          cavalo_id?: string | null
+          professor_id?: string | null
+          dia_semana?: number
+          horario?: string
+          ativo?: boolean
+          criado_em?: string | null
+          atualizado_em?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessoes_recorrentes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessoes_recorrentes_cavalo_id_fkey"
+            columns: ["cavalo_id"]
+            isOneToOne: false
+            referencedRelation: "cavalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessoes_recorrentes_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sessoes: {
         Row: {
           aluno_id: string | null
@@ -561,6 +619,7 @@ export type Database = {
           id: string
           notas: string | null
           professor_id: string | null
+          recorrente_id: string | null
           status: string | null
         }
         Insert: {
@@ -572,6 +631,7 @@ export type Database = {
           id?: string
           notas?: string | null
           professor_id?: string | null
+          recorrente_id?: string | null
           status?: string | null
         }
         Update: {
@@ -583,6 +643,7 @@ export type Database = {
           id?: string
           notas?: string | null
           professor_id?: string | null
+          recorrente_id?: string | null
           status?: string | null
         }
         Relationships: [
