@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Check, User, Calendar, Clock, Loader2, HeartPulse, Repeat } from "lucide-react";
+import { Check, User, Calendar, Clock, Loader2, HeartPulse, Repeat, ChevronLeft, ChevronRight } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 import { useSessoes } from "@/hooks/useSessoes";
@@ -8,13 +8,21 @@ import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { useToast } from "@/components/ui/use-toast";
-import { format, parseISO, isSameDay, setHours, setMinutes, addDays } from "date-fns";
+import {
+    format, parseISO, isSameDay, setHours, setMinutes, isBefore, isToday,
+    startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth
+} from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface NovoAgendamentoModalProps {
     isOpen: boolean;
     onClose: () => void;
 }
+
+const HORARIOS_BASE = [
+    "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
+];
 
 export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalProps) => {
     const { toast } = useToast();
@@ -25,65 +33,64 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
     const [loading, setLoading] = useState(false);
     const [isRecorrente, setIsRecorrente] = useState(false);
     const [diaSemana, setDiaSemana] = useState(1);
+    const [currentMonth, setCurrentMonth] = useState(new Date());
 
     const { isSuperUser } = useRoleSession();
     const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
     const { alunos: allAlunos, isLoading: loadingAllAlunos } = useAlunos();
     const { cavalos, isLoading: loadingCavalos } = useCavalos();
+
+    // Fetch ALL sessions (no filter) so occupied slots reflect the full schedule
     const { sessoes, createSessao } = useSessoes();
     const { createRecorrente } = useSessoesRecorrentes();
 
     const loadingAlunos = loadingVinculos || (isSuperUser && loadingAllAlunos);
 
     const alunos = useMemo(() => {
-        // Se houver vínculos (filhos do responsável), mostramos eles
         if (vinculos && vinculos.length > 0) {
-            return vinculos.map(v => ({
-                id: v.aluno_id,
-                nome: v.alunos?.nome
-            }));
+            return vinculos.map(v => ({ id: v.aluno_id, nome: v.alunos?.nome }));
         }
-
-        // Se for administrador e não tiver vínculos específicos, mostramos todos
         if (isSuperUser) {
             return allAlunos.map(a => ({ id: a.id, nome: a.nome }));
         }
-
         return [];
     }, [vinculos, allAlunos, isSuperUser]);
 
-    // Generate 30 days for horizontal calendar
-    const calendarDays = useMemo(() => {
-        return Array.from({ length: 30 }).map((_, i) => {
-            const date = addDays(new Date(), i);
-            return {
-                date: format(date, "yyyy-MM-dd"),
-                day: format(date, "d"),
-                weekday: format(date, "EEE", { locale: ptBR }).replace('.', ''),
-                fullDate: date
-            };
-        });
-    }, []);
+    // Month grid
+    const monthDays = useMemo(() =>
+        eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) }),
+        [currentMonth]
+    );
 
-    // Available slots (standard hours)
-    const horáriosBase = [
-        "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-        "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
-    ];
+    const firstDayOffset = useMemo(() => {
+        const day = getDay(startOfMonth(currentMonth));
+        return day === 0 ? 6 : day - 1;
+    }, [currentMonth]);
 
-    // Filter slots based on occupied sessions for the selected day
-    const horários = useMemo((): { hora: string; ocupado: boolean }[] => {
-        if (!selectedDate) return horáriosBase.map(h => ({ hora: h, ocupado: false }));
+    // Days that already have sessions (dot indicators)
+    const daysWithSessoes = useMemo(() => {
+        const set = new Set<string>();
+        sessoes.forEach(s => set.add(format(parseISO(s.data_hora), "yyyy-MM-dd")));
+        return set;
+    }, [sessoes]);
 
+    // Occupied slots for selected day — ALL sessions, not just this aluno
+    const horarios = useMemo(() => {
+        if (!selectedDate) return HORARIOS_BASE.map(h => ({ hora: h, ocupado: false }));
         const dateObj = parseISO(selectedDate);
-        const occupiedTimes = sessoes
+        const ocupados = sessoes
             .filter(s => isSameDay(parseISO(s.data_hora), dateObj))
             .map(s => format(parseISO(s.data_hora), "HH:mm"));
-
-        return horáriosBase.map(h => ({
-            hora: h,
-            ocupado: occupiedTimes.includes(h)
-        }));
+        const now = new Date();
+        return HORARIOS_BASE.map(h => {
+            const [hh, mm] = h.split(':').map(Number);
+            const slotDate = new Date(dateObj);
+            slotDate.setHours(hh, mm, 0, 0);
+            return {
+                hora: h,
+                ocupado: ocupados.includes(h) || isBefore(slotDate, now),
+            };
+        });
     }, [selectedDate, sessoes]);
 
     const handleConfirm = async () => {
@@ -106,7 +113,6 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 const [hours, minutes] = selectedTime.split(':').map(Number);
                 const dateObj = parseISO(selectedDate);
                 const finalDate = setMinutes(setHours(dateObj, hours), minutes);
-
                 await createSessao.mutateAsync({
                     aluno_id: selectedAluno,
                     cavalo_id: selectedCavalo || null,
@@ -115,7 +121,6 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 });
                 toast({ title: "Sucesso!", description: "Sessão agendada com sucesso." });
             }
-
             onClose();
             setSelectedAluno("");
             setSelectedCavalo("");
@@ -148,13 +153,12 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 >
                     {loading || createRecorrente.isPending ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : isRecorrente ? "Criar Aula Recorrente" : (
-                        "Confirmar Agendamento"
-                    )}
+                    ) : isRecorrente ? "Criar Aula Recorrente" : "Confirmar Agendamento"}
                 </button>
             }
         >
             <div className="space-y-8 py-2">
+
                 {/* Toggle recorrente */}
                 <div
                     onClick={() => setIsRecorrente(v => !v)}
@@ -190,8 +194,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
                                 className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
                                     ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
-                                    : "bg-slate-50 border-transparent hover:border-slate-200"
-                                    }`}
+                                    : "bg-slate-50 border-transparent hover:border-slate-200"}`}
                             >
                                 <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
                                     {aluno.nome}
@@ -221,8 +224,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                     onClick={() => setDiaSemana(d.value)}
                                     className={`h-10 px-4 rounded-xl font-bold text-sm transition-all border-2 ${diaSemana === d.value
                                         ? "bg-[#4E593F] border-[#4E593F] text-white"
-                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
-                                    }`}
+                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"}`}
                                 >
                                     {d.label}
                                 </button>
@@ -231,34 +233,88 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     </div>
                 )}
 
-                {/* 2. Seleção de Data - Horizontal (só em avulso) */}
+                {/* 2. Calendário de grade com navegação por mês (só em avulso) */}
                 {!isRecorrente && (
-                <div className="space-y-4">
-                    <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
-                        <Calendar size={16} />
-                        Data da Sessão
-                    </label>
-                    <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-                        {calendarDays.map((d) => (
-                            <button
-                                key={d.date}
-                                onClick={() => setSelectedDate(d.date)}
-                                className={`flex flex-col items-center justify-center min-w-[64px] h-[76px] rounded-2xl transition-all border-2 ${selectedDate === d.date
-                                    ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
-                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
-                                    }`}
-                            >
-                                <span className={`text-[10px] font-bold uppercase ${selectedDate === d.date ? "text-white/80" : "text-slate-400"}`}>
-                                    {d.weekday}
-                                </span>
-                                <span className="text-lg font-black tracking-tight">{d.day}</span>
-                            </button>
-                        ))}
+                    <div className="space-y-4">
+                        <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
+                            <Calendar size={16} />
+                            Data da Sessão
+                        </label>
+
+                        <div className="bg-slate-50 rounded-2xl p-4">
+                            {/* Month navigation */}
+                            <div className="flex items-center justify-between mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentMonth(m => subMonths(m, 1))}
+                                    disabled={isSameMonth(currentMonth, new Date())}
+                                    className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-transform disabled:opacity-30"
+                                >
+                                    <ChevronLeft size={16} className="text-slate-600" />
+                                </button>
+                                <p className="text-sm font-extrabold text-slate-700 capitalize">
+                                    {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={() => setCurrentMonth(m => addMonths(m, 1))}
+                                    className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center active:scale-95 transition-transform"
+                                >
+                                    <ChevronRight size={16} className="text-slate-600" />
+                                </button>
+                            </div>
+
+                            {/* Weekday headers */}
+                            <div className="grid grid-cols-7 mb-1">
+                                {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(d => (
+                                    <div key={d} className="text-center text-[10px] font-bold text-slate-400 uppercase py-1">{d}</div>
+                                ))}
+                            </div>
+
+                            {/* Day cells */}
+                            <div className="grid grid-cols-7 gap-1">
+                                {Array.from({ length: firstDayOffset }).map((_, i) => <div key={`e-${i}`} />)}
+                                {monthDays.map(day => {
+                                    const dateStr = format(day, "yyyy-MM-dd");
+                                    const isSelected = selectedDate === dateStr;
+                                    const today = isToday(day);
+                                    const hasSessao = daysWithSessoes.has(dateStr);
+                                    const isPast = isBefore(day, new Date()) && !today;
+
+                                    return (
+                                        <button
+                                            key={dateStr}
+                                            type="button"
+                                            disabled={isPast}
+                                            onClick={() => { setSelectedDate(dateStr); setSelectedTime(""); }}
+                                            className={`relative flex flex-col items-center justify-center h-10 rounded-xl transition-all text-sm font-bold
+                                                ${isSelected ? "bg-[#4E593F] text-white shadow-md shadow-[#4E593F]/30"
+                                                    : today ? "bg-[#4E593F]/10 text-[#4E593F]"
+                                                    : isPast ? "text-slate-300 cursor-not-allowed"
+                                                    : "text-slate-700 hover:bg-white"}`}
+                                        >
+                                            {format(day, "d")}
+                                            {hasSessao && !isPast && (
+                                                <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isSelected ? "bg-white/70" : "bg-[#4E593F]"}`} />
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Selected date label */}
+                        {selectedDate && (
+                            <p className="text-xs font-bold text-[#4E593F] ml-1">
+                                {isToday(parseISO(selectedDate))
+                                    ? "Hoje"
+                                    : format(parseISO(selectedDate), "EEEE, d 'de' MMMM", { locale: ptBR })}
+                            </p>
+                        )}
                     </div>
-                </div>
                 )}
 
-                {/* 2.5 Seleção de Cavalo (Opcional para pais, mas recomendado) */}
+                {/* 2.5 Seleção de Cavalo (Opcional) */}
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <HeartPulse size={16} />
@@ -272,11 +328,11 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                         ) : cavalos.map(c => (
                             <button
                                 key={c.id}
+                                type="button"
                                 onClick={() => setSelectedCavalo(selectedCavalo === c.id ? "" : c.id)}
                                 className={`whitespace-nowrap px-4 h-12 rounded-xl font-bold text-sm transition-all border-2 flex items-center gap-2 ${selectedCavalo === c.id
                                     ? "bg-[#8B4513]/10 border-[#8B4513] text-[#8B4513]"
-                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
-                                    }`}
+                                    : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"}`}
                             >
                                 <div className={`w-2 h-2 rounded-full ${selectedCavalo === c.id ? "bg-[#8B4513]" : "bg-slate-300"}`} />
                                 {c.nome}
@@ -285,14 +341,14 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     </div>
                 </div>
 
-                {/* 3. Seleção de Horário */}
+                {/* 3. Horários disponíveis */}
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <Clock size={16} />
                         Horários Disponíveis
                     </label>
                     <div className="grid grid-cols-3 gap-2">
-                        {horários.map((slot: { hora: string; ocupado: boolean }) => (
+                        {horarios.map(slot => (
                             <button
                                 key={slot.hora}
                                 type="button"
@@ -300,10 +356,9 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 onClick={() => setSelectedTime(prev => prev === slot.hora ? "" : slot.hora)}
                                 className={`h-12 rounded-[16px] font-bold text-sm transition-all flex flex-col items-center justify-center border-2 ${selectedTime === slot.hora
                                     ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
-                                    : slot.ocupado 
+                                    : slot.ocupado
                                         ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
-                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
-                                    }`}
+                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"}`}
                             >
                                 <span className="flex items-center gap-1">
                                     <Clock size={12} className={selectedTime === slot.hora ? "text-white" : "text-slate-400"} />
@@ -318,4 +373,3 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         </ActionSheet>
     );
 };
-
