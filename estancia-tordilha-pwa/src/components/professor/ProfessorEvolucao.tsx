@@ -127,7 +127,7 @@ export const ProfessorEvolucao = () => {
   if (loadingSessoes) {
     return (
       <div className="flex flex-col items-center justify-center p-12 space-y-4">
-        <Loader2 className="w-8 h-8 text-[#EAB308] animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#4E593F] animate-spin" />
         <p className="text-sm font-medium text-muted-foreground">Carregando sessões...</p>
       </div>
     );
@@ -146,7 +146,7 @@ export const ProfessorEvolucao = () => {
         <select
           value={selectedSessaoId}
           onChange={(e) => setSelectedSessaoId(e.target.value)}
-          className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm appearance-none"
+          className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm appearance-none"
         >
           <option value="">Selecione uma sessão...</option>
           {activeSessoes.map((s) => (
@@ -156,7 +156,7 @@ export const ProfessorEvolucao = () => {
           ))}
         </select>
         {!activeSessoes.length && (
-          <p className="text-xs text-amber-600 mt-2 ml-1">Nenhuma sessão pendente para você.</p>
+          <p className="text-xs text-[#3E4732] mt-2 ml-1">Nenhuma sessão pendente para você.</p>
         )}
       </div>
 
@@ -185,11 +185,11 @@ export const ProfessorEvolucao = () => {
                 onChange={(e) => setNotas(e.target.value)}
                 placeholder="Descreva o progresso do aluno nesta sessão..."
                 rows={4}
-                className="w-full p-4 pr-14 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium resize-none focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm"
+                className="w-full p-4 pr-14 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium resize-none focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm"
               />
               <button
                 type="button"
-                className="absolute right-3 bottom-5 w-11 h-11 rounded-2xl bg-slate-100/50 text-slate-400 hover:text-[#EAB308] flex items-center justify-center transition-colors">
+                className="absolute right-3 bottom-5 w-11 h-11 rounded-2xl bg-slate-100/50 text-slate-400 hover:text-[#4E593F] flex items-center justify-center transition-colors">
                 <Mic size={18} />
               </button>
             </div>

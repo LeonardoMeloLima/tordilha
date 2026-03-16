@@ -58,7 +58,20 @@ export function useRoleSession() {
     };
 
     const isSuperUser = session?.user?.email === "leonardo.informatica@gmail.com";
+    const isMaster = session?.user?.email === "tais@gestor.com" || isSuperUser;
     const activeRole = (isSuperUser && devRole) ? devRole : realRole;
 
-    return { session, role: activeRole, realRole, isSuperUser, setDevRole, userName, avatarUrl, loading, signOut };
+    return { 
+        session, 
+        role: activeRole, 
+        realRole, 
+        isSuperUser, 
+        isMaster,
+        email: session?.user?.email,
+        setDevRole, 
+        userName, 
+        avatarUrl, 
+        loading, 
+        signOut 
+    };
 }

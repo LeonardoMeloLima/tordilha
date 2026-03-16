@@ -130,7 +130,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     type="button"
                     onClick={handleConfirm}
                     disabled={!selectedAluno || !selectedDate || !selectedTime || loading || createSessao.isPending}
-                    className="w-full h-16 bg-[#EAB308] text-white rounded-[24px] font-bold text-lg shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
+                    className="w-full h-16 bg-[#4E593F] text-white rounded-[24px] font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
                     {loading ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
@@ -158,15 +158,15 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 type="button"
                                 onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
                                 className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
-                                    ? "bg-[#EAB308]/5 border-[#EAB308] shadow-sm"
+                                    ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
                                     : "bg-slate-50 border-transparent hover:border-slate-200"
                                     }`}
                             >
-                                <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#EAB308]" : "text-slate-700"}`}>
+                                <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
                                     {aluno.nome}
                                 </span>
                                 {selectedAluno === aluno.id && (
-                                    <div className="w-6 h-6 rounded-full bg-[#EAB308] flex items-center justify-center">
+                                    <div className="w-6 h-6 rounded-full bg-[#4E593F] flex items-center justify-center">
                                         <Check size={14} className="text-white" strokeWidth={3} />
                                     </div>
                                 )}
@@ -187,7 +187,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 key={d.date}
                                 onClick={() => setSelectedDate(d.date)}
                                 className={`flex flex-col items-center justify-center min-w-[64px] h-[76px] rounded-2xl transition-all border-2 ${selectedDate === d.date
-                                    ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
+                                    ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
                                     : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
                                     }`}
                             >
@@ -241,7 +241,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 disabled={slot.ocupado}
                                 onClick={() => setSelectedTime(prev => prev === slot.hora ? "" : slot.hora)}
                                 className={`h-12 rounded-[16px] font-bold text-sm transition-all flex flex-col items-center justify-center border-2 ${selectedTime === slot.hora
-                                    ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
+                                    ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
                                     : slot.ocupado 
                                         ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
                                         : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"

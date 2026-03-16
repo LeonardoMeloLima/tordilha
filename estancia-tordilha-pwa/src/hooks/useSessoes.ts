@@ -34,7 +34,7 @@ export function useSessoes(professorId?: string, alunoIds?: string[]) {
                 .from("sessoes")
                 .select(`
                     *,
-                    aluno:alunos(id, nome, avatar_url, diagnostico),
+                    aluno:alunos(id, nome, avatar_url, diagnostico, idade),
                     cavalo:cavalos(id, nome, foto_url),
                     professor:profiles(id, full_name, avatar_url)
                 `);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap, FileText } from "lucide-react";
+import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap, FileText, Mail, Users, UserCog } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { useAlunos } from "@/hooks/useAlunos";
@@ -9,7 +9,6 @@ import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useProfessores } from "@/hooks/useProfessores";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
-import { Mail, Plus, Trash2, Users } from "lucide-react";
 import { generateImageRightsPDF } from "@/services/pdfService";
 
 export const GestorAlunos = () => {
@@ -19,23 +18,96 @@ export const GestorAlunos = () => {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
-  const [form, setForm] = useState({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
+  const [form, setForm] = useState({ 
+    nome: "", 
+    idade: "", 
+    diagnostico: "", 
+    contato_emergencia: "", 
+    lgpd_assinado: false, 
+    autoriza_imagem: false,
+    avatar_url: "", 
+    ativo: true, 
+    professor_id: "", 
+    patrocinador: "" 
+  });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
+  const [visibleCount, setVisibleCount] = useState(10);
 
   // For responsible linking
   const {
     responsaveis,
     linkResponsavel,
-    unlinkResponsavel
   } = useAlunosResponsaveis(selectedAluno?.id || null);
 
   const [showAddResp, setShowAddResp] = useState(false);
-  const [respForm, setRespForm] = useState({ email: "", nome: "", parentesco: "Pai" });
+  const [editingResp, setEditingResp] = useState<any>(null);
+  const [respForm, setRespForm] = useState({ 
+    email: "", 
+    nome: "", 
+    parentesco: "Pai",
+    rg: "",
+    cpf: "",
+    endereco: "",
+    cidade: "",
+    estado: ""
+  });
+
+  const openEditResp = (resp: any) => {
+    setEditingResp(resp);
+    setRespForm({
+      email: resp.email || "",
+      nome: resp.nome || "",
+      parentesco: resp.parentesco || "Pai",
+      rg: resp.rg || "",
+      cpf: resp.cpf || "",
+      endereco: resp.endereco || "",
+      cidade: resp.cidade || "",
+      estado: resp.estado || ""
+    });
+    setShowAddResp(true);
+  };
+
+  const handleAddResponsavel = async () => {
+    if (!respForm.email || !respForm.nome) {
+      toast({ variant: "destructive", title: "Erro", description: "Nome e email são obrigatórios" });
+      return;
+    }
+
+    try {
+      await linkResponsavel.mutateAsync({
+        email: respForm.email.toLowerCase().trim(),
+        nome: respForm.nome.trim(),
+        parentesco: respForm.parentesco,
+        rg: respForm.rg,
+        cpf: respForm.cpf,
+        endereco: respForm.endereco,
+        cidade: respForm.cidade,
+        estado: respForm.estado
+      });
+      setShowAddResp(false);
+      setEditingResp(null);
+      setRespForm({ email: "", nome: "", parentesco: "Pai", rg: "", cpf: "", endereco: "", cidade: "", estado: "" });
+      toast({ title: "Sucesso", description: editingResp ? "Dados atualizados!" : "Responsável vinculado!" });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro", description: err.message });
+    }
+  };
 
   const handleAddNew = () => {
     setShowForm(true);
     setSelectedAluno(null);
-    setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
+    setForm({ 
+      nome: "", 
+      idade: "", 
+      diagnostico: "", 
+      contato_emergencia: "", 
+      lgpd_assinado: false, 
+      autoriza_imagem: false,
+      avatar_url: "", 
+      ativo: true, 
+      professor_id: "", 
+      patrocinador: "" 
+    });
   };
 
   useEffect(() => {
@@ -45,6 +117,12 @@ export const GestorAlunos = () => {
   }, []);
 
   const filtered = alunos.filter((a) => a.nome.toLowerCase().includes(search.toLowerCase()));
+  const displayedAlunos = filtered.slice(0, visibleCount);
+
+  // Reset pagination when searching
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [search]);
 
   const handleSave = async () => {
     if (!form.nome.trim()) {
@@ -71,7 +149,18 @@ export const GestorAlunos = () => {
       }
       setShowForm(false);
       setSelectedAluno(null);
-      setForm({ nome: "", idade: "", diagnostico: "", contato_emergencia: "", lgpd_assinado: false, avatar_url: "", ativo: true, professor_id: "", patrocinador: "" });
+      setForm({ 
+        nome: "", 
+        idade: "", 
+        diagnostico: "", 
+        contato_emergencia: "", 
+        lgpd_assinado: false, 
+        autoriza_imagem: false,
+        avatar_url: "", 
+        ativo: true, 
+        professor_id: "", 
+        patrocinador: "" 
+      });
     } catch (error: any) {
       toast({ variant: "destructive", title: "Erro ao salvar", description: error.message });
     }
@@ -85,6 +174,7 @@ export const GestorAlunos = () => {
       diagnostico: aluno.diagnostico || "",
       contato_emergencia: aluno.contato_emergencia || "",
       lgpd_assinado: !!aluno.lgpd_assinado,
+      autoriza_imagem: !!aluno.autoriza_imagem,
       avatar_url: aluno.avatar_url || "",
       ativo: aluno.ativo !== false,
       professor_id: aluno.professor_id || "",
@@ -105,33 +195,6 @@ export const GestorAlunos = () => {
     }
   };
 
-  const handleAddResponsavel = async () => {
-    const emailTrimmed = respForm.email.trim().toLowerCase();
-    const nomeTrimmed = respForm.nome.trim();
-
-    if (!emailTrimmed || !nomeTrimmed) {
-      toast({ variant: "destructive", title: "Erro", description: "Preencha o nome e email do responsável." });
-      return;
-    }
-
-    try {
-      await linkResponsavel.mutateAsync({ ...respForm, email: emailTrimmed, nome: nomeTrimmed });
-      setShowAddResp(false);
-      setRespForm({ email: "", nome: "", parentesco: "Pai" });
-      toast({ title: "Sucesso", description: "Responsável vinculado!" });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro", description: err.message });
-    }
-  };
-
-  const handleRemoveResponsavel = async (id: string) => {
-    try {
-      await unlinkResponsavel.mutateAsync(id);
-      toast({ title: "Removido", description: "Vínculo removido." });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro", description: err.message });
-    }
-  };
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -181,18 +244,11 @@ export const GestorAlunos = () => {
             </div>
             <div className="space-y-2">
               <p className="text-lg font-bold text-slate-900">Nenhum aluno cadastrado</p>
-              <p className="text-sm text-muted-foreground font-medium px-4">Comece adicionando seu primeiro aluno para gerenciar sessões e evoluções.</p>
+              <p className="text-sm text-muted-foreground font-medium px-4">Os alunos são cadastrados pelos seus respectivos responsáveis no aplicativo.</p>
             </div>
-            <button
-              type="button"
-              onClick={handleAddNew}
-              className="h-12 px-8 bg-[#EAB308] text-white rounded-full font-bold text-sm shadow-md shadow-[#EAB308]/20 active:scale-[0.95] transition-all"
-            >
-              + Adicionar Primeiro Aluno
-            </button>
           </div>
         ) : (
-          filtered.map((aluno) => {
+          displayedAlunos.map((aluno) => {
             const isInativo = aluno.ativo === false;
 
             /** The card content — shared between both branches */
@@ -248,19 +304,30 @@ export const GestorAlunos = () => {
             );
           })
         )}
+
+        {!isLoading && filtered.length > visibleCount && (
+          <div className="pt-4 flex justify-center">
+            <button
+              onClick={() => setVisibleCount(prev => prev + 10)}
+              className="px-8 py-3 bg-white border border-slate-100 rounded-2xl card-shadow text-primary font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all"
+            >
+              Carregar mais 10
+            </button>
+          </div>
+        )}
       </div>
 
       <ActionSheet
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title={selectedAluno ? "Editar Aluno" : "Novo Aluno"}
-        subtitle={selectedAluno ? `Atualizando dados de ${selectedAluno.nome}` : "Preencha as informações do novo aluno"}
+        title="Visualizar Aluno"
+        subtitle={`Informações de cadastro de ${selectedAluno?.nome}`}
         footer={
           <button
             type="button"
             onClick={handleSave}
             disabled={createAluno.isPending || updateAluno.isPending}
-            className="w-full h-14 bg-[#EAB308] hover:bg-[#D97706] text-white rounded-full font-bold text-lg shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
           >
             {createAluno.isPending || updateAluno.isPending ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -279,58 +346,54 @@ export const GestorAlunos = () => {
             defaultFacingMode="user"
             shape="circle"
             label="Foto do Aluno"
+            disabled={!!selectedAluno}
           />
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Nome Completo</label>
+            <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Nome Completo</label>
             <input
+              readOnly
               value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              placeholder="Ex: João Silva"
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
-              required
+              className="w-full h-14 px-4 rounded-2xl border text-base font-bold shadow-sm outline-none bg-white border-slate-100 text-slate-800"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 ml-1">Idade</label>
+              <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Idade</label>
               <input
+                readOnly
                 value={form.idade}
-                onChange={(e) => setForm({ ...form, idade: e.target.value })}
-                placeholder="0"
-                type="number"
-                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+                className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 text-slate-800 text-base font-bold shadow-sm outline-none"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 ml-1">Emergência</label>
+              <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Emergência</label>
               <input
+                readOnly
                 value={form.contato_emergencia}
-                onChange={(e) => setForm({ ...form, contato_emergencia: e.target.value })}
-                placeholder="(00) 00000-0000"
-                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+                className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 text-slate-800 text-base font-bold shadow-sm outline-none"
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Diagnóstico</label>
+            <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Diagnóstico</label>
             <input
+              readOnly
               value={form.diagnostico}
-              onChange={(e) => setForm({ ...form, diagnostico: e.target.value })}
-              placeholder="Ex: TDAH, Autismo..."
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+              placeholder="Não informado"
+              className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 text-slate-800 text-base font-bold shadow-sm outline-none"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Patrocinador</label>
+            <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Patrocinador</label>
             <input
+              readOnly
               value={form.patrocinador}
-              onChange={(e) => setForm({ ...form, patrocinador: e.target.value })}
-              placeholder="Ex: Particular, Prefeitura..."
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+              placeholder="Não informado"
+              className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 text-slate-800 text-base font-bold shadow-sm outline-none"
             />
           </div>
 
@@ -349,7 +412,7 @@ export const GestorAlunos = () => {
               <select
                 value={form.professor_id}
                 onChange={(e) => setForm({ ...form, professor_id: e.target.value })}
-                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white appearance-none cursor-pointer"
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white appearance-none cursor-pointer"
               >
                 <option value="">— Nenhum professor —</option>
                 {professores.map((p) => (
@@ -361,82 +424,144 @@ export const GestorAlunos = () => {
             )}
           </div>
 
-          <label className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 cursor-pointer active:scale-[0.98] transition-all shadow-sm hover:border-[#EAB308]">
-            <input
-              type="checkbox"
-              checked={form.lgpd_assinado}
-              onChange={(e) => setForm({ ...form, lgpd_assinado: e.target.checked })}
-              className="w-5 h-5 rounded border-slate-300 text-[#EAB308] focus:ring-[#EAB308] accent-[#EAB308]"
-            />
-            <span className="text-sm font-medium text-slate-700">Consentimento LGPD Assinado</span>
-          </label>
+          <div className="grid grid-cols-2 gap-3 opacity-60 pointer-events-none">
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+              {form.lgpd_assinado ? <Check size={18} className="text-primary" /> : <ShieldOff size={18} className="text-slate-400" />}
+              <span className="text-sm font-bold text-slate-700">LGPD</span>
+            </div>
+            <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+              {form.autoriza_imagem ? <Check size={18} className="text-primary" /> : <ShieldOff size={18} className="text-slate-400" />}
+              <span className="text-sm font-bold text-slate-700">Imagem</span>
+            </div>
+          </div>
 
           {/* Responsáveis Section */}
           {selectedAluno && (
             <div className="pt-6 border-t border-slate-100 space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                  <Users size={16} className="text-primary" />
-                  Responsáveis Vinculados
-                </label>
-                {!showAddResp && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAddResp(true)}
-                    className="text-primary text-xs font-bold flex items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
-                  >
-                    <Plus size={14} />
-                    Vincular Novo
-                  </button>
-                )}
-              </div>
-
-              {showAddResp && (
-                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5 animate-in fade-in slide-in-from-top-2">
-                  <input
-                    placeholder="Nome do Responsável"
-                    value={respForm.nome}
-                    onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
-                    className="w-full h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
-                  />
-                  <div className="flex gap-2">
-                    <input
-                      placeholder="Email"
-                      value={respForm.email}
-                      type="email"
-                      onChange={(e) => setRespForm({ ...respForm, email: e.target.value })}
-                      className="flex-1 h-11 px-3 rounded-xl bg-white border border-slate-200 text-sm focus:ring-2 focus:ring-primary outline-none"
-                    />
-                    <select
-                      value={respForm.parentesco}
-                      onChange={(e) => setRespForm({ ...respForm, parentesco: e.target.value })}
-                      className="w-28 h-11 px-2 rounded-xl bg-white border border-slate-200 text-sm outline-none"
-                    >
-                      <option>Pai</option>
-                      <option>Mãe</option>
-                      <option>Tutor</option>
-                      <option>Outros</option>
-                    </select>
-                  </div>
-                  <div className="flex gap-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Users size={16} className="text-primary" />
+                    Responsáveis Vinculados
+                  </label>
+                  {!showAddResp && (
                     <button
                       type="button"
-                      disabled={linkResponsavel.isPending}
-                      onClick={handleAddResponsavel}
-                      className="flex-1 h-11 bg-primary text-white rounded-xl font-bold text-sm shadow-md active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100"
+                      onClick={() => setShowAddResp(true)}
+                      className="text-[10px] font-black uppercase text-primary bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10"
                     >
-                      {linkResponsavel.isPending ? "Vinculando..." : "Vincular Responsável"}
+                      + Vincular
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowAddResp(false)}
-                      className="w-11 h-11 flex items-center justify-center bg-slate-200 text-slate-600 rounded-xl font-bold text-sm"
-                    >
-                      X
-                    </button>
-                  </div>
+                  )}
                 </div>
-              )}
+
+                {showAddResp && (
+                  <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 mb-4 animate-fade-in">
+                    <p className="text-xs font-bold text-slate-800 mb-2">{editingResp ? "Editar Dados" : "Novo Vínculo"}</p>
+                    <div className="grid grid-cols-1 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nome Completo</label>
+                        <input
+                          placeholder="Nome do responsável"
+                          value={respForm.nome}
+                          onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
+                          className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email</label>
+                          <input
+                            placeholder="email@exemplo.com"
+                            value={respForm.email}
+                            onChange={(e) => setRespForm({ ...respForm, email: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Parentesco</label>
+                          <select
+                            value={respForm.parentesco}
+                            onChange={(e) => setRespForm({ ...respForm, parentesco: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                          >
+                            <option value="Pai">Pai</option>
+                            <option value="Mãe">Mãe</option>
+                            <option value="Tutor">Tutor</option>
+                            <option value="Outros">Outros</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">RG</label>
+                          <input
+                            placeholder="00.000.000-0"
+                            value={respForm.rg}
+                            onChange={(e) => setRespForm({ ...respForm, rg: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">CPF</label>
+                          <input
+                            placeholder="000.000.000-00"
+                            value={respForm.cpf}
+                            onChange={(e) => setRespForm({ ...respForm, cpf: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Endereço Completo</label>
+                        <input
+                          placeholder="Rua, número, bairro..."
+                          value={respForm.endereco}
+                          onChange={(e) => setRespForm({ ...respForm, endereco: e.target.value })}
+                          className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cidade</label>
+                          <input
+                            placeholder="Indaiatuba"
+                            value={respForm.cidade}
+                            onChange={(e) => setRespForm({ ...respForm, cidade: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Estado</label>
+                          <input
+                            placeholder="SP"
+                            value={respForm.estado}
+                            onChange={(e) => setRespForm({ ...respForm, estado: e.target.value })}
+                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
+                            maxLength={2}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleAddResponsavel}
+                        disabled={linkResponsavel.isPending}
+                        className="flex-1 h-12 bg-primary text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
+                      >
+                        {linkResponsavel.isPending ? "Salvando..." : "Vincular Responsável"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowAddResp(false)}
+                        className="px-6 h-12 bg-slate-200 text-slate-600 rounded-2xl font-bold text-xs uppercase"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
 
               <div className="space-y-2">
                 {responsaveis.length === 0 ? (
@@ -444,7 +569,7 @@ export const GestorAlunos = () => {
                     Nenhum responsável vinculado a este aluno.
                   </p>
                 ) : (
-                  responsaveis.map((resp) => (
+                  responsaveis.map((resp: any) => (
                     <div key={resp.id} className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
@@ -458,11 +583,19 @@ export const GestorAlunos = () => {
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
+                          title="Editar Dados"
+                          onClick={() => openEditResp(resp)}
+                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                        >
+                          <UserCog size={16} />
+                        </button>
+                        <button
+                          type="button"
                           title="Baixar Termo de Imagem"
                           onClick={() => generateImageRightsPDF({
                             responsibleName: resp.nome,
                             rg: resp.rg || "_________________",
-                            cpf: "_________________",
+                            cpf: resp.cpf || "_________________",
                             address: resp.endereco || "_________________",
                             city: resp.cidade || "_________________",
                             state: resp.estado || "__",
@@ -475,13 +608,6 @@ export const GestorAlunos = () => {
                           className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors"
                         >
                           <FileText size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveResponsavel(resp.id)}
-                          className="p-2 text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
-                        >
-                          <Trash2 size={16} />
                         </button>
                       </div>
                     </div>
@@ -497,11 +623,11 @@ export const GestorAlunos = () => {
               type="button"
               onClick={() => setForm({ ...form, ativo: !form.ativo })}
               className={`flex items-center gap-2.5 self-start px-4 py-2 rounded-full border transition-all text-sm font-semibold ${form.ativo
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                ? "bg-[#F1F3EF] border-[#8C9A7A] text-[#4E593F]"
                 : "bg-slate-100 border-slate-200 text-slate-500"
                 }`}
             >
-              <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-emerald-500" : "bg-slate-400"}`} />
+              <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-[#4E593F]" : "bg-slate-400"}`} />
               {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
             </button>
           )}

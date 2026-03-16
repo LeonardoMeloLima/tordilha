@@ -135,10 +135,10 @@ export function CameraCaptureModal({ open, onClose, onCapture, defaultFacingMode
 
     return (
         <div
-            className="fixed inset-0 z-[200] flex items-center justify-center p-2 sm:p-4"
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
             style={{ backgroundColor: "rgba(0,0,0,0.8)", backdropFilter: "blur(4px)" }}
         >
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[360px] overflow-hidden animate-in fade-in zoom-in-95 duration-200 max-h-[96vh] flex flex-col">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-[360px] overflow-hidden animate-in fade-in zoom-in-95 duration-200 transform translate-y-20 max-h-[90vh] flex flex-col">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 pt-5 pb-2">
                     <h3 className="text-lg font-bold text-slate-800">Tirar Foto</h3>
@@ -227,7 +227,7 @@ export function CameraCaptureModal({ open, onClose, onCapture, defaultFacingMode
                             type="button"
                             onClick={handleCapture}
                             disabled={isLoading || !!error}
-                            className="w-full h-14 rounded-full bg-[#EAB308] hover:bg-[#D97706] disabled:bg-slate-300 text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-[#EAB308]/20 transition-all active:scale-[0.98]"
+                            className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] disabled:bg-slate-300 text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98]"
                         >
                             <Camera size={20} className="text-white" />
                             Capturar
@@ -244,7 +244,7 @@ export function CameraCaptureModal({ open, onClose, onCapture, defaultFacingMode
                             <button
                                 type="button"
                                 onClick={handleConfirm}
-                                className="flex-1 h-14 rounded-full bg-[#EAB308] hover:bg-[#D97706] text-white font-bold text-base shadow-lg shadow-[#EAB308]/20 transition-all active:scale-[0.98]"
+                                className="flex-1 h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-base shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98]"
                             >
                                 Usar Foto
                             </button>

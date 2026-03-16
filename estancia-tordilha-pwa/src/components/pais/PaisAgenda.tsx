@@ -35,18 +35,9 @@ export const PaisAgenda = () => {
 
   return (
     <div className="space-y-6 animate-fade-in pb-24">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-extrabold text-foreground tracking-tight">Agenda</h1>
-          <p className="text-sm text-muted-foreground font-medium mt-0.5">Próximas sessões agendadas</p>
-        </div>
-        <button
-          onClick={() => setShowAgendar(true)}
-          className="h-12 px-5 bg-[#EAB308] text-white rounded-2xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-[#EAB308]/20 active:scale-95 transition-all"
-        >
-          <Calendar size={18} strokeWidth={2.5} />
-          Agendar
-        </button>
+      <div>
+        <h1 className="text-xl font-extrabold text-foreground tracking-tight">Agenda</h1>
+        <p className="text-sm text-muted-foreground font-medium mt-0.5">Próximas sessões agendadas</p>
       </div>
 
       <div className="space-y-4">
@@ -74,8 +65,8 @@ export const PaisAgenda = () => {
             >
               <div className="p-6 bg-card rounded-[32px] card-shadow border-2 border-transparent transition-all group">
                 <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-[20px] bg-amber-50 border border-amber-100 flex flex-col items-center justify-center shadow-sm transition-transform group-hover:scale-105">
-                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-tighter">
+                  <div className="w-16 h-16 rounded-[20px] bg-[#F1F3EF] border border-[#DDE2D6] flex flex-col items-center justify-center shadow-sm transition-transform group-hover:scale-105">
+                    <span className="text-[10px] font-black text-[#3E4732] uppercase tracking-tighter">
                       {format(parseISO(s.data_hora), "MMM", { locale: ptBR })}
                     </span>
                     <span className="text-xl font-black text-slate-900 leading-none">
@@ -90,7 +81,7 @@ export const PaisAgenda = () => {
                     </div>
                     <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-2">
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold uppercase tracking-wide">
-                        <Clock size={14} className="text-[#EAB308]" strokeWidth={2.5} />
+                        <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                         {format(parseISO(s.data_hora), "HH:mm")}
                       </div>
                       <div className="flex items-center gap-1.5 text-xs text-slate-500 font-bold uppercase tracking-wide">

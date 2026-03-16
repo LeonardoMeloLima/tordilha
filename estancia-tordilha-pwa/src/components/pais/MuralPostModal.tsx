@@ -178,9 +178,9 @@ export const MuralPostModal = ({ isOpen, onClose, alunoId, alunoNome }: MuralPos
 
                 {/* AI Helper / Suggestion */}
                 {canPost && (
-                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-100 flex gap-3">
-                        <Sparkles size={18} className="text-[#EAB308] shrink-0 mt-0.5" />
-                        <p className="text-xs text-amber-800 font-medium leading-relaxed">
+                    <div className="p-4 rounded-2xl bg-[#F1F3EF] border border-[#DDE2D6] flex gap-3">
+                        <Sparkles size={18} className="text-[#4E593F] shrink-0 mt-0.5" />
+                        <p className="text-xs text-[#2E3525] font-medium leading-relaxed">
                             Sugerimos uma mensagem baseada na última aula, mas sinta-se à vontade para personalizar!
                         </p>
                     </div>
@@ -223,7 +223,7 @@ export const MuralPostModal = ({ isOpen, onClose, alunoId, alunoNome }: MuralPos
                                 type="button"
                                 onClick={() => setBadge(badge === b ? "" : b)}
                                 className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-tight transition-all border ${badge === b
-                                    ? 'bg-[#EAB308] border-[#EAB308] text-white shadow-md'
+                                    ? 'bg-[#4E593F] border-[#4E593F] text-white shadow-md'
                                     : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'
                                     }`}
                             >
@@ -239,7 +239,7 @@ export const MuralPostModal = ({ isOpen, onClose, alunoId, alunoNome }: MuralPos
                         type="button"
                         onClick={handleSave}
                         disabled={loading || createPost.isPending || isImageUploading}
-                        className="w-full h-16 bg-[#EAB308] text-white rounded-full font-black text-base shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50"
+                        className="w-full h-16 bg-[#4E593F] text-white rounded-full font-black text-base shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-50"
                     >
                         {loading || isImageUploading ? (
                             <div className="flex items-center gap-2">

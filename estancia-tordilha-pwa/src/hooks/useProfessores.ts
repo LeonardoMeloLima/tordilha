@@ -5,41 +5,42 @@ export type Professor = {
     id: string;
     full_name: string | null;
     avatar_url: string | null;
+    email?: string | null;
+    role?: string; // Adicionado o cargo
 };
 
-/**
- * Fetches all users with the 'professor' role, joined with their profile data.
- * Used in the Gestor form to assign a professor to a student.
- */
 export function useProfessores() {
     const query = useQuery({
         queryKey: ["professores"],
         queryFn: async (): Promise<Professor[]> => {
-            // Get all user_ids with roles 'professor' or 'gestor'
             const { data: roles, error: rolesError } = await supabase
                 .from("user_roles")
-                .select("user_id")
+                .select("user_id, role")
                 .in("role", ["professor", "gestor"]);
 
             if (rolesError) throw rolesError;
             if (!roles || roles.length === 0) return [];
 
             const ids = roles.map((r) => r.user_id);
-
-            // Fetch their profiles
             const { data: profiles, error: profilesError } = await supabase
                 .from("profiles")
-                .select("id, full_name, avatar_url")
+                .select("id, full_name, avatar_url, email")
                 .in("id", ids)
                 .order("full_name");
 
             if (profilesError) throw profilesError;
-            return profiles ?? [];
+
+            // Mesclar o cargo no objeto do perfil
+            return (profiles ?? []).map(profile => ({
+                ...profile,
+                role: roles.find(r => r.user_id === profile.id)?.role
+            }));
         },
     });
 
     return {
         professores: query.data ?? [],
         isLoading: query.isLoading,
+        refetch: query.refetch,
     };
 }

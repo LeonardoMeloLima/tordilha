@@ -105,7 +105,7 @@ export const GestorAgenda = () => {
             key={d.date}
             onClick={() => setSelectedDay(d.date)}
             className={`flex flex-col items-center justify-center min-w-[56px] h-[72px] rounded-2xl transition-all font-bold ${selectedDay === d.date
-              ? "bg-[#EAB308] text-white shadow-md shadow-[#EAB308]/30"
+              ? "bg-[#4E593F] text-white shadow-md shadow-[#4E593F]/30"
               : "bg-card card-shadow text-foreground"
               }`}
           >
@@ -135,7 +135,7 @@ export const GestorAgenda = () => {
               deleteLabel="Excluir"
             >
               <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow group transition-all active:scale-[0.99]">
-                <div className="w-12 h-12 rounded-2xl bg-[#EAB308]/10 flex items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
                   <AvatarWithFallback
                     src={s.aluno?.avatar_url}
                     className="w-10 h-10 rounded-xl"
@@ -146,17 +146,17 @@ export const GestorAgenda = () => {
                   <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#EAB308]" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
                     </div>
                     <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                    <Clock size={14} className="text-[#EAB308]" strokeWidth={2.5} />
+                    <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {format(parseISO(s.data_hora), "HH:mm")}
                   </div>
-                  <span className={`text-[10px] font-black uppercase tracking-tighter ${s.status === "confirmada" ? "text-[#EAB308]" : "text-muted-foreground"}`}>
+                  <span className={`text-[10px] font-black uppercase tracking-tighter ${s.status === "confirmada" ? "text-[#4E593F]" : "text-muted-foreground"}`}>
                     {s.status}
                   </span>
                 </div>
@@ -177,7 +177,7 @@ export const GestorAgenda = () => {
             type="button"
             onClick={handleSave}
             disabled={createSessao.isPending}
-            className="w-full h-14 bg-[#EAB308] hover:bg-[#D97706] text-white rounded-full font-bold text-lg shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
           >
             {createSessao.isPending ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -194,7 +194,7 @@ export const GestorAgenda = () => {
             <select
               value={newSession.alunoId}
               onChange={(e) => setNewSession({ ...newSession, alunoId: e.target.value })}
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
               disabled={loadingAlunos}
             >
               <option value="">{loadingAlunos ? "Carregando alunos..." : "Selecionar aluno..."}</option>
@@ -207,7 +207,7 @@ export const GestorAgenda = () => {
             <select
               value={newSession.cavaloId}
               onChange={(e) => setNewSession({ ...newSession, cavaloId: e.target.value })}
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
               disabled={loadingCavalos}
             >
               <option value="">{loadingCavalos ? "Carregando cavalos..." : "Selecionar cavalo..."}</option>
@@ -221,7 +221,7 @@ export const GestorAgenda = () => {
               type="time"
               value={newSession.hora}
               onChange={(e) => setNewSession({ ...newSession, hora: e.target.value })}
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
             />
           </div>
 

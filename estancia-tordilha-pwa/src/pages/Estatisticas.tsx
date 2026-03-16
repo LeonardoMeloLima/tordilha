@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Loader2, CalendarCheck } from "lucide-react";
+import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Loader2, CalendarCheck, Search } from "lucide-react";
 import { useState } from "react";
 import { useEvolucaoClinica, type EvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useSessoesStats } from "@/hooks/useSessoesStats";
@@ -55,12 +55,20 @@ const Estatisticas = () => {
     const { data: globalEvolucao, isLoading: isLoadingGlobal } = useGlobalEvolucao();
     const [selectedStudent, setSelectedStudent] = useState<EvolucaoClinica | null>(null);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [visibleCount, setVisibleCount] = useState(10);
 
     const evolutionData = [
         { name: 'Melhoraram', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) > 0).length || 0, color: '#a7f3d0' },
         { name: 'Estáveis', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) === 0).length || 0, color: '#e2e8f0' },
         { name: 'Atenção', value: progressData?.filter(a => (a.evolucao_percentual ?? 0) < 0).length || 0, color: '#fecdd3' },
     ];
+
+    const filteredStudents = progressData?.filter(student => 
+        student.nome.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
+
+    const displayedStudents = filteredStudents.slice(0, visibleCount);
 
     return (
         <div className="min-h-screen bg-[#F8F9FA] pb-24">
@@ -81,7 +89,7 @@ const Estatisticas = () => {
                         <button
                             type="button"
                             onClick={() => setIsExportModalOpen(true)}
-                            className="flex items-center gap-2 px-5 h-11 bg-[#EAB308]/10 hover:bg-[#EAB308]/20 text-[#EAB308] rounded-full transition-all active:scale-95 border border-[#EAB308]/20 group"
+                            className="flex items-center gap-2 px-5 h-11 bg-[#4E593F]/10 hover:bg-[#4E593F]/20 text-[#4E593F] rounded-full transition-all active:scale-95 border border-[#4E593F]/20 group"
                         >
                             <Download size={18} strokeWidth={2.5} className="group-hover:scale-110 transition-transform" />
                             <span className="text-[14px] font-black tracking-tight">Exportar</span>
@@ -202,7 +210,23 @@ const Estatisticas = () => {
                     </div>
                     {/* Progresso dos Alunos */}
                     <div className="bg-white rounded-[32px] p-6 pt-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-                        <h3 className="text-[17px] font-black text-[#1A1D1E] tracking-tight mb-8">Progresso dos Alunos</h3>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+                            <h3 className="text-[17px] font-black text-[#1A1D1E] tracking-tight">Progresso dos Alunos</h3>
+                            
+                            <div className="relative w-full sm:max-w-[220px]">
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                <input 
+                                    type="text"
+                                    placeholder="Buscar aluno..."
+                                    value={searchTerm}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setVisibleCount(10);
+                                    }}
+                                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#4E593F] transition-all"
+                                />
+                            </div>
+                        </div>
 
                         <div className="space-y-6">
                             {isLoadingProgress ? (
@@ -210,47 +234,67 @@ const Estatisticas = () => {
                                     <Loader2 className="animate-spin text-primary/40" size={32} />
                                     <p className="text-xs font-bold text-slate-400">Calculando evoluções...</p>
                                 </div>
-                            ) : progressData?.map((student) => (
-                                <button
-                                    key={student.aluno_id}
-                                    onClick={() => setSelectedStudent(student)}
-                                    className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
-                                >
-                                    {/* Avatar */}
-                                    <AvatarWithFallback
-                                        src={student.avatar_url}
-                                        alt={student.nome}
-                                        className="w-12 h-12 rounded-2xl shadow-sm border-2 border-white"
-                                    />
+                            ) : displayedStudents.length > 0 ? (
+                                displayedStudents.map((student) => (
+                                    <button
+                                        key={student.aluno_id}
+                                        onClick={() => setSelectedStudent(student)}
+                                        className="w-full flex items-center gap-4 group active:scale-[0.98] transition-all"
+                                    >
+                                        {/* Avatar */}
+                                        <AvatarWithFallback
+                                            src={student.avatar_url}
+                                            alt={student.nome}
+                                            className="w-12 h-12 rounded-2xl shadow-sm border-2 border-white"
+                                        />
 
-                                    {/* Info & Bar */}
-                                    <div className="flex-1 space-y-2 min-w-0">
-                                        <div className="flex justify-between items-center leading-none">
-                                            <span className="text-[15px] font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{student.nome}</span>
-                                            <div className="flex items-center gap-1">
-                                                <div className={`px-2 py-0.5 rounded-full text-[11px] font-black flex items-center gap-0.5 ${student.evolucao_percentual > 0
-                                                    ? 'bg-emerald-50 text-emerald-600'
-                                                    : student.evolucao_percentual < 0
-                                                        ? 'bg-rose-50 text-rose-500'
-                                                        : 'bg-slate-100 text-slate-500'
-                                                    }`}>
-                                                    {student.evolucao_percentual > 0 && <span className="text-[10px]">▲</span>}
-                                                    {student.evolucao_percentual < 0 && <span className="text-[10px]">▼</span>}
-                                                    {student.evolucao_percentual === 0 ? 'Mantido' : `${student.evolucao_percentual > 0 ? '+' : ''}${student.evolucao_percentual}%`}
+                                        {/* Info & Bar */}
+                                        <div className="flex-1 space-y-2 min-w-0">
+                                            <div className="flex justify-between items-center leading-none">
+                                                <span className="text-[15px] font-bold text-slate-700 truncate group-hover:text-primary transition-colors">{student.nome}</span>
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`px-2 py-0.5 rounded-full text-[11px] font-black flex items-center gap-0.5 ${student.evolucao_percentual > 0
+                                                        ? 'bg-[#F1F3EF] text-[#4E593F]'
+                                                        : student.evolucao_percentual < 0
+                                                            ? 'bg-rose-50 text-rose-500'
+                                                            : 'bg-slate-100 text-slate-500'
+                                                        }`}>
+                                                        {student.evolucao_percentual > 0 && <span className="text-[10px]">▲</span>}
+                                                        {student.evolucao_percentual < 0 && <span className="text-[10px]">▼</span>}
+                                                        {student.evolucao_percentual === 0 ? 'Mantido' : `${student.evolucao_percentual > 0 ? '+' : ''}${student.evolucao_percentual}%`}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            {/* Progress Track (Fininho) */}
+                                            <div className="h-[4px] w-full bg-slate-50 rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full rounded-full transition-all duration-1000 ${student.evolucao_percentual >= 0 ? 'bg-[#4E593F]' : 'bg-rose-400'}`}
+                                                    style={{ width: `${Math.min(100, Math.max(5, (student.media_cognitivo + student.media_pedagogico + student.media_social + student.media_emocional + student.media_agitacao + student.media_interacao) / 30 * 100))}%` }}
+                                                />
+                                            </div>
                                         </div>
-                                        {/* Progress Track (Fininho) */}
-                                        <div className="h-[4px] w-full bg-slate-50 rounded-full overflow-hidden">
-                                            <div
-                                                className={`h-full rounded-full transition-all duration-1000 ${student.evolucao_percentual >= 0 ? 'bg-[#EAB308]' : 'bg-rose-400'}`}
-                                                style={{ width: `${Math.min(100, Math.max(5, (student.media_cognitivo + student.media_pedagogico + student.media_social + student.media_emocional + student.media_agitacao + student.media_interacao) / 30 * 100))}%` }}
-                                            />
-                                        </div>
-                                    </div>
-                                </button>
-                            ))}
+                                    </button>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-slate-400 text-sm font-medium">
+                                    Nenhum aluno encontrado
+                                </div>
+                            )}
                         </div>
+
+                        {/* Load More Button */}
+                        {visibleCount < filteredStudents.length && (
+                            <button
+                                onClick={() => setVisibleCount(prev => prev + 10)}
+                                className="w-full mt-8 py-4 bg-slate-50 hover:bg-slate-100 text-slate-500 font-bold text-sm rounded-2xl transition-all active:scale-[0.98] border border-slate-100"
+                            >
+                                {isLoadingProgress ? (
+                                    <Loader2 className="animate-spin mx-auto text-slate-300" size={20} />
+                                ) : (
+                                    `Carregar mais ${Math.min(10, filteredStudents.length - visibleCount)} alunos`
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -273,7 +317,7 @@ const Estatisticas = () => {
                                     />
                                     <div>
                                         <DialogTitle className="text-xl font-black text-slate-800">{selectedStudent.nome}</DialogTitle>
-                                        <p className="text-sm font-bold text-[#EAB308]">Média das últimas avaliações</p>
+                                        <p className="text-sm font-bold text-[#4E593F]">Média das últimas avaliações</p>
                                     </div>
                                 </div>
                             </DialogHeader>
@@ -305,7 +349,7 @@ const ClinicalCategory = ({ label, icon: Icon, value }: { label: string, icon: a
         </div>
         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div
-                className="h-full bg-[#EAB308] rounded-full transition-all duration-700"
+                className="h-full bg-[#4E593F] rounded-full transition-all duration-700"
                 style={{ width: `${(value / 5) * 100}%` }}
             />
         </div>

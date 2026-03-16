@@ -14,7 +14,7 @@ export function ClinicalSlice({
     icon: Icon,
     value,
     onChange,
-    activeColor = "bg-[#EAB308]",
+    activeColor = "bg-[#4E593F]",
     iconColor = "text-[#8B4513]",
 }: ClinicalSliceProps) {
     return (
@@ -40,11 +40,10 @@ export function ClinicalSlice({
                             className={`flex-1 h-[44px] rounded-lg transition-all duration-300 touch-target relative ${isActive ? activeColor : "bg-slate-100"
                                 } ${isCurrent ? "scale-[1.03] shadow-sm z-10" : "hover:scale-[1.02] active:scale-95"}`}
                         >
-                            {isCurrent && (
-                                <span className="absolute inset-0 flex items-center justify-center text-white font-black text-[15px] drop-shadow-sm">
-                                    {level}
-                                </span>
-                            )}
+                            <span className={`absolute inset-0 flex items-center justify-center font-black text-[15px] ${isActive ? "text-white drop-shadow-sm" : "text-slate-400 group-hover:text-slate-500"
+                                }`}>
+                                {level}
+                            </span>
                         </button>
                     );
                 })}

@@ -88,12 +88,15 @@ export type Database = {
           contato_emergencia: string | null
           criado_em: string | null
           diagnostico: string | null
+          data_nascimento: string | null
           id: string
           idade: number | null
           lgpd_assinado: boolean | null
           nome: string
           patrocinador: string | null
           professor_id: string | null
+          autoriza_imagem: boolean | null
+          data_autorizacao_imagem: string | null
         }
         Insert: {
           arquivado?: boolean
@@ -109,6 +112,8 @@ export type Database = {
           nome: string
           patrocinador?: string | null
           professor_id?: string | null
+          autoriza_imagem?: boolean | null
+          data_autorizacao_imagem?: string | null
         }
         Update: {
           arquivado?: boolean
@@ -124,6 +129,8 @@ export type Database = {
           nome?: string
           patrocinador?: string | null
           professor_id?: string | null
+          autoriza_imagem?: boolean | null
+          data_autorizacao_imagem?: string | null
         }
         Relationships: [
           {
@@ -177,6 +184,17 @@ export type Database = {
           nome: string
           raca: string | null
           status: string | null
+          ano_nascimento: number | null
+          sexo: string | null
+          castrado: boolean | null
+          altura: number | null
+          peso: number | null
+          pelagem: string | null
+          movimento_3d_predominante: string | null
+          avaliacao_marcha: Json | null
+          avaliacao_comportamento: Json | null
+          avaliacao_veterinaria: Json | null
+          data_avaliacao: string | null
         }
         Insert: {
           atualizado_em?: string | null
@@ -189,6 +207,17 @@ export type Database = {
           nome: string
           raca?: string | null
           status?: string | null
+          ano_nascimento?: number | null
+          sexo?: string | null
+          castrado?: boolean | null
+          altura?: number | null
+          peso?: number | null
+          pelagem?: string | null
+          movimento_3d_predominante?: string | null
+          avaliacao_marcha?: Json | null
+          avaliacao_comportamento?: Json | null
+          avaliacao_veterinaria?: Json | null
+          data_avaliacao?: string | null
         }
         Update: {
           atualizado_em?: string | null
@@ -201,6 +230,17 @@ export type Database = {
           nome?: string
           raca?: string | null
           status?: string | null
+          ano_nascimento?: number | null
+          sexo?: string | null
+          castrado?: boolean | null
+          altura?: number | null
+          peso?: number | null
+          pelagem?: string | null
+          movimento_3d_predominante?: string | null
+          avaliacao_marcha?: Json | null
+          avaliacao_comportamento?: Json | null
+          avaliacao_veterinaria?: Json | null
+          data_avaliacao?: string | null
         }
         Relationships: []
       }
@@ -444,6 +484,8 @@ export type Database = {
           updated_at: string | null
           aluno_nomes: string | null
           patrocinador: string | null
+          email: string | null
+          needs_password_reset: boolean | null
         }
         Insert: {
           avatar_url?: string | null
@@ -452,6 +494,8 @@ export type Database = {
           updated_at?: string | null
           aluno_nomes?: string | null
           patrocinador?: string | null
+          email?: string | null
+          needs_password_reset?: boolean | null
         }
         Update: {
           avatar_url?: string | null
@@ -460,6 +504,8 @@ export type Database = {
           updated_at?: string | null
           aluno_nomes?: string | null
           patrocinador?: string | null
+          email?: string | null
+          needs_password_reset?: boolean | null
         }
         Relationships: []
       }
@@ -472,6 +518,10 @@ export type Database = {
           id: string
           nome: string
           telefone: string | null
+          rg: string | null
+          endereco: string | null
+          cidade: string | null
+          estado: string | null
         }
         Insert: {
           atualizado_em?: string | null
@@ -481,6 +531,10 @@ export type Database = {
           id?: string
           nome: string
           telefone?: string | null
+          rg?: string | null
+          endereco?: string | null
+          cidade?: string | null
+          estado?: string | null
         }
         Update: {
           atualizado_em?: string | null
@@ -490,6 +544,10 @@ export type Database = {
           id?: string
           nome?: string
           telefone?: string | null
+          rg?: string | null
+          endereco?: string | null
+          cidade?: string | null
+          estado?: string | null
         }
         Relationships: []
       }

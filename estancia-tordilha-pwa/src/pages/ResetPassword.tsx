@@ -85,7 +85,7 @@ const ResetPassword = () => {
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                 required
                             />
                         </div>
@@ -102,7 +102,7 @@ const ResetPassword = () => {
                                 placeholder="••••••••"
                                 value={confirmPassword}
                                 onChange={(e) => setConfirmPassword(e.target.value)}
-                                className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
+                                className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
                                 required
                             />
                         </div>
@@ -111,7 +111,7 @@ const ResetPassword = () => {
                     <Button
                         type="submit"
                         disabled={loading}
-                        className="w-full h-14 rounded-full bg-[#EAB308] hover:bg-[#D97706] text-white font-bold text-lg mt-6 shadow-lg shadow-[#EAB308]/20 transition-all active:scale-[0.98]"
+                        className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-lg mt-6 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98]"
                     >
                         {loading ? "Processando..." : "Redefinir Senha"}
                     </Button>

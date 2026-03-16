@@ -1,5 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export const generatePDF = async (
     title: string,
@@ -19,7 +21,7 @@ export const generatePDF = async (
     doc.setTextColor(100);
     doc.text(`Gerado em: ${timestamp}`, 14, 30);
 
-    doc.setDrawColor(234, 179, 8); // #EAB308
+    doc.setDrawColor(78, 89, 63); // #4E593F
     doc.setLineWidth(0.5);
     doc.line(14, 35, 196, 35);
 
@@ -35,7 +37,7 @@ export const generatePDF = async (
         body: data,
         theme: 'striped',
         headStyles: {
-            fillColor: [234, 179, 8],
+            fillColor: [78, 89, 63],
             textColor: [255, 255, 255],
             fontSize: 12,
             fontStyle: 'bold',
@@ -82,7 +84,7 @@ export const generateImageRightsPDF = async (data: {
 
     // Logo / Header
     doc.setFontSize(22);
-    doc.setTextColor(234, 179, 8); // #EAB308
+    doc.setTextColor(78, 89, 63); // #4E593F
     doc.text('Estância Tordilha', pageWidth / 2, y, { align: 'center' });
     
     y += 15;
@@ -105,7 +107,7 @@ export const generateImageRightsPDF = async (data: {
     doc.setFont(undefined, 'normal');
     y += 10;
 
-    const text2 = `a Estância Tordilha, empresa com sede na Estrada João Cecom, 2200 Altos da Bela Vista – Indaiatuba SP inscrita no CNPJ sob o nº 21.601.404/0001-00 e suas empresas coligadas, a utilizar, de forma gratuita e por tempo indeterminado, a minha imagem e do meu filho (${data.studentNames}), para a utilização em materiais gráficos, mídia impressa, eletrônica (internet), que serão da Estância Tordilha e de suas empresas coligadas.`;
+    const text2 = `a Estância Tordilha, empresa com sede na Estrada João Cecom, 2200 Altos da Bela Vista Indaiatuba SP inscrita no CNPJ sob o nº 21.601.404/0001-00 e suas empresas coligadas, a utilizar, de forma gratuita e por tempo indeterminado, a minha imagem e do meu filho (${data.studentNames}), para a utilização em materiais gráficos, mídia impressa, eletrônica (internet), que serão da Estância Tordilha e de suas empresas coligadas.`;
     
     const lines2 = doc.splitTextToSize(text2, contentWidth);
     doc.text(lines2, margin, y);
@@ -138,4 +140,74 @@ export const generateImageRightsPDF = async (data: {
     doc.text('Documento aceito digitalmente através da plataforma Estância Tordilha', pageWidth / 2, y + 5, { align: 'center' });
 
     doc.save(`autorizacao_imagem_${data.responsibleName.toLowerCase().replace(/\s+/g, '_')}.pdf`);
+};
+
+export const generateSocialImpactPDF = async (
+    sections: { title: string; columns: string[]; data: any[][] }[],
+    fileName: string = 'impacto_social.pdf'
+) => {
+    const doc = new jsPDF() as any;
+    const monthYear = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
+
+    // Header
+    doc.setFontSize(24);
+    doc.setTextColor(78, 89, 63); // #4E593F
+    doc.text('Estância Tordilha', doc.internal.pageSize.getWidth() / 2, 22, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setTextColor(100);
+    doc.text(`Relatório de Impacto Social — ${monthYear}`, doc.internal.pageSize.getWidth() / 2, 30, { align: 'center' });
+
+    doc.setDrawColor(78, 89, 63);
+    doc.setLineWidth(0.5);
+    doc.line(14, 38, 196, 38);
+
+    let currentY = 50;
+
+    sections.forEach((section) => {
+        // Section Title
+        doc.setFontSize(16);
+        doc.setTextColor(26, 29, 30);
+        doc.text(section.title, 14, currentY);
+        currentY += 8;
+
+        autoTable(doc, {
+            startY: currentY,
+            head: [section.columns],
+            body: section.data,
+            theme: 'striped',
+            headStyles: {
+                fillColor: [78, 89, 63],
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                fontStyle: 'bold',
+            },
+            styles: {
+                fontSize: 9,
+                cellPadding: 3,
+            },
+            alternateRowStyles: {
+                fillColor: [250, 250, 250],
+            },
+            margin: { left: 14, right: 14 }
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15; // Space between sections
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150);
+        doc.text(
+            `Estância Tordilha — Relatório gerado em ${format(new Date(), "dd/MM/yyyy")}`,
+            doc.internal.pageSize.getWidth() / 2,
+            doc.internal.pageSize.getHeight() - 10,
+            { align: 'center' }
+        );
+    }
+
+    doc.save(fileName);
 };

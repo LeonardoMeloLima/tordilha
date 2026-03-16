@@ -9,13 +9,15 @@ import { GestorAgenda } from "@/components/gestor/GestorAgenda";
 import { ProfessorAgenda } from "@/components/professor/ProfessorAgenda";
 import { ProfessorAlunos } from "@/components/professor/ProfessorAlunos";
 import { ProfessorEvolucao } from "@/components/professor/ProfessorEvolucao";
-import { ProfessorAvisos } from "@/components/professor/ProfessorAvisos";
+import { ProfessorCavalos } from "@/components/professor/ProfessorCavalos";
 import { PaisMural } from "@/components/pais/PaisMural";
 import { PaisAgenda } from "@/components/pais/PaisAgenda";
-import { PaisAvisos } from "@/components/pais/PaisAvisos";
+import { PaisAlunoPerfil } from "@/components/pais/PaisAlunoPerfil";
 import { PaisCavalos } from "@/components/pais/PaisCavalos";
-import { CalendarPlus, UserPlus, HeartPulse } from "lucide-react";
+import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
+import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
+import { ProfessorPasswordPrompt } from "@/components/professor/ProfessorPasswordPrompt";
 
 const defaultTabs: Record<string, string> = {
   gestor: "dashboard",
@@ -29,23 +31,24 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     alunos: <GestorAlunos />,
     cavalos: <GestorCavalos />,
     agenda: <GestorAgenda />,
+    admin: <GestorAdminPanel />,
   },
   professor: {
     agenda: <ProfessorAgenda />,
     alunos: <ProfessorAlunos />,
     evolucao: <ProfessorEvolucao />,
-    avisos: <ProfessorAvisos />,
+    cavalos: <ProfessorCavalos />,
   },
   pais: {
     mural: <PaisMural />,
     agenda: <PaisAgenda />,
-    avisos: <PaisAvisos />,
+    aluno: <PaisAlunoPerfil />,
     cavalos: <PaisCavalos />,
   },
 };
 
 const Index = () => {
-  const { role, userName, avatarUrl, loading, isSuperUser, setDevRole } = useRoleSession();
+  const { role, userName, avatarUrl, loading, isSuperUser, isMaster, setDevRole } = useRoleSession();
   const safeRole = role || "gestor";
   const [activeTab, setActiveTab] = useState(defaultTabs[safeRole]);
   const [showQuickActions, setShowQuickActions] = useState(false);
@@ -110,6 +113,12 @@ const Index = () => {
     } else if (action === 'cavalo') {
       setActiveTab('cavalos');
       setTimeout(() => window.dispatchEvent(new CustomEvent('open-form-cavalo')), 100);
+    } else if (action === 'professor') {
+      setActiveTab('admin');
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-form-professor')), 100);
+    } else if (action === 'novo-gestor') {
+      setActiveTab('admin');
+      setTimeout(() => window.dispatchEvent(new CustomEvent('open-form-gestor')), 100);
     }
   };
 
@@ -129,12 +138,15 @@ const Index = () => {
           avatarUrl={avatarUrl}
           role={safeRole}
           isSuperUser={isSuperUser}
+          isMaster={isMaster}
           onDevRoleChange={setDevRole}
+          onAdminClick={() => setActiveTab('admin')}
         />
       </header>
 
       <main className="px-5 pt-2 pb-8">
         {screens[safeRole]?.[activeTab]}
+        <ProfessorPasswordPrompt />
       </main>
 
       {/* Global Quick Actions (Gestor only) - Replicating User Print exactly */}
@@ -151,21 +163,42 @@ const Index = () => {
             className="w-full flex items-center gap-3 p-3 rounded-[20px] bg-[#F8F9FA] hover:bg-[#F2F4F7] transition-all group active:scale-[0.98] text-left"
           >
             <div className="w-10 h-10 rounded-full bg-[#FFFBF2] flex items-center justify-center shadow-sm shrink-0">
-              <CalendarPlus size={20} className="text-amber-500" strokeWidth={1.5} />
+              <CalendarPlus size={20} className="text-[#4E593F]" strokeWidth={1.5} />
             </div>
             <span className="font-bold text-base text-slate-900 tracking-tight">Nova Sessão</span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => handleQuickAction('aluno')}
-            className="w-full flex items-center gap-3 p-3 rounded-[20px] bg-[#F8F9FA] hover:bg-[#F2F4F7] transition-all group active:scale-[0.98] text-left"
-          >
-            <div className="w-10 h-10 rounded-full bg-[#FFF5F5] flex items-center justify-center shadow-sm shrink-0">
-              <UserPlus size={20} className="text-pink-600" strokeWidth={1.5} />
-            </div>
-            <span className="font-bold text-base text-slate-900 tracking-tight">Novo Aluno</span>
-          </button>
+          {isMaster ? (
+            <>
+              <button
+                type="button"
+                onClick={() => handleQuickAction('professor')}
+                className="w-full flex items-center gap-3 p-3 rounded-[20px] bg-[#F8F9FA] hover:bg-[#F2F4F7] transition-all group active:scale-[0.98] text-left"
+              >
+                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shadow-sm shrink-0">
+                  <UserCog size={20} className="text-blue-600" strokeWidth={1.5} />
+                </div>
+                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Professor</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleQuickAction('novo-gestor')}
+                className="w-full flex items-center gap-3 p-3 rounded-[20px] bg-[#F8F9FA] hover:bg-[#F2F4F7] transition-all group active:scale-[0.98] text-left"
+              >
+                <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shadow-sm shrink-0">
+                  <ShieldCheck size={20} className="text-indigo-600" strokeWidth={1.5} />
+                </div>
+                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Gestor</span>
+              </button>
+            </>
+          ) : (
+            /* Non-master gestors don't create students anymore, but they might need something else? 
+               For now, following instructions to remove Novo Aluno and add roles for master.
+               The user said "cadastro de alunos não será mais uma incumbência de gestão".
+            */
+            null
+          )}
 
           <button
             type="button"
@@ -173,7 +206,7 @@ const Index = () => {
             className="w-full flex items-center gap-3 p-3 rounded-[20px] bg-[#F8F9FA] hover:bg-[#F2F4F7] transition-all group active:scale-[0.98] text-left"
           >
             <div className="w-10 h-10 rounded-full bg-[#FFFBF2] flex items-center justify-center shadow-sm shrink-0">
-              <HeartPulse size={20} className="text-amber-500" strokeWidth={1.5} />
+              <HeartPulse size={20} className="text-[#4E593F]" strokeWidth={1.5} />
             </div>
             <span className="font-bold text-base text-slate-900 tracking-tight">Novo Cavalo</span>
           </button>

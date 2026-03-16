@@ -19,6 +19,8 @@ interface ImageUploadFieldProps {
     label?: string;
     /** Callback when uploading state changes */
     onUploadingChange?: (isUploading: boolean) => void;
+    /** If true, the field is read-only */
+    disabled?: boolean;
 }
 
 export function ImageUploadField({
@@ -29,6 +31,7 @@ export function ImageUploadField({
     shape = "rounded",
     label = "Foto",
     onUploadingChange,
+    disabled = false,
 }: ImageUploadFieldProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -109,7 +112,7 @@ export function ImageUploadField({
                     <img src={value} alt="Preview" className="w-full h-full object-cover" />
 
                     {/* Remove button */}
-                    {!isUploading && (
+                    {!isUploading && !disabled && (
                         <button
                             type="button"
                             onClick={handleRemove}
@@ -131,8 +134,13 @@ export function ImageUploadField({
                 <div className="w-full h-24 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/50 flex flex-col items-center justify-center gap-2 transition-all hover:bg-slate-50">
                     {isUploading ? (
                         <div className="flex flex-col items-center gap-1.5">
-                            <Loader2 className="w-6 h-6 text-[#EAB308] animate-spin" />
+                            <Loader2 className="w-6 h-6 text-[#4E593F] animate-spin" />
                             <span className="text-xs font-medium text-slate-500">Enviando...</span>
+                        </div>
+                    ) : disabled ? (
+                        <div className="flex flex-col items-center gap-1.5 grayscale opacity-50">
+                            <Camera size={20} className="text-slate-300 mb-0.5" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sem foto cadastrada</span>
                         </div>
                     ) : (
                         <>
@@ -141,7 +149,7 @@ export function ImageUploadField({
                                 <button
                                     type="button"
                                     onClick={() => setIsCameraOpen(true)}
-                                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#EAB308] text-white font-bold text-[13px] shadow-sm shadow-[#EAB308]/20 hover:bg-[#D97706] transition-all active:scale-[0.97]"
+                                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4E593F] text-white font-bold text-[13px] shadow-sm shadow-[#4E593F]/20 hover:bg-[#3E4732] transition-all active:scale-[0.97]"
                                 >
                                     <Camera size={13} className="text-white" />
                                     Tirar Foto

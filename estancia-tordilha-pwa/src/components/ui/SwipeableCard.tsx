@@ -13,7 +13,7 @@ interface SwipeableCardProps {
 export function SwipeableCard({
     children,
     onDelete,
-    threshold = 80,
+    threshold = 60,
     deleteLabel = "Remover",
 }: SwipeableCardProps) {
     const [offsetX, setOffsetX] = useState(0);
@@ -30,7 +30,6 @@ export function SwipeableCard({
         startXRef.current = e.touches[0].clientX;
         startYRef.current = e.touches[0].clientY;
         isHorizontalRef.current = null;
-        setIsSwiping(true);
     }, []);
 
     const handleTouchMove = useCallback(
@@ -40,6 +39,9 @@ export function SwipeableCard({
 
             if (isHorizontalRef.current === null && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
                 isHorizontalRef.current = Math.abs(dx) > Math.abs(dy);
+                if (isHorizontalRef.current) {
+                    setIsSwiping(true);
+                }
             }
 
             if (!isHorizontalRef.current) return;
@@ -83,29 +85,45 @@ export function SwipeableCard({
     return (
         <div
             ref={containerRef}
-            className="relative overflow-hidden rounded-3xl"
+            className="relative overflow-hidden rounded-3xl bg-[#4E593F]"
+            style={{ touchAction: "pan-y" }}
         >
-            {/* ── Delete background ── */}
+            {/* ── Background Layer (Red Area revealed during swipe) ── */}
             <div
-                className={`absolute inset-0 flex items-center justify-end pr-5 rounded-3xl transition-opacity duration-200 ${isOpen ? "opacity-100" : "opacity-70"}`}
-                style={{ backgroundColor: "#EF4444" }}
+                className="absolute inset-0 flex items-center justify-end pr-5 transition-opacity duration-150"
+                style={{ 
+                    backgroundColor: "#EF4444",
+                    opacity: Math.max(0, Math.min(1, (Math.abs(offsetX) / threshold) * 0.8)) 
+                }}
             >
+                <div 
+                    className="flex flex-col items-center gap-1 text-white transition-transform duration-200"
+                    style={{ 
+                        transform: `scale(${Math.max(0.5, Math.min(1, Math.abs(offsetX) / threshold))})`,
+                        opacity: Math.abs(offsetX) > 20 ? 1 : 0
+                    }}
+                >
+                    <Trash2 size={22} strokeWidth={2.5} />
+                    <span className="text-[10px] font-black uppercase tracking-wider">{deleteLabel}</span>
+                </div>
+            </div>
+
+            {/* ── Real Delete Button (only clickable when revealed) ── */}
+            {isOpen && (
                 <button
                     type="button"
                     onClick={handleDeleteClick}
-                    className="flex flex-col items-center gap-1 text-white active:scale-90 transition-transform"
-                >
-                    <Trash2 size={22} strokeWidth={2} />
-                    <span className="text-[11px] font-bold tracking-wide">{deleteLabel}</span>
-                </button>
-            </div>
+                    className="absolute right-0 top-0 bottom-0 w-24 z-10"
+                    aria-label={deleteLabel}
+                />
+            )}
 
             {/* ── Swipeable content ── */}
             <div
-                className="relative"
+                className="relative z-20"
                 style={{
                     transform: `translateX(${offsetX}px)`,
-                    transition: isSwiping ? "none" : "transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+                    transition: isSwiping ? "none" : "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)",
                     willChange: "transform",
                 }}
                 onTouchStart={handleTouchStart}

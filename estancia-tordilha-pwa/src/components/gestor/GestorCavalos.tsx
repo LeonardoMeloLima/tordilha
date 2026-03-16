@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Check, ChevronRight, HeartPulse } from "lucide-react";
+import { Check, ChevronRight, HeartPulse, Info, Activity, ShieldAlert, Calendar } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCavalos } from "@/hooks/useCavalos";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
@@ -16,9 +17,40 @@ export const GestorCavalos = () => {
   const [form, setForm] = useState({
     nome: "",
     raca: "",
+    pelagem: "",
+    ano_nascimento: "",
+    sexo: "Macho" as "Macho" | "Fêmea",
+    castrado: true,
     status: "Ativo" as "Ativo" | "Repouso",
     foto_url: "",
     humor: "Dócil",
+    altura: "",
+    peso: "",
+    movimento_3d_predominante: "",
+    data_avaliacao: "",
+    // Step Assessment (Marcha)
+    avaliacao_marcha: {
+      qualidade: "Transpista",
+      comprimento: "",
+      velocidade: "",
+      frequencia_10m: "",
+      observacao: ""
+    },
+    // Reactions
+    avaliacao_comportamento: {
+      animais: "",
+      materiais: "",
+      montar_descer: "",
+      movimento_cavaleiro: "",
+      conducao_guia: "",
+      manejo: "",
+      ambiente_externo: ""
+    },
+    // Veterinary
+    avaliacao_veterinaria: {
+      indicacoes: "",
+      contra_indicacoes: ""
+    },
     comentario: ""
   });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
@@ -26,7 +58,25 @@ export const GestorCavalos = () => {
   const handleAddNew = () => {
     setShowForm(true);
     setSelected(null);
-    setForm({ nome: "", raca: "", status: "Ativo", foto_url: "", humor: "Dócil", comentario: "" });
+    setForm({
+      nome: "",
+      raca: "",
+      pelagem: "",
+      ano_nascimento: "",
+      sexo: "Macho",
+      castrado: true,
+      status: "Ativo",
+      foto_url: "",
+      humor: "Dócil",
+      altura: "",
+      peso: "",
+      movimento_3d_predominante: "",
+      data_avaliacao: new Date().toISOString().split('T')[0],
+      avaliacao_marcha: { qualidade: "Transpista", comprimento: "", velocidade: "", frequencia_10m: "", observacao: "" },
+      avaliacao_comportamento: { animais: "", materiais: "", montar_descer: "", movimento_cavaleiro: "", conducao_guia: "", manejo: "", ambiente_externo: "" },
+      avaliacao_veterinaria: { indicacoes: "", contra_indicacoes: "" },
+      comentario: ""
+    });
   };
 
   useEffect(() => {
@@ -39,11 +89,18 @@ export const GestorCavalos = () => {
     if (!form.nome) return;
 
     try {
+      const payload = {
+        ...form,
+        ano_nascimento: form.ano_nascimento ? Number(form.ano_nascimento) : null,
+        altura: form.altura ? Number(form.altura) : null,
+        peso: form.peso ? Number(form.peso) : null,
+      };
+
       if (selected) {
-        await updateCavalo.mutateAsync({ id: selected.id, ...form });
+        await updateCavalo.mutateAsync({ id: selected.id, ...payload });
         toast({ title: "Sucesso", description: "Cavalo atualizado com sucesso!" });
       } else {
-        await createCavalo.mutateAsync(form);
+        await createCavalo.mutateAsync(payload as any);
         toast({ title: "Sucesso", description: "Cavalo cadastrado com sucesso!" });
       }
       setShowForm(false);
@@ -58,9 +115,20 @@ export const GestorCavalos = () => {
     setForm({
       nome: c.nome,
       raca: c.raca || "",
+      pelagem: c.pelagem || c.cor || "",
+      ano_nascimento: c.ano_nascimento ? String(c.ano_nascimento) : "",
+      sexo: (c.sexo as any) || "Macho",
+      castrado: c.castrado !== false,
       status: (c.status as any) || "Ativo",
       foto_url: c.foto_url || "",
       humor: c.humor || "Dócil",
+      altura: c.altura ? String(c.altura) : "",
+      peso: c.peso ? String(c.peso) : "",
+      movimento_3d_predominante: c.movimento_3d_predominante || "",
+      data_avaliacao: c.data_avaliacao || "",
+      avaliacao_marcha: c.avaliacao_marcha || { qualidade: "Transpista", comprimento: "", velocidade: "", frequencia_10m: "", observacao: "" },
+      avaliacao_comportamento: c.avaliacao_comportamento || { animais: "", materiais: "", montar_descer: "", movimento_cavaleiro: "", conducao_guia: "", manejo: "", ambiente_externo: "" },
+      avaliacao_veterinaria: c.avaliacao_veterinaria || { indicacoes: "", contra_indicacoes: "" },
       comentario: c.comentario || ""
     });
     setShowForm(true);
@@ -121,7 +189,7 @@ export const GestorCavalos = () => {
             <button
               type="button"
               onClick={handleAddNew}
-              className="h-12 px-8 bg-[#EAB308] text-white rounded-full font-bold text-sm shadow-md shadow-[#EAB308]/20 active:scale-[0.95] transition-all"
+              className="h-12 px-8 bg-[#4E593F] text-white rounded-full font-bold text-sm shadow-md shadow-[#4E593F]/20 active:scale-[0.95] transition-all"
             >
               + Adicionar Primeiro Cavalo
             </button>
@@ -145,7 +213,7 @@ export const GestorCavalos = () => {
                     <p className="text-xs text-muted-foreground font-medium mt-0.5">{c.raca || "Raça não informada"}</p>
                   </div>
                   <div className={`flex items-center gap-2 transition-opacity duration-200 ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
-                    <span className={`px-3 py-1 text-[11px] font-extrabold rounded-full tracking-wide ${c.status === "Ativo" ? "bg-[#EAB308] text-white" : "bg-amber-100 text-amber-600 border border-amber-300"}`}>{c.status?.toUpperCase()}</span>
+                    <span className={`px-3 py-1 text-[11px] font-extrabold rounded-full tracking-wide ${c.status === "Ativo" ? "bg-[#4E593F] text-white" : "bg-[#DDE2D6] text-[#3E4732] border border-[#8C9A7A]"}`}>{c.status?.toUpperCase()}</span>
                     <ChevronRight size={18} className="text-muted-foreground" />
                   </div>
                 </button>
@@ -168,7 +236,7 @@ export const GestorCavalos = () => {
             type="button"
             onClick={handleSave}
             disabled={createCavalo.isPending || updateCavalo.isPending}
-            className="w-full h-14 bg-[#EAB308] hover:bg-[#D97706] text-white rounded-full font-bold text-lg shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
           >
             {createCavalo.isPending || updateCavalo.isPending ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -179,93 +247,314 @@ export const GestorCavalos = () => {
           </button>
         }
       >
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Nome do Cavalo</label>
-            <input
-              value={form.nome}
-              onChange={(e) => setForm({ ...form, nome: e.target.value })}
-              placeholder="Ex: Tordilho"
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
-            />
-          </div>
+        <Tabs defaultValue="geral" className="w-full">
+          <TabsList className="grid grid-cols-3 mb-6 bg-slate-100 p-1 rounded-2xl">
+            <TabsTrigger value="geral" className="rounded-xl flex items-center gap-2 text-xs font-bold">
+              <Info size={14} /> Geral
+            </TabsTrigger>
+            <TabsTrigger value="tecnica" className="rounded-xl flex items-center gap-2 text-xs font-bold">
+              <Activity size={14} /> Técnica
+            </TabsTrigger>
+            <TabsTrigger value="comportamento" className="rounded-xl flex items-center gap-2 text-xs font-bold">
+              <ShieldAlert size={14} /> Reações
+            </TabsTrigger>
+          </TabsList>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Raça</label>
-            <input
-              value={form.raca}
-              onChange={(e) => setForm({ ...form, raca: e.target.value })}
-              placeholder="Ex: Mangalarga Marchador"
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white"
+          <TabsContent value="geral" className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <ImageUploadField
+              bucket="cavalos"
+              value={form.foto_url}
+              onChange={(url) => setForm({ ...form, foto_url: url })}
+              defaultFacingMode="environment"
+              shape="rounded"
+              label="Foto do Cavalo"
             />
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Humor do Cavalo</label>
-            <div className="flex gap-2">
-              {["Dócil", "Moderado", "Arredio"].map((h) => (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">Nome do Cavalo</label>
+              <input
+                value={form.nome}
+                onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                placeholder="Ex: Votalla"
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Raça</label>
+                <input
+                  value={form.raca}
+                  onChange={(e) => setForm({ ...form, raca: e.target.value })}
+                  placeholder="Ex: Quarto de milha"
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Pelagem</label>
+                <input
+                  value={form.pelagem}
+                  onChange={(e) => setForm({ ...form, pelagem: e.target.value })}
+                  placeholder="Ex: Castanho"
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Nascimento (Ano)</label>
+                <input
+                  value={form.ano_nascimento}
+                  onChange={(e) => setForm({ ...form, ano_nascimento: e.target.value })}
+                  placeholder="Ex: 2006"
+                  type="number"
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Sexo</label>
+                <div className="flex gap-2 h-14">
+                  {["Macho", "Fêmea"].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setForm({ ...form, sexo: s as any })}
+                      className={`flex-1 rounded-2xl border text-sm font-bold transition-all ${form.sexo === s
+                        ? "bg-primary border-primary text-white shadow-sm"
+                        : "bg-slate-50 border-slate-200 text-slate-500"
+                        }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200">
+              <span className="text-sm font-bold text-slate-700">Castrado?</span>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, castrado: !form.castrado })}
+                className={`px-6 py-2 rounded-full border text-xs font-black uppercase tracking-widest transition-all ${form.castrado
+                  ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
+                  : "bg-slate-200 border-slate-300 text-slate-500"
+                  }`}
+              >
+                {form.castrado ? "Sim" : "Não"}
+              </button>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">Status de Disponibilidade</label>
+              <div className="flex gap-2">
                 <button
-                  key={h}
                   type="button"
-                  onClick={() => setForm({ ...form, humor: h })}
-                  className={`px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.humor === h
-                    ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
-                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#EAB308]"
+                  onClick={() => setForm({ ...form, status: "Ativo" })}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.status === "Ativo"
+                    ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#4E593F]"
                     }`}
                 >
-                  {h}
+                  <span className={`w-2 h-2 rounded-full ${form.status === "Ativo" ? "bg-white" : "bg-slate-300"}`} />
+                  Ativo
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, status: "Repouso" })}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.status === "Repouso"
+                    ? "bg-[#DDE2D6] border-[#8C9A7A] text-[#2E3525] shadow-sm"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#8C9A7A]"
+                    }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${form.status === "Repouso" ? "bg-[#F1F3EF]0" : "bg-slate-300"}`} />
+                  Repouso
+                </button>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="tecnica" className="space-y-5 animate-in fade-in slide-in-from-bottom-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Altura</label>
+                <input
+                  value={form.altura}
+                  onChange={(e) => setForm({ ...form, altura: e.target.value })}
+                  placeholder="M"
+                  type="number"
+                  step="0.01"
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-slate-700 ml-1">Peso</label>
+                <input
+                  value={form.peso}
+                  onChange={(e) => setForm({ ...form, peso: e.target.value })}
+                  placeholder="Kg"
+                  type="number"
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Calendar size={16} /> Data da Avaliação Técnica
+              </label>
+              <input
+                type="date"
+                value={form.data_avaliacao}
+                onChange={(e) => setForm({ ...form, data_avaliacao: e.target.value })}
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm"
+              />
+            </div>
+
+            <div className="bg-slate-50 p-4 rounded-3xl border border-slate-200 space-y-4">
+              <h3 className="text-sm font-bold text-slate-900 border-b border-slate-200 pb-2">Marcha (Dados Técnicos)</h3>
+              
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Qualidade do Passo</label>
+                <div className="flex gap-2">
+                  {["Antepista", "Sobrepista", "Transpista"].map((q) => (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => setForm({ ...form, avaliacao_marcha: { ...form.avaliacao_marcha, qualidade: q } })}
+                      className={`flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${form.avaliacao_marcha.qualidade === q
+                        ? "bg-slate-800 border-slate-800 text-white"
+                        : "bg-white border-slate-200 text-slate-400"
+                        }`}
+                    >
+                      {q}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Comprimento</label>
+                  <input
+                    value={form.avaliacao_marcha.comprimento}
+                    onChange={(e) => setForm({ ...form, avaliacao_marcha: { ...form.avaliacao_marcha, comprimento: e.target.value } })}
+                    placeholder="Ex: 1,60"
+                    className="w-full h-12 px-3 rounded-xl bg-white border border-slate-200 text-sm font-medium"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Passos/min</label>
+                  <input
+                    value={form.avaliacao_marcha.velocidade}
+                    onChange={(e) => setForm({ ...form, avaliacao_marcha: { ...form.avaliacao_marcha, velocidade: e.target.value } })}
+                    placeholder="Ex: 48"
+                    className="w-full h-12 px-3 rounded-xl bg-white border border-slate-200 text-sm font-medium"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Passos em 10m</label>
+                <input
+                  value={form.avaliacao_marcha.frequencia_10m}
+                  onChange={(e) => setForm({ ...form, avaliacao_marcha: { ...form.avaliacao_marcha, frequencia_10m: e.target.value } })}
+                  placeholder="Ex: 6"
+                  className="w-full h-12 px-3 rounded-xl bg-white border border-slate-200 text-sm font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">Movimento 3D Predominante</label>
+              <textarea
+                value={form.movimento_3d_predominante}
+                onChange={(e) => setForm({ ...form, movimento_3d_predominante: e.target.value })}
+                placeholder="Ex: Antero posterior e latero lateral..."
+                className="w-full h-24 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium focus:ring-2 focus:ring-primary outline-none transition-all shadow-sm resize-none"
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="comportamento" className="space-y-5 animate-in fade-in slide-in-from-bottom-2 pb-10">
+            <div className="space-y-3">
+              <label className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-1 flex items-center gap-2">
+                <Activity size={16} className="text-primary" /> Avaliação de Reações
+              </label>
+
+              {[
+                { key: "animais", label: "Frente a outros animais" },
+                { key: "materiais", label: "Frente ao uso de materiais" },
+                { key: "montar_descer", label: "Frente ao montar/descer" },
+                { key: "movimento_cavaleiro", label: "Frente ao movimento do cavaleiro" },
+                { key: "conducao_guia", label: "Quando conduzido pela guia" },
+                { key: "manejo", label: "Manejo, encilhamento e cabeçada" },
+                { key: "ambiente_externo", label: "Em ambiente externo" },
+              ].map((item) => (
+                <div key={item.key} className="space-y-1.5">
+                  <label className="text-[11px] font-black uppercase text-slate-400 ml-1 tracking-wider">{item.label}</label>
+                  <input
+                    value={(form.avaliacao_comportamento as any)[item.key]}
+                    onChange={(e) => setForm({ ...form, avaliacao_comportamento: { ...form.avaliacao_comportamento, [item.key]: e.target.value } })}
+                    placeholder="..."
+                    className="w-full h-12 px-4 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium"
+                  />
+                </div>
               ))}
             </div>
-          </div>
 
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Comentário sobre o Cavalo</label>
-            <textarea
-              value={form.comentario}
-              onChange={(e) => setForm({ ...form, comentario: e.target.value })}
-              placeholder="Descreva o perfil, personalidade ou observações importantes sobre o cavalo..."
-              className="w-full h-32 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] outline-none transition-all shadow-sm focus:bg-white resize-none"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Status de Disponibilidade</label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, status: "Ativo" })}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.status === "Ativo"
-                  ? "bg-[#EAB308] border-[#EAB308] text-white shadow-md shadow-[#EAB308]/20"
-                  : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#EAB308]"
-                  }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${form.status === "Ativo" ? "bg-white" : "bg-slate-300"}`} />
-                Ativo
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, status: "Repouso" })}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-bold transition-all ${form.status === "Repouso"
-                  ? "bg-amber-100 border-amber-300 text-amber-700 shadow-sm"
-                  : "bg-slate-50 border-slate-200 text-slate-500 hover:border-amber-300"
-                  }`}
-              >
-                <span className={`w-2 h-2 rounded-full ${form.status === "Repouso" ? "bg-amber-500" : "bg-slate-300"}`} />
-                Repouso
-              </button>
+            <div className="bg-[#F1F3EF] p-4 rounded-3xl border border-[#8C9A7A]/20 space-y-3">
+              <label className="text-sm font-bold text-[#4E593F] flex items-center gap-2">
+                <HeartPulse size={16} /> Veterinário
+              </label>
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-[#4E593F]/60 uppercase">Indicações</span>
+                  <textarea
+                    value={form.avaliacao_veterinaria.indicacoes}
+                    onChange={(e) => setForm({ ...form, avaliacao_veterinaria: { ...form.avaliacao_veterinaria, indicacoes: e.target.value } })}
+                    className="w-full h-20 p-3 rounded-xl bg-white/60 border border-[#8C9A7A]/40 text-sm outline-none resize-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-rose-600 uppercase">Contra-indicações</span>
+                  <textarea
+                    value={form.avaliacao_veterinaria.contra_indicacoes}
+                    onChange={(e) => setForm({ ...form, avaliacao_veterinaria: { ...form.avaliacao_veterinaria, contra_indicacoes: e.target.value } })}
+                    className="w-full h-20 p-3 rounded-xl bg-white/60 border border-rose-200 text-sm outline-none resize-none"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <ImageUploadField
-            bucket="cavalos"
-            value={form.foto_url}
-            onChange={(url) => setForm({ ...form, foto_url: url })}
-            defaultFacingMode="environment"
-            shape="rounded"
-            label="Foto do Cavalo"
-          />
-        </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">Humor & Observações Gerais</label>
+              <div className="flex gap-2 mb-3">
+                {["Dócil", "Moderado", "Arredio"].map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => setForm({ ...form, humor: h })}
+                    className={`flex-1 py-2.5 rounded-full border text-xs font-bold transition-all ${form.humor === h
+                      ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
+                      : "bg-slate-50 border-slate-200 text-slate-500 hover:border-[#4E593F]"
+                      }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={form.comentario}
+                onChange={(e) => setForm({ ...form, comentario: e.target.value })}
+                placeholder="Observações adicionais..."
+                className="w-full h-32 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white resize-none"
+              />
+            </div>
+          </TabsContent>
+        </Tabs>
+        <div className="h-20" />
       </ActionSheet>
 
       {/* Confirmation Modal for Soft Delete */}

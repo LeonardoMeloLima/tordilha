@@ -5,13 +5,13 @@ import { ActionSheet } from "../ui/ActionSheet";
 
 const icons: Record<string, React.ReactNode> = {
     alerta: <AlertTriangle size={20} className="text-rose-600" />,
-    evento: <PartyPopper size={20} className="text-amber-500" />,
+    evento: <PartyPopper size={20} className="text-[#4E593F]" />,
     info: <Clock size={20} className="text-blue-500" />,
 };
 
 const bgColors: Record<string, string> = {
     alerta: "bg-rose-50",
-    evento: "bg-amber-50",
+    evento: "bg-[#F1F3EF]",
     info: "bg-blue-50",
 };
 
@@ -91,7 +91,7 @@ export const ProfessorAvisos = () => {
                                 {icons[selectedAviso.tipo] || <Bell size={24} className="text-slate-400" />}
                             </div>
                             <div>
-                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${selectedAviso.tipo === 'alerta' ? 'bg-rose-100 text-rose-600' : selectedAviso.tipo === 'evento' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
+                                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${selectedAviso.tipo === 'alerta' ? 'bg-rose-100 text-rose-600' : selectedAviso.tipo === 'evento' ? 'bg-[#DDE2D6] text-[#3E4732]' : 'bg-blue-100 text-blue-600'}`}>
                                     {labels[selectedAviso.tipo] || "Comunicado"}
                                 </span>
                                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-2">

@@ -112,7 +112,7 @@ export const ConsentModal = ({ isOpen, onClose }: ConsentModalProps) => {
                 {/* LGPD Explanation */}
                 <div className="p-5 rounded-[24px] bg-slate-50 border border-slate-100 flex gap-4">
                     <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shrink-0 shadow-sm text-primary">
-                        <Lock size={20} className="text-[#EAB308]" />
+                        <Lock size={20} className="text-[#4E593F]" />
                     </div>
                     <div className="flex-1 space-y-1">
                         <h4 className="text-sm font-black text-slate-900 tracking-tight">Privacidade & Imagem</h4>
@@ -155,8 +155,8 @@ export const ConsentModal = ({ isOpen, onClose }: ConsentModalProps) => {
                         />
 
                         {/* Consent Toggle */}
-                        <label className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all cursor-pointer ${consentGiven ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-slate-200 shadow-sm'}`}>
-                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${consentGiven ? 'bg-emerald-500 border-emerald-500' : 'border-slate-300'}`}>
+                        <label className={`flex items-center gap-4 p-5 rounded-[24px] border transition-all cursor-pointer ${consentGiven ? 'bg-[#F1F3EF] border-[#8C9A7A]/30' : 'bg-white border-slate-200 shadow-sm'}`}>
+                            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${consentGiven ? 'bg-[#4E593F] border-[#4E593F]' : 'border-slate-300'}`}>
                                 {consentGiven && <Check size={14} className="text-white" strokeWidth={4} />}
                             </div>
                             <input
@@ -178,7 +178,7 @@ export const ConsentModal = ({ isOpen, onClose }: ConsentModalProps) => {
                     type="button"
                     onClick={handleSave}
                     disabled={loading || !aluno}
-                    className="w-full h-16 bg-[#EAB308] text-white rounded-full font-black text-base shadow-lg shadow-[#EAB308]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale"
+                    className="w-full h-16 bg-[#4E593F] text-white rounded-full font-black text-base shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale"
                 >
                     {loading ? (
                         <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

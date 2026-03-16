@@ -13,7 +13,7 @@ export function useAlunos() {
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("alunos")
-                .select("*")
+                .select("id, nome, avatar_url, diagnostico, idade, data_nascimento, ativo, lgpd_assinado, arquivado, professor_id, autoriza_imagem, data_autorizacao_imagem")
                 // Exclude soft-deleted (archived) students
                 .eq("arquivado", false)
                 .order("nome");

@@ -10,7 +10,7 @@ export function useResponsavelAlunos() {
 
             const { data, error } = await supabase
                 .from('aluno_responsavel')
-                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado), responsaveis!inner(email)')
+                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado, idade, diagnostico), responsaveis!inner(email)')
                 .eq('responsaveis.email', session.user.email);
 
             if (error) throw error;

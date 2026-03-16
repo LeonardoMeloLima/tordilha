@@ -55,7 +55,7 @@ export const ProfessorAgenda = () => {
             key={d.date}
             onClick={() => setSelectedDay(d.date)}
             className={`flex flex-col items-center justify-center min-w-[56px] h-[72px] rounded-2xl transition-all font-bold ${selectedDay === d.date
-              ? "bg-[#EAB308] text-white shadow-md shadow-[#EAB308]/30"
+              ? "bg-[#4E593F] text-white shadow-md shadow-[#4E593F]/30"
               : "bg-card card-shadow text-foreground"
               }`}
           >
@@ -101,7 +101,7 @@ export const ProfessorAgenda = () => {
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 text-sm font-black text-slate-900 bg-slate-50 px-3 py-1.5 rounded-full">
-                  <Clock size={14} className="text-[#EAB308]" strokeWidth={2.5} />
+                  <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                   {format(parseISO(s.data_hora), "HH:mm")}
                 </div>
               </div>
@@ -110,7 +110,7 @@ export const ProfessorAgenda = () => {
                 onClick={() => {
                   window.dispatchEvent(new CustomEvent('iniciar-sessao', { detail: { sessaoId: s.id } }));
                 }}
-                className="w-full mt-4 py-4 bg-[#EAB308] text-white rounded-[20px] font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#EAB308]/20 active:scale-[0.97] transition-all"
+                className="w-full mt-4 py-4 bg-[#4E593F] text-white rounded-[20px] font-black text-sm flex items-center justify-center gap-2 shadow-lg shadow-[#4E593F]/20 active:scale-[0.97] transition-all"
               >
                 <Play size={16} fill="white" />
                 Iniciar Sessão

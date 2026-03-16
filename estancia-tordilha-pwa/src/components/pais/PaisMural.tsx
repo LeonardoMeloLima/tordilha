@@ -76,7 +76,7 @@ export const PaisMural = () => {
         </div>
         <button
           onClick={() => setIsPostModalOpen(true)}
-          className="h-12 px-5 bg-[#EAB308] text-white rounded-2xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-[#EAB308]/20 active:scale-95 transition-all"
+          className="h-12 px-5 bg-[#4E593F] text-white rounded-2xl flex items-center gap-2 font-bold text-sm shadow-lg shadow-[#4E593F]/20 active:scale-95 transition-all"
         >
           <Send size={18} strokeWidth={2.5} />
           Postar
@@ -86,10 +86,10 @@ export const PaisMural = () => {
       {/* LGPD Glassmorphism card */}
       {!hasConsented && (
         <div className="relative rounded-[32px] overflow-hidden card-shadow">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#EAB308]/10 via-amber-50/5 to-orange-50/10 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#4E593F]/10 via-[#F1F3EF]/5 to-[#F1F3EF]/10 backdrop-blur-sm" />
           <div className="relative p-7 space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-white/80 backdrop-blur flex items-center justify-center shadow-sm">
-              <Lock size={24} className="text-[#EAB308]" strokeWidth={1.5} />
+              <Lock size={24} className="text-[#4E593F]" strokeWidth={1.5} />
             </div>
             <div>
               <h3 className="text-base font-black text-slate-900 tracking-tight">Privacidade & Imagem</h3>
@@ -144,7 +144,7 @@ export const PaisMural = () => {
             <div
               key={post.id}
               onClick={() => setActivePost(post)}
-              className={`bg-card rounded-[32px] card-shadow overflow-hidden group active:scale-[0.98] transition-all duration-300 cursor-pointer border border-slate-100/50 ${index === 0 ? 'ring-2 ring-amber-400 ring-offset-4 ring-offset-slate-50 mb-4' : ''
+              className={`bg-card rounded-[32px] card-shadow overflow-hidden group active:scale-[0.98] transition-all duration-300 cursor-pointer border border-slate-100/50 ${index === 0 ? 'ring-2 ring-[#4E593F]/60 ring-offset-4 ring-offset-slate-50 mb-4' : ''
                 }`}
             >
               {post.media_url ? (
@@ -156,16 +156,16 @@ export const PaisMural = () => {
                   />
                   {index === 0 && (
                     <div className="absolute top-4 right-4 px-3 py-1.5 bg-white/90 backdrop-blur-md rounded-full border border-white/50 flex items-center gap-2 shadow-sm">
-                      <Sparkles size={12} className="text-amber-500" />
-                      <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Destaque do Dia</span>
+                      <Sparkles size={12} className="text-[#4E593F]" />
+                      <span className="text-[10px] font-black text-[#3E4732] uppercase tracking-widest">Destaque do Dia</span>
                     </div>
                   )}
                   <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
                 </div>
               ) : post.tipo === "texto" ? (
-                <div className="p-1 bg-gradient-to-r from-amber-400 to-orange-400" />
+                <div className="p-1 bg-gradient-to-r from-[#6F7D5B] to-[#8C9A7A]" />
               ) : (
-                <div className="h-2 bg-[#EAB308]" />
+                <div className="h-2 bg-[#4E593F]" />
               )}
 
               <div className="p-6">
@@ -183,9 +183,9 @@ export const PaisMural = () => {
                       {post.criado_em ? new Date(post.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' }) : ""}
                     </p>
                     {post.badge && (
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-50 rounded-full border border-amber-100">
-                        <Award size={12} className="text-[#EAB308]" />
-                        <span className="text-[9px] font-black text-[#B45309] uppercase tracking-tight">{post.badge}</span>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F1F3EF] rounded-full border border-[#DDE2D6]">
+                        <Award size={12} className="text-[#4E593F]" />
+                        <span className="text-[9px] font-black text-[#2E3525] uppercase tracking-tight">{post.badge}</span>
                       </div>
                     )}
                   </div>
@@ -276,7 +276,7 @@ const MuralCommentsModal = ({ isOpen, onClose, post }: { isOpen: boolean, onClos
 
         <div className="flex-1 overflow-y-auto py-2 space-y-6">
           {isLoadingComments ? (
-            <div className="flex justify-center py-10"><span className="w-6 h-6 border-2 border-primary border-t-transparent animate-spin rounded-full" /></div>
+            <div className="flex justify-center py-10"><span className="w-6 h-6 border-2 border-[#4E593F] border-t-transparent animate-spin rounded-full" /></div>
           ) : commentsError ? (
             <div className="py-20 text-center text-rose-500 text-sm font-medium">Erro ao carregar comentários 😕</div>
           ) : comments.length === 0 ? (
@@ -313,11 +313,11 @@ const MuralCommentsModal = ({ isOpen, onClose, post }: { isOpen: boolean, onClos
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Escreva um comentário..."
-            className="flex-1 h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 placeholder:text-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+            className="flex-1 h-12 px-4 rounded-xl bg-slate-50 border border-slate-100 placeholder:text-slate-400 text-sm focus:bg-white focus:ring-2 focus:ring-[#4E593F]/20 transition-all outline-none"
           />
           <button
             disabled={!newComment.trim() || addComment.isPending}
-            className="w-12 h-12 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
+            className="w-12 h-12 rounded-xl bg-[#4E593F] text-white flex items-center justify-center shadow-lg shadow-[#4E593F]/20 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale"
           >
             {addComment.isPending ? <span className="w-4 h-4 border-2 border-white/30 border-t-white animate-spin rounded-full" /> : <Send size={18} />}
           </button>
