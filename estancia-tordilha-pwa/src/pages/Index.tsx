@@ -157,6 +157,7 @@ const Index = () => {
         subtitle="O que você deseja criar agora?"
       >
         <div className="flex flex-col gap-3 py-2">
+          {/* Nova Sessão — temporariamente desativado
           <button
             type="button"
             onClick={() => handleQuickAction('sessao')}
@@ -167,6 +168,7 @@ const Index = () => {
             </div>
             <span className="font-bold text-base text-slate-900 tracking-tight">Nova Sessão</span>
           </button>
+          */}
 
           {isMaster ? (
             <>

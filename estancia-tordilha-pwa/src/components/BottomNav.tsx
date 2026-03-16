@@ -88,7 +88,7 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
       {(() => {
         if (role === 'pais') return ['agenda', 'mural', 'aluno'].includes(activeTab);
         if (role === 'professor') return !['alunos', 'cavalos'].includes(activeTab);
-        return true; // gestor
+        return activeTab !== 'dashboard'; // gestor: hide FAB on dashboard (has its own contextual buttons)
       })() && (
           <ContextualFAB activeTab={activeTab} onClick={onFabClick} />
         )}
