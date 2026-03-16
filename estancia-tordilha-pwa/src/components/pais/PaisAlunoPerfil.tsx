@@ -27,7 +27,7 @@ import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { ConsentModal } from "@/components/pais/ConsentModal";
 
 export const PaisAlunoPerfil = () => {
-  const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
+  const { data: vinculos, isLoading: loadingVinculos, refetch: refetchVinculos } = useResponsavelAlunos();
   const { updateAluno } = useAlunos();
   const [selectedAlunoId, setSelectedAlunoId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -86,11 +86,16 @@ export const PaisAlunoPerfil = () => {
     const handleFABClick = () => {
       setIsRegisterModalOpen(true);
     };
+    const handleConsentUpdated = () => {
+      refetchVinculos();
+    };
 
     window.addEventListener('fab-click-local', handleFABClick);
-    
+    window.addEventListener('consent-updated', handleConsentUpdated);
+
     return () => {
       window.removeEventListener('fab-click-local', handleFABClick);
+      window.removeEventListener('consent-updated', handleConsentUpdated);
     };
   }, [alunos, selectedAlunoId, currentAluno]);
 
