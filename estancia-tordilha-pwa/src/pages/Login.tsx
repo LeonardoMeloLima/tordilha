@@ -107,17 +107,8 @@ const Login = () => {
                             role: selectedRole,
                             telefone,
                             lgpd_assinado: lgpd,
-                            autoriza_imagem: selectedRole === "pais" ? autorizaImagem : undefined,
-                            data_autorizacao_imagem: selectedRole === "pais" ? new Date().toISOString() : undefined,
-                            rg: selectedRole === "pais" ? rg : undefined,
-                            cpf: selectedRole === "pais" ? cpf : undefined,
-                            endereco: selectedRole === "pais" ? endereco : undefined,
                             cidade: cidade,
                             estado: estado,
-                            aluno_nomes: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.nome).join(", ") : undefined,
-                            aluno_idades: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.idade).join(", ") : undefined,
-                            aluno_diagnosticos: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.diagnostico).join(", ") : undefined,
-                            patrocinador: selectedRole === "pais" ? patrocinador : undefined,
                         }
                     }
                 });
@@ -173,21 +164,15 @@ const Login = () => {
 
                     // 2. Create Students and Link them (With De-duplication check)
                     if (responsavelId) {
+                        // Fetch all aluno_ids already linked to this responsavel
+                        const { data: linkedAlunos } = await supabase
+                            .from('aluno_responsavel')
+                            .select('aluno_id')
+                            .eq('responsavel_id', responsavelId);
+                        const linkedIds = new Set((linkedAlunos ?? []).map(l => l.aluno_id));
+
                         for (const aluno of alunos.filter(a => a.nome.trim() !== "")) {
-                            // First, check if this student (by name) is already linked to this responsible
-                            const { data: existingLink } = await supabase
-                                .from('aluno_responsavel')
-                                .select('aluno_id, alunos!inner(nome)')
-                                .eq('responsavel_id', responsavelId)
-                                .eq('alunos.nome', aluno.nome.trim())
-                                .maybeSingle();
-
-                            if (existingLink) {
-                                console.log(`Aluno ${aluno.nome} já vinculado, pulando criação.`);
-                                continue;
-                            }
-
-                            // If not linked, check if student exists globally or create new
+                            // Check if student exists globally by name
                             const { data: globalAluno } = await supabase
                                 .from('alunos')
                                 .select('id')
@@ -197,10 +182,15 @@ const Login = () => {
                             let alunoId = globalAluno?.id;
 
                             if (!alunoId) {
+                                // Create new student with all fields
                                 const { data: newAluno, error: alunoError } = await supabase
                                     .from('alunos')
                                     .insert({
                                         nome: aluno.nome.trim(),
+                                        idade: aluno.idade ? parseInt(aluno.idade) : null,
+                                        diagnostico: aluno.diagnostico.trim() || null,
+                                        autoriza_imagem: autorizaImagem,
+                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
                                     })
                                     .select('id')
                                     .single();
@@ -208,9 +198,19 @@ const Login = () => {
                                 if (!alunoError && newAluno) {
                                     alunoId = newAluno.id;
                                 }
+                            } else {
+                                // Update autoriza_imagem on existing record
+                                await supabase
+                                    .from('alunos')
+                                    .update({
+                                        autoriza_imagem: autorizaImagem,
+                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
+                                    })
+                                    .eq('id', alunoId);
                             }
 
-                            if (alunoId) {
+                            // Link only if not already linked
+                            if (alunoId && !linkedIds.has(alunoId)) {
                                 await supabase
                                     .from('aluno_responsavel')
                                     .insert({
