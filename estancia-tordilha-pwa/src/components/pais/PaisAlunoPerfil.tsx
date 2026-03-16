@@ -24,6 +24,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
+import { ConsentModal } from "@/components/pais/ConsentModal";
 
 export const PaisAlunoPerfil = () => {
   const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
@@ -56,6 +57,7 @@ export const PaisAlunoPerfil = () => {
     estado: ""
   });
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [isConsentModalOpen, setIsConsentModalOpen] = useState(false);
   const [registerForm, setRegisterForm] = useState({ 
     nome: "", 
     idade: "", 
@@ -379,10 +381,13 @@ export const PaisAlunoPerfil = () => {
                     <span className="text-[10px] font-black uppercase tracking-widest">Termos Assinados</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
+                  <button
+                    onClick={() => setIsConsentModalOpen(true)}
+                    className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-600 rounded-full border border-rose-100 active:scale-95 transition-all"
+                  >
                     <Info size={12} strokeWidth={3} />
-                    <span className="text-[10px] font-black uppercase tracking-widest">Termos Pendentes</span>
-                  </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest">Termos Pendentes — Toque para assinar</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -741,6 +746,11 @@ export const PaisAlunoPerfil = () => {
           </label>
         </div>
       </ActionSheet>
+
+      <ConsentModal
+        isOpen={isConsentModalOpen}
+        onClose={() => setIsConsentModalOpen(false)}
+      />
 
       <ActionSheet
         isOpen={isStudentSelectorOpen}

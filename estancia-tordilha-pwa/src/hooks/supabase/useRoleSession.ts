@@ -33,15 +33,23 @@ export function useRoleSession() {
         return () => subscription.unsubscribe();
     }, []);
 
-    const handleUserMetadata = (session: Session | null) => {
+    const handleUserMetadata = async (session: Session | null) => {
         if (session?.user) {
             const userMeta = session.user.user_metadata || {};
             const emailPart = session.user.email ? session.user.email.split('@')[0].split('.')[0] : "";
             const fallbackName = emailPart ? emailPart.charAt(0).toUpperCase() + emailPart.slice(1) : "Usuário";
 
             const userRole = userMeta.role;
-            const fullName = userMeta.nome_completo || userMeta.full_name || fallbackName;
-            const avatar = userMeta.avatar_url || null;
+
+            // Fetch from profiles table — handle_new_user trigger always populates it correctly
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('full_name, avatar_url')
+                .eq('id', session.user.id)
+                .maybeSingle();
+
+            const fullName = profile?.full_name || userMeta.nome_completo || userMeta.full_name || fallbackName;
+            const avatar = profile?.avatar_url || userMeta.avatar_url || null;
 
             setRealRole((userRole as Role) || "gestor"); // fallback to gestor
             setUserName(fullName || "");
