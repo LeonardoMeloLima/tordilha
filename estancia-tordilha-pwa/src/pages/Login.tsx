@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check } from "lucide-react";
+import logoMarrom from "@/assets/logo-marrom.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { ImageRightsForm } from "@/components/auth/ImageRightsForm";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Login = () => {
     const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
@@ -95,7 +97,7 @@ const Login = () => {
                     setLoading(false);
                     return;
                 }
-                const { error } = await supabase.auth.signUp({
+                const { error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -110,8 +112,8 @@ const Login = () => {
                             rg: selectedRole === "pais" ? rg : undefined,
                             cpf: selectedRole === "pais" ? cpf : undefined,
                             endereco: selectedRole === "pais" ? endereco : undefined,
-                            cidade: selectedRole === "pais" ? cidade : undefined,
-                            estado: selectedRole === "pais" ? estado : undefined,
+                            cidade: cidade,
+                            estado: estado,
                             aluno_nomes: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.nome).join(", ") : undefined,
                             aluno_idades: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.idade).join(", ") : undefined,
                             aluno_diagnosticos: selectedRole === "pais" ? alunos.filter(a => a.nome.trim() !== "").map(a => a.diagnostico).join(", ") : undefined,
@@ -119,7 +121,13 @@ const Login = () => {
                         }
                     }
                 });
-                if (error) throw error;
+
+                const isAlreadyRegistered = signUpError?.message.includes('already been registered');
+
+                // If user already exists, we continue to sync their profile data
+                if (signUpError && !isAlreadyRegistered) {
+                    throw signUpError;
+                }
                 if (mode === "signUp" && selectedRole === "pais") {
                     // 1. Create/Get Responsavel record
                     let { data: resp } = await supabase
@@ -163,24 +171,50 @@ const Login = () => {
                             .eq('id', responsavelId);
                     }
 
-                    // 2. Create Students and Link them
+                    // 2. Create Students and Link them (With De-duplication check)
                     if (responsavelId) {
                         for (const aluno of alunos.filter(a => a.nome.trim() !== "")) {
-                            const { data: newAluno, error: alunoError } = await supabase
-                                .from('alunos')
-                                .insert({
-                                    nome: aluno.nome,
-                                    // Use idade and diagnostico if tables support it, 
-                                    // but primarily we link it.
-                                })
-                                .select('id')
-                                .single();
+                            // First, check if this student (by name) is already linked to this responsible
+                            const { data: existingLink } = await supabase
+                                .from('aluno_responsavel')
+                                .select('aluno_id, alunos!inner(nome)')
+                                .eq('responsavel_id', responsavelId)
+                                .eq('alunos.nome', aluno.nome.trim())
+                                .maybeSingle();
 
-                            if (!alunoError && newAluno) {
+                            if (existingLink) {
+                                console.log(`Aluno ${aluno.nome} já vinculado, pulando criação.`);
+                                continue;
+                            }
+
+                            // If not linked, check if student exists globally or create new
+                            const { data: globalAluno } = await supabase
+                                .from('alunos')
+                                .select('id')
+                                .eq('nome', aluno.nome.trim())
+                                .maybeSingle();
+
+                            let alunoId = globalAluno?.id;
+
+                            if (!alunoId) {
+                                const { data: newAluno, error: alunoError } = await supabase
+                                    .from('alunos')
+                                    .insert({
+                                        nome: aluno.nome.trim(),
+                                    })
+                                    .select('id')
+                                    .single();
+
+                                if (!alunoError && newAluno) {
+                                    alunoId = newAluno.id;
+                                }
+                            }
+
+                            if (alunoId) {
                                 await supabase
                                     .from('aluno_responsavel')
                                     .insert({
-                                        aluno_id: newAluno.id,
+                                        aluno_id: alunoId,
                                         responsavel_id: responsavelId,
                                         parentesco: 'Responsável'
                                     });
@@ -190,8 +224,10 @@ const Login = () => {
                 }
 
                 toast({
-                    title: "Conta criada com sucesso!",
-                    description: "Agora você já pode fazer o seu login.",
+                    title: isAlreadyRegistered ? "Dados atualizados!" : "Conta criada com sucesso!",
+                    description: isAlreadyRegistered 
+                        ? "Seus dados foram sincronizados. Você já pode fazer login."
+                        : "Agora você já pode fazer o seu login.",
                 });
                 setMode("signIn");
                 setEmail("");
@@ -214,8 +250,8 @@ const Login = () => {
         <div className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6">
             <div className="w-full max-w-[400px] bg-white rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.04)] p-8 sm:p-10 text-center space-y-8">
                 <div className="space-y-3">
-                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
-                        <span className="text-4xl hover:scale-110 transition-transform cursor-default">🏇</span>
+                    <div className="flex items-center justify-center mx-auto mb-6">
+                        <img src={logoMarrom} alt="Estância Tordilha" className="h-24 object-contain" />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Estância Tordilha</h1>
                     <p className="text-slate-500 font-medium">
@@ -239,18 +275,18 @@ const Login = () => {
                                         placeholder="Seu nome completo"
                                         value={fullName}
                                         onChange={(e) => setFullName(e.target.value)}
-                                        className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                        className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                         required
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-2">
+                            <div className="space-y-2 hidden">
                                 <label className="text-sm font-medium text-slate-700 ml-1">Selecione seu Perfil</label>
                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                                     <button
                                         type="button"
                                         onClick={() => setSelectedRole("gestor")}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "gestor" ? "border-[#EAB308] bg-[#EAB308]/10 text-[#EAB308]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "gestor" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <Briefcase size={24} strokeWidth={1.5} className="mb-2" />
                                         <span className="text-xs font-bold">Gestor</span>
@@ -258,7 +294,7 @@ const Login = () => {
                                     <button
                                         type="button"
                                         onClick={() => setSelectedRole("professor")}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "professor" ? "border-[#EAB308] bg-[#EAB308]/10 text-[#EAB308]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "professor" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <UserCircle size={24} strokeWidth={1.5} className="mb-2" />
                                         <span className="text-xs font-bold">Professor</span>
@@ -271,7 +307,7 @@ const Login = () => {
                                                 setShowImageRights(true);
                                             }
                                         }}
-                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "pais" ? "border-[#EAB308] bg-[#EAB308]/10 text-[#EAB308]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
+                                        className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "pais" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <Users size={24} strokeWidth={1.5} className="mb-2" />
                                         <span className="text-xs font-bold">Responsável</span>
@@ -288,7 +324,7 @@ const Login = () => {
                                             <button
                                                 type="button"
                                                 onClick={addAluno}
-                                                className="text-[10px] font-bold uppercase tracking-wider text-[#EAB308] bg-[#EAB308]/10 px-2.5 py-1.5 rounded-lg hover:bg-[#EAB308]/20 transition-all"
+                                                className="text-[10px] font-bold uppercase tracking-wider text-[#4E593F] bg-[#4E593F]/10 px-2.5 py-1.5 rounded-lg hover:bg-[#4E593F]/20 transition-all"
                                             >
                                                 + Adicionar
                                             </button>
@@ -311,44 +347,55 @@ const Login = () => {
                                                             </button>
                                                         )}
                                                     </div>
-                                                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                                                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
                                                         <div className="sm:col-span-3 relative group transition-all">
                                                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                                <User size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
+                                                                <User size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#4E593F] transition-colors" />
                                                             </div>
                                                             <Input
                                                                 type="text"
                                                                 placeholder="Nome do Aluno"
                                                                 value={aluno.nome}
                                                                 onChange={(e) => updateAlunoField(index, "nome", e.target.value)}
-                                                                className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium"
+                                                                className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium"
                                                                 required={index === 0}
                                                             />
                                                         </div>
-                                                        <div className="relative group transition-all">
-                                                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                                <Cake size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
-                                                            </div>
-                                                            <Input
-                                                                type="number"
-                                                                placeholder="Idade"
-                                                                value={aluno.idade}
-                                                                onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
-                                                                className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                required={index === 0}
-                                                            />
+                                                        <div className="sm:col-span-2 relative group transition-all">
+                                                            <Tooltip>
+                                                                <TooltipTrigger asChild>
+                                                                    <div className="w-full">
+                                                                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none z-10">
+                                                                            <Cake size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#4E593F] transition-colors" />
+                                                                        </div>
+                                                                        <Input
+                                                                            type="number"
+                                                                            placeholder="Idade do Aluno"
+                                                                            value={aluno.idade}
+                                                                            onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
+                                                                            onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do aluno precisa ser preenchida.')}
+                                                                            onInput={(e: any) => e.target.setCustomValidity('')}
+                                                                            className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                                            required={index === 0}
+                                                                        />
+                                                                    </div>
+                                                                </TooltipTrigger>
+                                                                <TooltipContent side="top" className="bg-slate-800 text-white border-none shadow-lg">
+                                                                    <p className="text-xs font-semibold">Esta informação é usada para adequar as atividades ao nível de desenvolvimento do aluno.</p>
+                                                                </TooltipContent>
+                                                            </Tooltip>
                                                         </div>
                                                     </div>
                                                     <div className="relative group transition-all">
                                                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                                            <Briefcase size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#EAB308] transition-colors" />
+                                                            <Briefcase size={18} strokeWidth={1.5} className="text-slate-400 group-focus-within:text-[#4E593F] transition-colors" />
                                                         </div>
                                                         <Input
                                                             type="text"
                                                             placeholder="Diagnóstico (Ex: TDAH, TEA...)"
                                                             value={aluno.diagnostico}
                                                             onChange={(e) => updateAlunoField(index, "diagnostico", e.target.value)}
-                                                            className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium"
+                                                            className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium"
                                                         />
                                                     </div>
                                                 </div>
@@ -367,7 +414,7 @@ const Login = () => {
                                                 placeholder="Ex: Prefeitura, Empresa X, Particular..."
                                                 value={patrocinador}
                                                 onChange={(e) => setPatrocinador(e.target.value)}
-                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                             />
                                         </div>
                                     </div>
@@ -383,7 +430,7 @@ const Login = () => {
                                                 placeholder="(00) 00000-0000"
                                                 value={telefone}
                                                 onChange={(e) => setTelefone(e.target.value)}
-                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                                 required={selectedRole === "pais"}
                                             />
                                         </div>
@@ -395,7 +442,7 @@ const Login = () => {
                                             checked={lgpd} 
                                             onCheckedChange={(checked) => setLgpd(checked === true)}
                                             required={selectedRole === "pais"}
-                                            className="h-5 w-5 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-[#EAB308] data-[state=checked]:border-[#EAB308]"
+                                            className="h-5 w-5 rounded-lg border-2 border-slate-300 data-[state=checked]:bg-[#4E593F] data-[state=checked]:border-[#4E593F]"
                                         />
                                         <div className="grid gap-1.5 leading-none">
                                             <label
@@ -408,17 +455,17 @@ const Login = () => {
                                     </div>
 
                                     {selectedRole === "pais" && imageRightsConfirmed && (
-                                        <div className="p-4 bg-[#EAB308]/5 rounded-2xl border border-[#EAB308]/20 flex items-center justify-between">
+                                        <div className="p-4 bg-[#4E593F]/5 rounded-2xl border border-[#4E593F]/20 flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-[#EAB308] flex items-center justify-center">
+                                                <div className="w-8 h-8 rounded-full bg-[#4E593F] flex items-center justify-center">
                                                     <Check size={16} className="text-white" />
                                                 </div>
-                                                <span className="text-xs font-bold text-[#EAB308]">Autorização de Imagem Concluída</span>
+                                                <span className="text-xs font-bold text-[#4E593F]">Autorização de Imagem Concluída</span>
                                             </div>
                                             <button 
                                                 type="button" 
                                                 onClick={() => setShowImageRights(true)}
-                                                className="text-[10px] font-bold uppercase underline text-[#EAB308]"
+                                                className="text-[10px] font-bold uppercase underline text-[#4E593F]"
                                             >
                                                 Editar
                                             </button>
@@ -469,7 +516,7 @@ const Login = () => {
                                 placeholder="seu@email.com"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                 required
                             />
                         </div>
@@ -487,7 +534,7 @@ const Login = () => {
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white"
+                                    className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                     required
                                 />
                             </div>
@@ -506,7 +553,7 @@ const Login = () => {
                                     placeholder="••••••••"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#EAB308] focus:border-[#EAB308] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
+                                    className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
                                     required
                                 />
                             </div>
@@ -516,7 +563,7 @@ const Login = () => {
                     <Button
                         type="submit"
                         disabled={loading || (mode === "signUp" && selectedRole === "pais" && !imageRightsConfirmed)}
-                        className="w-full h-14 rounded-full bg-[#EAB308] hover:bg-[#D97706] text-white font-bold text-lg mt-6 shadow-lg shadow-[#EAB308]/20 transition-all active:scale-[0.98]"
+                        className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-lg mt-6 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98]"
                     >
                         {loading ? "Processando..." : (
                             <span className="flex items-center gap-2">
@@ -533,8 +580,14 @@ const Login = () => {
                                 Não tem uma conta?{" "}
                                 <button
                                     type="button"
-                                    onClick={() => setMode("signUp")}
-                                    className="text-slate-700 font-bold hover:text-[#EAB308] transition-colors"
+                                    onClick={() => {
+                                        setMode("signUp");
+                                        setSelectedRole("pais");
+                                        if (!imageRightsConfirmed) {
+                                            setShowImageRights(true);
+                                        }
+                                    }}
+                                    className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors"
                                 >
                                     Cadastre-se
                                 </button>
@@ -545,7 +598,7 @@ const Login = () => {
                                 <button
                                     type="button"
                                     onClick={() => setMode("signIn")}
-                                    className="text-slate-700 font-bold hover:text-[#EAB308] transition-colors"
+                                    className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors"
                                 >
                                     Fazer Login
                                 </button>
@@ -556,7 +609,7 @@ const Login = () => {
                     {mode === "signIn" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Esqueceu sua senha?{" "}
-                            <button type="button" onClick={() => setMode("forgotPassword")} className="text-slate-700 font-bold hover:text-[#EAB308] transition-colors">
+                            <button type="button" onClick={() => setMode("forgotPassword")} className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors">
                                 Recuperar
                             </button>
                         </p>
@@ -565,7 +618,7 @@ const Login = () => {
                     {mode === "forgotPassword" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Lembrou a senha?{" "}
-                            <button type="button" onClick={() => setMode("signIn")} className="text-slate-700 font-bold hover:text-[#EAB308] transition-colors">
+                            <button type="button" onClick={() => setMode("signIn")} className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors">
                                 Voltar ao Login
                             </button>
                         </p>
