@@ -64,25 +64,67 @@ export const GestorAgenda = () => {
     return day === 0 ? 6 : day - 1; // convert to monday-based
   }, [currentMonth]);
 
-  // Sessions for the selected day
-  const daySessoes = useMemo(() => {
-    return sessoes.filter((s) => isSameDay(parseISO(s.data_hora), parseISO(selectedDay)));
-  }, [sessoes, selectedDay]);
+  // day-of-week (0=sun) → monday-based index used by DIAS_SEMANA
+  const getDiaSemana = (date: Date) => getDay(date); // 0=dom,1=seg...6=sab
 
-  // Days that have sessions (for dot indicators)
+  // Recurring sessions expanded as virtual session objects for a given date
+  const expandRecorrentesForDay = (date: Date) => {
+    const dow = getDiaSemana(date);
+    return recorrentes
+      .filter(r => r.dia_semana === dow)
+      .map(r => ({
+        id: `rec-${r.id}`,
+        data_hora: `${format(date, "yyyy-MM-dd")}T${r.horario}`,
+        status: "recorrente",
+        aluno: (r as any).aluno,
+        cavalo: (r as any).cavalo,
+        recorrente_id: r.id,
+        _isRecorrente: true,
+      }));
+  };
+
+  // Sessions for the selected day (real + recurring)
+  const daySessoes = useMemo(() => {
+    const selectedDate = parseISO(selectedDay);
+    const real = sessoes.filter((s) => isSameDay(parseISO(s.data_hora), selectedDate));
+    const virtual = expandRecorrentesForDay(selectedDate).filter(
+      vr => !real.some(r => (r as any).recorrente_id === vr.recorrente_id)
+    );
+    return [...real, ...virtual].sort((a, b) =>
+      a.data_hora.localeCompare(b.data_hora)
+    );
+  }, [sessoes, recorrentes, selectedDay]);
+
+  // Days that have sessions OR recurring sessions (for dot indicators)
   const daysWithSessoes = useMemo(() => {
     const set = new Set<string>();
     sessoes.forEach(s => set.add(format(parseISO(s.data_hora), "yyyy-MM-dd")));
+    // Add all days matching recurrence day-of-week within the visible month range
+    if (recorrentes.length > 0) {
+      const start = startOfMonth(currentMonth);
+      const end = endOfMonth(currentMonth);
+      eachDayOfInterval({ start, end }).forEach(day => {
+        const dow = getDiaSemana(day);
+        if (recorrentes.some(r => r.dia_semana === dow)) {
+          set.add(format(day, "yyyy-MM-dd"));
+        }
+      });
+      // Also cover week days
+      weekDays.forEach(d => {
+        const dow = getDiaSemana(d.fullDate);
+        if (recorrentes.some(r => r.dia_semana === dow)) {
+          set.add(d.date);
+        }
+      });
+    }
     return set;
-  }, [sessoes]);
+  }, [sessoes, recorrentes, currentMonth, weekDays]);
 
   // Occupied times for selected day (for time slot grid)
   const occupiedTimes = useMemo(() => {
     const dateObj = parseISO(selectedDay);
-    return sessoes
-      .filter(s => isSameDay(parseISO(s.data_hora), dateObj))
-      .map(s => format(parseISO(s.data_hora), "HH:mm"));
-  }, [selectedDay, sessoes]);
+    return daySessoes.map(s => format(parseISO(s.data_hora), "HH:mm"));
+  }, [selectedDay, daySessoes]);
 
   useEffect(() => {
     const handleOpenForm = () => setShowForm(true);
@@ -179,39 +221,42 @@ export const GestorAgenda = () => {
           <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhuma sessão neste dia</p>
         </div>
       ) : (
-        daySessoes.map((s) => (
-          <SwipeableCard key={s.id} onDelete={() => handleDelete(s.id)} deleteLabel="Excluir">
-            <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
-              <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
-                <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
-                  </div>
-                  <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
-                  {(s as any).recorrente_id && (
-                    <span className="text-[9px] font-black uppercase tracking-tighter text-[#4E593F] bg-[#4E593F]/10 px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
-                      <Repeat size={8} />
-                      recorrente
+        daySessoes.map((s) => {
+            const isVirtual = (s as any)._isRecorrente;
+            const card = (
+              <div className={`flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow ${isVirtual ? "border border-[#4E593F]/20" : ""}`}>
+                <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
+                  <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
+                    <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${isVirtual ? "text-[#4E593F] bg-[#4E593F]/10" : s.status === "confirmada" ? "text-[#4E593F] bg-[#4E593F]/10" : "text-slate-400 bg-slate-100"}`}>
+                      {isVirtual && <Repeat size={8} />}
+                      {isVirtual ? "recorrente" : s.status}
                     </span>
-                  )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                    <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
+                    {format(parseISO(s.data_hora), "HH:mm")}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                  <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
-                  {format(parseISO(s.data_hora), "HH:mm")}
-                </div>
-                <span className={`text-[10px] font-black uppercase tracking-tighter ${s.status === "confirmada" ? "text-[#4E593F]" : "text-muted-foreground"}`}>
-                  {s.status}
-                </span>
-              </div>
-            </div>
-          </SwipeableCard>
-        ))
+            );
+            return isVirtual ? (
+              <div key={s.id}>{card}</div>
+            ) : (
+              <SwipeableCard key={s.id} onDelete={() => handleDelete(s.id)} deleteLabel="Excluir">
+                {card}
+              </SwipeableCard>
+            );
+          })
       )}
     </div>
   );
