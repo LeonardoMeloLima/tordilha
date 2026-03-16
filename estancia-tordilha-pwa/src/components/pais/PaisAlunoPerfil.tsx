@@ -29,6 +29,13 @@ import { ConsentModal } from "@/components/pais/ConsentModal";
 export const PaisAlunoPerfil = () => {
   const { data: vinculos, isLoading: loadingVinculos, refetch: refetchVinculos } = useResponsavelAlunos();
   const { updateAluno } = useAlunos();
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setCurrentUserEmail(session?.user?.email ?? null);
+    });
+  }, []);
   const [selectedAlunoId, setSelectedAlunoId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -576,13 +583,15 @@ export const PaisAlunoPerfil = () => {
                         <p className="text-xs font-medium text-slate-400">{resp.email}</p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveResponsavel(resp.id)}
-                      className="w-10 h-10 flex items-center justify-center text-rose-100 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    {resp.email !== currentUserEmail && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveResponsavel(resp.id)}
+                        className="w-10 h-10 flex items-center justify-center text-rose-100 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all active:scale-90"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </div>
                 ))
               )}
