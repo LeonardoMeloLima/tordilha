@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { LayoutDashboard, Users, Calendar, BookOpen, Bell, TrendingUp, Plus, ChessKnight, UserPlus, CalendarPlus } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, BookOpen, TrendingUp, Plus, ChessKnight, UserPlus, CalendarPlus } from "lucide-react";
 import type { Role } from "@/hooks/supabase/useRoleSession";
 
 interface NavItem {
@@ -20,12 +20,12 @@ const navConfig: Record<string, NavItem[]> = {
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
     { label: "Alunos", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Evolução", icon: <TrendingUp size={22} strokeWidth={1.5} />, activeIcon: <TrendingUp size={22} strokeWidth={1.5} />, id: "evolucao" },
-    { label: "Avisos", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "avisos" },
+    { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
-    { label: "Avisos", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "avisos" },
+    { label: "Aluno", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "aluno" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
   ],
 };
@@ -39,14 +39,14 @@ interface BottomNavProps {
 
 const ContextualFAB = ({ activeTab, onClick }: { activeTab: string, onClick?: () => void }) => {
   let Icon = Plus;
-  if (activeTab === 'alunos') Icon = UserPlus;
+  if (activeTab === 'alunos' || activeTab === 'aluno') Icon = UserPlus;
   if (activeTab === 'agenda') Icon = CalendarPlus;
 
   return (
     <div className="relative -top-5 mx-1">
       <button
         onClick={onClick}
-        className="w-16 h-16 rounded-full bg-[#EAB308] text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
+        className="w-16 h-16 rounded-full bg-[#4E593F] text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
       >
         <Icon size={28} strokeWidth={2.5} />
       </button>
@@ -70,14 +70,14 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center justify-center gap-1.5 min-w-[56px] transition-all duration-300 relative ${isActive
-                ? "text-[#EAB308]"
+                ? "text-[#4E593F]"
                 : "text-slate-400 hover:text-slate-600"
                 }`}
             >
               <div className={`${isActive ? 'scale-110 -translate-y-0.5' : 'scale-100'} transition-all duration-300 flex flex-col items-center`}>
                 {isActive ? item.activeIcon : item.icon}
                 {isActive && (
-                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#EAB308] animate-in zoom-in duration-300" />
+                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#4E593F] animate-in zoom-in duration-300" />
                 )}
               </div>
             </button>
@@ -86,7 +86,7 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
       </div>
 
       {(() => {
-        if (role === 'pais') return ['agenda', 'mural'].includes(activeTab);
+        if (role === 'pais') return ['agenda', 'mural', 'aluno'].includes(activeTab);
         if (role === 'professor') return !['alunos', 'cavalos'].includes(activeTab);
         return true; // gestor
       })() && (
@@ -101,14 +101,14 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={`flex flex-col items-center justify-center gap-1.5 min-w-[56px] transition-all duration-300 relative ${isActive
-                ? "text-[#EAB308]"
+                ? "text-[#4E593F]"
                 : "text-slate-400 hover:text-slate-600"
                 }`}
             >
               <div className={`${isActive ? 'scale-110 -translate-y-0.5' : 'scale-100'} transition-all duration-300 flex flex-col items-center`}>
                 {isActive ? item.activeIcon : item.icon}
                 {isActive && (
-                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#EAB308] animate-in zoom-in duration-300" />
+                  <span className="absolute -bottom-1 w-1 h-1 rounded-full bg-[#4E593F] animate-in zoom-in duration-300" />
                 )}
               </div>
             </button>

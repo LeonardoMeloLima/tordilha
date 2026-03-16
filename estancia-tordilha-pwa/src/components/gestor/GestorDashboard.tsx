@@ -1,4 +1,4 @@
-import { Phone, MessageSquare, UsersRound, CalendarDays, TrendingUp, HeartPulse } from "lucide-react";
+import { UsersRound, CalendarDays, TrendingUp, HeartPulse } from "lucide-react";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { useSessoes } from "@/hooks/useSessoes";
@@ -42,9 +42,9 @@ export const GestorDashboard = () => {
       label: 'Cavalos Ativos',
       value: loadingCavalos ? '...' : `${cavalos.filter(c => c.status === 'Ativo').length}/${cavalos.length}`,
       icon: HeartPulse,
-      color: 'bg-[#fffbeb]', // amber-50
-      iconBg: 'bg-[#fef3c7]', // amber-100
-      iconCol: 'text-amber-600'
+      color: 'bg-[#F1F3EF]',
+      iconBg: 'bg-[#DDE2D6]',
+      iconCol: 'text-[#3E4732]'
     },
   ], [alunos, sessoes, cavalos, loadingAlunos, loadingSessoes, loadingCavalos]);
 
@@ -52,7 +52,7 @@ export const GestorDashboard = () => {
     return sessoes
       .filter(s => isToday(parseISO(s.data_hora)))
       .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
-      .slice(0, 3);
+      .slice(0, 5);
   }, [sessoes]);
 
   const isLoading = loadingAlunos || loadingCavalos || loadingSessoes;
@@ -135,13 +135,15 @@ export const GestorDashboard = () => {
                     <h3 className="text-base font-extrabold text-[#1A1D1E] tracking-tight">{s.aluno?.nome || "Aluno"}</h3>
                     <p className="text-sm text-slate-500 font-medium mt-0.5">c/ {s.cavalo?.nome || "Sem cavalo"}</p>
                   </div>
-                  <div className="flex gap-2">
-                    <button type="button" className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 hover:bg-blue-100 transition-colors">
-                      <MessageSquare size={18} strokeWidth={1.5} />
-                    </button>
-                    <button type="button" className="w-10 h-10 rounded-full bg-[#EAB308] flex items-center justify-center text-white hover:bg-[#D97706] shadow-md shadow-[#EAB308]/20 transition-colors">
-                      <Phone size={18} strokeWidth={1.5} />
-                    </button>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <div className="px-3 py-1.5 rounded-xl bg-[#F1F3EF] border border-[#8C9A7A]/20 shadow-sm">
+                      <p className="text-[10px] font-black text-[#4E593F] uppercase tracking-wider whitespace-nowrap">
+                        {s.aluno?.diagnostico || "Avaliação"}
+                      </p>
+                    </div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">
+                      {s.aluno?.idade ? `${s.aluno.idade} anos` : "S/ Idade"}
+                    </p>
                   </div>
                 </div>
 
