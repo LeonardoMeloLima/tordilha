@@ -34,6 +34,7 @@ export const GestorAgenda = () => {
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "yyyy-MM-dd"));
   const [showForm, setShowForm] = useState(false);
   const [isRecorrente, setIsRecorrente] = useState(false);
+  const [showRecorrencias, setShowRecorrencias] = useState(false);
   const [newSession, setNewSession] = useState({
     alunoId: "", cavaloId: "", hora: "08:00", diaSemana: 1
   });
@@ -379,42 +380,66 @@ export const GestorAgenda = () => {
         </div>
       )}
 
-      {/* Selected day label */}
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-        {isToday(parseISO(selectedDay))
-          ? "Hoje"
-          : format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}
-      </p>
+      {/* Day label + filter */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+          {showRecorrencias
+            ? "Recorrências cadastradas"
+            : isToday(parseISO(selectedDay))
+              ? "Hoje"
+              : format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}
+        </p>
+        <button
+          onClick={() => setShowRecorrencias(v => !v)}
+          className={`flex items-center gap-1.5 h-7 px-3 rounded-full text-[11px] font-bold transition-all border ${showRecorrencias
+            ? "bg-[#4E593F] text-white border-[#4E593F]"
+            : "bg-white text-slate-500 border-slate-200"}`}
+        >
+          <Repeat size={11} />
+          Recorrência {recorrentes.length > 0 && `(${recorrentes.length})`}
+        </button>
+      </div>
 
-      {/* Sessions for selected day */}
-      <SessionList />
-
-      {/* Recurring sessions list */}
-      {recorrentes.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Repeat size={12} /> Aulas Recorrentes Ativas
-          </p>
-          {recorrentes.map(r => (
+      {/* Sessions OR recurrences */}
+      {showRecorrencias ? (
+        <div className="space-y-3">
+          {recorrentes.length === 0 ? (
+            <div className="text-center py-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl">
+              <Repeat size={32} className="mx-auto text-slate-300 mb-2" />
+              <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhuma recorrência cadastrada</p>
+            </div>
+          ) : recorrentes.map(r => (
             <SwipeableCard key={r.id} onDelete={() => handleDeleteRecorrente(r.id)} deleteLabel="Remover">
-              <div className="flex items-center gap-3 p-4 bg-card rounded-2xl card-shadow">
-                <div className="w-9 h-9 rounded-xl bg-[#4E593F]/10 flex items-center justify-center">
-                  <Repeat size={16} className="text-[#4E593F]" />
+              <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
+                <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
+                  <AvatarWithFallback src={(r as any).aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
                 </div>
                 <div className="flex-1">
                   <p className="text-sm font-bold text-foreground">{(r as any).aluno?.nome}</p>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                    {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · {r.horario.slice(0, 5)}
-                    {(r as any).cavalo?.nome ? ` · ${(r as any).cavalo.nome}` : ""}
-                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground font-bold">
+                      {(r as any).cavalo?.nome || "Sem cavalo"}
+                    </p>
+                  </div>
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-tighter text-[#4E593F] bg-[#4E593F]/10 px-2 py-1 rounded-full">
-                  semanal
-                </span>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                    <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
+                    {r.horario.slice(0, 5)}
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
+                    {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
+                  </span>
+                </div>
               </div>
             </SwipeableCard>
           ))}
         </div>
+      ) : (
+        <SessionList />
       )}
 
       {/* Form ActionSheet */}
