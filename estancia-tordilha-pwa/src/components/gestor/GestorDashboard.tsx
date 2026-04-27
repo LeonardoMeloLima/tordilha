@@ -4,14 +4,18 @@ import { useCavalos } from "@/hooks/useCavalos";
 import { useSessoes } from "@/hooks/useSessoes";
 import { format, isToday, parseISO } from "date-fns";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTaxaPresencaStats } from "@/hooks/useTaxaPresencaStats";
+import { TaxaPresencaModal } from "@/components/gestor/TaxaPresencaModal";
 
 export const GestorDashboard = () => {
   const { alunos, isLoading: loadingAlunos } = useAlunos();
   const { cavalos, isLoading: loadingCavalos } = useCavalos();
   const { sessoes, isLoading: loadingSessoes } = useSessoes();
   const navigate = useNavigate();
+  const { data: taxaPresencaStats, isLoading: loadingTaxaPresenca } = useTaxaPresencaStats();
+  const [taxaModalOpen, setTaxaModalOpen] = useState(false);
 
   const metrics = useMemo(() => [
     {
@@ -32,11 +36,16 @@ export const GestorDashboard = () => {
     },
     {
       label: 'Taxa de Presença',
-      value: '92%', // For agora mantendo esta métrica como estática
+      value: loadingTaxaPresenca
+        ? '...'
+        : taxaPresencaStats?.taxaPercentual === null || taxaPresencaStats === undefined
+          ? '—'
+          : `${taxaPresencaStats.taxaPercentual.toFixed(0)}%`,
       icon: TrendingUp,
       color: 'bg-[#eff6ff]', // blue-50
       iconBg: 'bg-[#dbeafe]', // blue-100
-      iconCol: 'text-blue-600'
+      iconCol: 'text-blue-600',
+      onClick: () => setTaxaModalOpen(true),
     },
     {
       label: 'Cavalos Ativos',
@@ -46,7 +55,7 @@ export const GestorDashboard = () => {
       iconBg: 'bg-[#DDE2D6]',
       iconCol: 'text-[#3E4732]'
     },
-  ], [alunos, sessoes, cavalos, loadingAlunos, loadingSessoes, loadingCavalos]);
+  ], [alunos, sessoes, cavalos, loadingAlunos, loadingSessoes, loadingCavalos, taxaPresencaStats, loadingTaxaPresenca]);
 
   const upcomingSessions = useMemo(() => {
     return sessoes
@@ -73,10 +82,10 @@ export const GestorDashboard = () => {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          {metrics.map((m) => (
+          {metrics.map((m: any) => (
             <div
               key={m.label}
-              onClick={() => navigate('/estatisticas')}
+              onClick={m.onClick ?? (() => navigate('/estatisticas'))}
               className={`${m.color} rounded-[32px] p-6 flex flex-col gap-6 relative overflow-hidden cursor-pointer transition-transform active:scale-[0.98] border border-white/40`}
             >
               <div className="flex items-start justify-between">
@@ -159,6 +168,8 @@ export const GestorDashboard = () => {
           )}
         </div>
       </div>
+
+      <TaxaPresencaModal isOpen={taxaModalOpen} onClose={() => setTaxaModalOpen(false)} />
     </div>
   );
 };
