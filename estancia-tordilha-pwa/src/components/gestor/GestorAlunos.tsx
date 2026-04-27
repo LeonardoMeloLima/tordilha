@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap, FileText, Mail, Users, UserCog } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, ChevronRight, Check, Shield, ShieldOff, UserPlus, GraduationCap, Pencil, UserCheck } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { ImageUploadField } from "@/components/ui/ImageUploadField";
 import { useAlunos } from "@/hooks/useAlunos";
@@ -9,87 +10,67 @@ import { SwipeableCard } from "@/components/ui/SwipeableCard";
 import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useProfessores } from "@/hooks/useProfessores";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
-import { generateImageRightsPDF } from "@/services/pdfService";
+import { supabase } from "@/lib/supabase";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
   const { professores } = useProfessores();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
-  const [form, setForm] = useState({ 
-    nome: "", 
-    idade: "", 
-    diagnostico: "", 
-    contato_emergencia: "", 
-    lgpd_assinado: false, 
+  const [form, setForm] = useState({
+    nome: "",
+    idade: "",
+    diagnostico: "",
+    contato_emergencia: "",
+    lgpd_assinado: false,
     autoriza_imagem: false,
-    avatar_url: "", 
-    ativo: true, 
-    professor_id: "", 
-    patrocinador: "" 
+    avatar_url: "",
+    ativo: true,
+    professor_id: "",
+    patrocinador: ""
   });
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
   const [visibleCount, setVisibleCount] = useState(10);
 
-  // For responsible linking
-  const {
-    responsaveis,
-    linkResponsavel,
-  } = useAlunosResponsaveis(selectedAluno?.id || null);
+  // Responsável editing
+  const [selectedResponsavel, setSelectedResponsavel] = useState<any>(null);
+  const [showEditResponsavel, setShowEditResponsavel] = useState(false);
+  const [responsavelForm, setResponsavelForm] = useState({ nome: "", telefone: "", cpf: "", endereco: "", cidade: "", estado: "" });
+  const { responsaveis: alunoResponsaveis } = useAlunosResponsaveis(selectedAluno?.id ?? null);
 
-  const [showAddResp, setShowAddResp] = useState(false);
-  const [editingResp, setEditingResp] = useState<any>(null);
-  const [respForm, setRespForm] = useState({ 
-    email: "", 
-    nome: "", 
-    parentesco: "Pai",
-    rg: "",
-    cpf: "",
-    endereco: "",
-    cidade: "",
-    estado: ""
+  const updateResponsavel = useMutation({
+    mutationFn: async ({ id, ...data }: any) => {
+      const { error } = await supabase.from("responsaveis").update(data).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["aluno-responsaveis", selectedAluno?.id] });
+      toast({ title: "Sucesso", description: "Responsável atualizado!" });
+      setShowEditResponsavel(false);
+    },
   });
 
-  const openEditResp = (resp: any) => {
-    setEditingResp(resp);
-    setRespForm({
-      email: resp.email || "",
+  const openEditResponsavel = (resp: any) => {
+    setSelectedResponsavel(resp);
+    setResponsavelForm({
       nome: resp.nome || "",
-      parentesco: resp.parentesco || "Pai",
-      rg: resp.rg || "",
+      telefone: resp.telefone || "",
       cpf: resp.cpf || "",
       endereco: resp.endereco || "",
       cidade: resp.cidade || "",
-      estado: resp.estado || ""
+      estado: resp.estado || "",
     });
-    setShowAddResp(true);
+    setShowEditResponsavel(true);
   };
 
-  const handleAddResponsavel = async () => {
-    if (!respForm.email || !respForm.nome) {
-      toast({ variant: "destructive", title: "Erro", description: "Nome e email são obrigatórios" });
-      return;
-    }
-
+  const handleSaveResponsavel = async () => {
     try {
-      await linkResponsavel.mutateAsync({
-        email: respForm.email.toLowerCase().trim(),
-        nome: respForm.nome.trim(),
-        parentesco: respForm.parentesco,
-        rg: respForm.rg,
-        cpf: respForm.cpf,
-        endereco: respForm.endereco,
-        cidade: respForm.cidade,
-        estado: respForm.estado
-      });
-      setShowAddResp(false);
-      setEditingResp(null);
-      setRespForm({ email: "", nome: "", parentesco: "Pai", rg: "", cpf: "", endereco: "", cidade: "", estado: "" });
-      toast({ title: "Sucesso", description: editingResp ? "Dados atualizados!" : "Responsável vinculado!" });
-    } catch (err: any) {
-      toast({ variant: "destructive", title: "Erro", description: err.message });
+      await updateResponsavel.mutateAsync({ id: selectedResponsavel.id, ...responsavelForm });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
     }
   };
 
@@ -134,18 +115,18 @@ export const GestorAlunos = () => {
       if (selectedAluno) {
         await updateAluno.mutateAsync({
           id: selectedAluno.id,
-          ...form,
-          idade: form.idade ? Number(form.idade) : null,
           professor_id: form.professor_id || null,
+          ativo: form.ativo,
+          patrocinador: form.patrocinador || null,
         });
-        toast({ title: "Sucesso", description: "Dados do aluno atualizados!" });
+        toast({ title: "Sucesso", description: "Dados do praticante atualizados!" });
       } else {
         await createAluno.mutateAsync({
           ...form,
           idade: form.idade ? Number(form.idade) : null,
           professor_id: form.professor_id || null,
         });
-        toast({ title: "Sucesso", description: "Aluno cadastrado com sucesso!" });
+        toast({ title: "Sucesso", description: "Praticante cadastrado com sucesso!" });
       }
       setShowForm(false);
       setSelectedAluno(null);
@@ -199,8 +180,8 @@ export const GestorAlunos = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-extrabold text-foreground">Alunos</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">{isLoading ? "Carregando..." : `${alunos.length} alunos cadastrados`}</p>
+        <h1 className="text-xl font-extrabold text-foreground">Praticantes</h1>
+        <p className="text-sm text-muted-foreground font-medium mt-0.5">{isLoading ? "Carregando..." : `${alunos.length} praticantes cadastrados`}</p>
       </div>
 
       <div className="relative">
@@ -208,7 +189,7 @@ export const GestorAlunos = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar aluno..."
+          placeholder="Buscar praticante..."
           className="w-full pl-11 pr-4 py-4 rounded-2xl bg-card card-shadow text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 border-0"
         />
       </div>
@@ -243,8 +224,8 @@ export const GestorAlunos = () => {
               <UserPlus size={40} className="text-primary/30" />
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-bold text-slate-900">Nenhum aluno cadastrado</p>
-              <p className="text-sm text-muted-foreground font-medium px-4">Os alunos são cadastrados pelos seus respectivos responsáveis no aplicativo.</p>
+              <p className="text-lg font-bold text-slate-900">Nenhum praticante cadastrado</p>
+              <p className="text-sm text-muted-foreground font-medium px-4">Os praticantes são cadastrados pelos seus respectivos responsáveis no aplicativo.</p>
             </div>
           </div>
         ) : (
@@ -320,7 +301,7 @@ export const GestorAlunos = () => {
       <ActionSheet
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="Visualizar Aluno"
+        title="Visualizar Praticante"
         subtitle={`Informações de cadastro de ${selectedAluno?.nome}`}
         footer={
           <button
@@ -334,7 +315,7 @@ export const GestorAlunos = () => {
             ) : (
               <Check size={20} className="text-white" strokeWidth={2.5} />
             )}
-            {createAluno.isPending || updateAluno.isPending ? "Salvando..." : (selectedAluno ? "Salvar Alterações" : "Cadastrar Aluno")}
+            {createAluno.isPending || updateAluno.isPending ? "Salvando..." : (selectedAluno ? "Salvar Alterações" : "Cadastrar Praticante")}
           </button>
         }
       >
@@ -345,7 +326,7 @@ export const GestorAlunos = () => {
             onChange={(url) => setForm({ ...form, avatar_url: url })}
             defaultFacingMode="user"
             shape="circle"
-            label="Foto do Aluno"
+            label="Foto do Praticante"
             disabled={!!selectedAluno}
           />
 
@@ -390,10 +371,10 @@ export const GestorAlunos = () => {
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1 font-bold">Patrocinador</label>
             <input
-              readOnly
-              value={form.patrocinador}
+              value={form.patrocinador ?? ""}
+              onChange={(e) => setForm({ ...form, patrocinador: e.target.value })}
               placeholder="Não informado"
-              className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-100 text-slate-800 text-base font-bold shadow-sm outline-none"
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
             />
           </div>
 
@@ -401,12 +382,12 @@ export const GestorAlunos = () => {
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1 flex items-center gap-1.5">
               <GraduationCap size={14} className="text-slate-400" />
-              Professor Responsável
+              Terapeuta Responsável
             </label>
             {professores.length === 0 ? (
               <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-400">
                 <GraduationCap size={16} />
-                <span>Nenhum professor cadastrado ainda.</span>
+                <span>Nenhum terapeuta cadastrado ainda.</span>
               </div>
             ) : (
               <select
@@ -414,15 +395,40 @@ export const GestorAlunos = () => {
                 onChange={(e) => setForm({ ...form, professor_id: e.target.value })}
                 className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white appearance-none cursor-pointer"
               >
-                <option value="">— Nenhum professor —</option>
+                <option value="">— Nenhum terapeuta —</option>
                 {professores.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.full_name || "Professor sem nome"}
+                    {p.full_name || "Terapeuta sem nome"}
                   </option>
                 ))}
               </select>
             )}
           </div>
+
+          {/* Responsáveis vinculados */}
+          {selectedAluno && alunoResponsaveis.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-sm font-bold text-slate-700 ml-1 flex items-center gap-1.5">
+                <UserCheck size={14} className="text-slate-400" />
+                Responsável Vinculado
+              </label>
+              {alunoResponsaveis.map((resp) => (
+                <div key={resp.id} className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm text-slate-800">{resp.nome}</p>
+                    <p className="text-xs text-slate-500 truncate">{resp.telefone || resp.email}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openEditResponsavel(resp)}
+                    className="ml-3 p-2 rounded-full hover:bg-slate-200 active:scale-95 transition-all shrink-0"
+                  >
+                    <Pencil size={16} className="text-slate-500" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 opacity-60 pointer-events-none">
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
@@ -435,187 +441,6 @@ export const GestorAlunos = () => {
             </div>
           </div>
 
-          {/* Responsáveis Section */}
-          {selectedAluno && (
-            <div className="pt-6 border-t border-slate-100 space-y-4">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
-                    <Users size={16} className="text-primary" />
-                    Responsáveis Vinculados
-                  </label>
-                  {!showAddResp && (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddResp(true)}
-                      className="text-[10px] font-black uppercase text-primary bg-primary/5 px-3 py-1.5 rounded-xl border border-primary/10"
-                    >
-                      + Vincular
-                    </button>
-                  )}
-                </div>
-
-                {showAddResp && (
-                  <div className="p-5 rounded-3xl bg-slate-50 border border-slate-200 space-y-4 mb-4 animate-fade-in">
-                    <p className="text-xs font-bold text-slate-800 mb-2">{editingResp ? "Editar Dados" : "Novo Vínculo"}</p>
-                    <div className="grid grid-cols-1 gap-4">
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Nome Completo</label>
-                        <input
-                          placeholder="Nome do responsável"
-                          value={respForm.nome}
-                          onChange={(e) => setRespForm({ ...respForm, nome: e.target.value })}
-                          className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Email</label>
-                          <input
-                            placeholder="email@exemplo.com"
-                            value={respForm.email}
-                            onChange={(e) => setRespForm({ ...respForm, email: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Parentesco</label>
-                          <select
-                            value={respForm.parentesco}
-                            onChange={(e) => setRespForm({ ...respForm, parentesco: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                          >
-                            <option value="Pai">Pai</option>
-                            <option value="Mãe">Mãe</option>
-                            <option value="Tutor">Tutor</option>
-                            <option value="Outros">Outros</option>
-                          </select>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">RG</label>
-                          <input
-                            placeholder="00.000.000-0"
-                            value={respForm.rg}
-                            onChange={(e) => setRespForm({ ...respForm, rg: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">CPF</label>
-                          <input
-                            placeholder="000.000.000-00"
-                            value={respForm.cpf}
-                            onChange={(e) => setRespForm({ ...respForm, cpf: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Endereço Completo</label>
-                        <input
-                          placeholder="Rua, número, bairro..."
-                          value={respForm.endereco}
-                          onChange={(e) => setRespForm({ ...respForm, endereco: e.target.value })}
-                          className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                        />
-                      </div>
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Cidade</label>
-                          <input
-                            placeholder="Indaiatuba"
-                            value={respForm.cidade}
-                            onChange={(e) => setRespForm({ ...respForm, cidade: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Estado</label>
-                          <input
-                            placeholder="SP"
-                            value={respForm.estado}
-                            onChange={(e) => setRespForm({ ...respForm, estado: e.target.value })}
-                            className="w-full h-11 px-4 rounded-xl border border-slate-200 bg-white text-sm"
-                            maxLength={2}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={handleAddResponsavel}
-                        disabled={linkResponsavel.isPending}
-                        className="flex-1 h-12 bg-primary text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all shadow-md shadow-primary/20 disabled:opacity-50"
-                      >
-                        {linkResponsavel.isPending ? "Salvando..." : "Vincular Responsável"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setShowAddResp(false)}
-                        className="px-6 h-12 bg-slate-200 text-slate-600 rounded-2xl font-bold text-xs uppercase"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-
-              <div className="space-y-2">
-                {responsaveis.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                    Nenhum responsável vinculado a este aluno.
-                  </p>
-                ) : (
-                  responsaveis.map((resp: any) => (
-                    <div key={resp.id} className="flex items-center justify-between p-3 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center">
-                          <Mail size={16} className="text-slate-400" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-slate-800">{resp.nome} <span className="text-[10px] text-primary bg-primary/5 px-1.5 py-0.5 rounded-full ml-1">{resp.parentesco}</span></p>
-                          <p className="text-[11px] text-slate-500">{resp.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          title="Editar Dados"
-                          onClick={() => openEditResp(resp)}
-                          className="p-2 text-slate-400 hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                        >
-                          <UserCog size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          title="Baixar Termo de Imagem"
-                          onClick={() => generateImageRightsPDF({
-                            responsibleName: resp.nome,
-                            rg: resp.rg || "_________________",
-                            cpf: resp.cpf || "_________________",
-                            address: resp.endereco || "_________________",
-                            city: resp.cidade || "_________________",
-                            state: resp.estado || "__",
-                            studentNames: selectedAluno.nome,
-                            authorized: !!selectedAluno.autoriza_imagem,
-                            date: selectedAluno.data_autorizacao_imagem 
-                              ? new Date(selectedAluno.data_autorizacao_imagem).toLocaleDateString('pt-BR')
-                              : new Date().toLocaleDateString('pt-BR')
-                          })}
-                          className="p-2 text-primary hover:bg-primary/10 rounded-xl transition-colors"
-                        >
-                          <FileText size={16} />
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
 
           {/* Ativo/Inativo toggle — only show when editing */}
           {selectedAluno && (
@@ -628,7 +453,7 @@ export const GestorAlunos = () => {
                 }`}
             >
               <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-[#4E593F]" : "bg-slate-400"}`} />
-              {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
+              {form.ativo ? "Praticante Ativo" : "Praticante Inativo"}
             </button>
           )}
 
@@ -637,10 +462,87 @@ export const GestorAlunos = () => {
         </div>
       </ActionSheet>
 
+      {/* Edit Responsável ActionSheet */}
+      <ActionSheet
+        isOpen={showEditResponsavel}
+        onClose={() => setShowEditResponsavel(false)}
+        title="Editar Responsável"
+        subtitle={selectedResponsavel?.nome}
+        footer={
+          <button
+            type="button"
+            onClick={handleSaveResponsavel}
+            disabled={updateResponsavel.isPending}
+            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+          >
+            {updateResponsavel.isPending ? (
+              <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Check size={20} className="text-white" strokeWidth={2.5} />
+            )}
+            {updateResponsavel.isPending ? "Salvando..." : "Salvar Alterações"}
+          </button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-slate-700 ml-1">Nome Completo</label>
+            <input
+              value={responsavelForm.nome}
+              onChange={(e) => setResponsavelForm({ ...responsavelForm, nome: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-slate-700 ml-1">Telefone</label>
+            <input
+              value={responsavelForm.telefone}
+              onChange={(e) => setResponsavelForm({ ...responsavelForm, telefone: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-slate-700 ml-1">CPF</label>
+            <input
+              value={responsavelForm.cpf}
+              onChange={(e) => setResponsavelForm({ ...responsavelForm, cpf: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-bold text-slate-700 ml-1">Endereço</label>
+            <input
+              value={responsavelForm.endereco}
+              onChange={(e) => setResponsavelForm({ ...responsavelForm, endereco: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-slate-700 ml-1">Cidade</label>
+              <input
+                value={responsavelForm.cidade}
+                onChange={(e) => setResponsavelForm({ ...responsavelForm, cidade: e.target.value })}
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-slate-700 ml-1">Estado</label>
+              <input
+                value={responsavelForm.estado}
+                onChange={(e) => setResponsavelForm({ ...responsavelForm, estado: e.target.value })}
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white"
+              />
+            </div>
+          </div>
+          <div className="h-32 shrink-0 lg:h-12" />
+        </div>
+      </ActionSheet>
+
       {/* Confirmation Modal for Soft Delete */}
       <ConfirmDeleteModal
         isOpen={!!deleteTarget}
-        title="Remover Aluno?"
+        title="Remover Praticante?"
         description={`Tem certeza que deseja remover ${deleteTarget?.nome ?? ""}? O histórico de sessões e evoluções será mantido.`}
         confirmLabel="Sim, remover"
         isLoading={deleteAluno.isPending}

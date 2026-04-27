@@ -74,21 +74,23 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         return set;
     }, [sessoes]);
 
-    // Occupied slots for selected day — ALL sessions, not just this aluno
+    // Slot availability — max 2 sessions per slot (different horse + therapist)
     const horarios = useMemo(() => {
-        if (!selectedDate) return HORARIOS_BASE.map(h => ({ hora: h, ocupado: false }));
+        if (!selectedDate) return HORARIOS_BASE.map(h => ({ hora: h, count: 0, ocupado: false }));
         const dateObj = parseISO(selectedDate);
-        const ocupados = sessoes
-            .filter(s => isSameDay(parseISO(s.data_hora), dateObj))
-            .map(s => format(parseISO(s.data_hora), "HH:mm"));
         const now = new Date();
         return HORARIOS_BASE.map(h => {
             const [hh, mm] = h.split(':').map(Number);
             const slotDate = new Date(dateObj);
             slotDate.setHours(hh, mm, 0, 0);
+            const count = sessoes.filter(s =>
+                isSameDay(parseISO(s.data_hora), dateObj) &&
+                format(parseISO(s.data_hora), "HH:mm") === h
+            ).length;
             return {
                 hora: h,
-                ocupado: ocupados.includes(h) || isBefore(slotDate, now),
+                count,
+                ocupado: count >= 2 || isBefore(slotDate, now),
             };
         });
     }, [selectedDate, sessoes]);
@@ -99,11 +101,13 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         if (isRecorrente && !selectedTime) return;
 
         setLoading(true);
+        const professorId = allAlunos.find(a => a.id === selectedAluno)?.professor_id ?? null;
         try {
             if (isRecorrente) {
                 await createRecorrente.mutateAsync({
                     aluno_id: selectedAluno,
                     cavalo_id: selectedCavalo || null,
+                    professor_id: professorId,
                     dia_semana: diaSemana,
                     horario: selectedTime + ":00",
                     ativo: true,
@@ -116,6 +120,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 await createSessao.mutateAsync({
                     aluno_id: selectedAluno,
                     cavalo_id: selectedCavalo || null,
+                    professor_id: professorId,
                     data_hora: finalDate.toISOString(),
                     status: "confirmada"
                 });
@@ -325,7 +330,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                             <div className="flex gap-2">
                                 {[1, 2, 3].map(i => <div key={i} className="w-24 h-12 bg-slate-100 rounded-xl animate-pulse" />)}
                             </div>
-                        ) : cavalos.map(c => (
+                        ) : cavalos.filter(c => c.status === 'Ativo').map(c => (
                             <button
                                 key={c.id}
                                 type="button"
@@ -358,13 +363,19 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                     ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md shadow-[#4E593F]/20"
                                     : slot.ocupado
                                         ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
-                                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"}`}
+                                        : slot.count === 1
+                                            ? "bg-amber-50 border-amber-200 text-slate-600 hover:border-amber-300"
+                                            : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"}`}
                             >
                                 <span className="flex items-center gap-1">
                                     <Clock size={12} className={selectedTime === slot.hora ? "text-white" : "text-slate-400"} />
                                     {slot.hora}
                                 </span>
-                                {slot.ocupado && <span className="text-[7px] uppercase tracking-tighter leading-none">(Ocupado)</span>}
+                                {slot.ocupado
+                                    ? <span className="text-[7px] uppercase tracking-tighter leading-none">Lotado</span>
+                                    : slot.count === 1
+                                        ? <span className="text-[7px] font-black text-amber-500 leading-none">1/2</span>
+                                        : null}
                             </button>
                         ))}
                     </div>

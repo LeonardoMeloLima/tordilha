@@ -267,7 +267,7 @@ export const PaisAlunoPerfil = () => {
       if (linkError) throw linkError;
 
       setIsRegisterModalOpen(false);
-      toast({ title: "Bem-vindo!", description: "Aluno cadastrado com sucesso!" });
+      toast({ title: "Bem-vindo!", description: "Praticante cadastrado com sucesso!" });
       window.location.reload(); // Hard refresh to update everything
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro ao cadastrar", description: err.message });
@@ -310,7 +310,7 @@ export const PaisAlunoPerfil = () => {
           className="mt-10 w-full max-w-[280px] h-14 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
         >
           <UserPlus size={18} />
-          Cadastrar Aluno
+          Cadastrar Praticante
         </button>
 
         {/* Reuse the Registration ActionSheet here too if needed, but it's defined below */}
@@ -323,7 +323,7 @@ export const PaisAlunoPerfil = () => {
       {/* Header with Selector if multiple students */}
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Perfil do Aluno</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Perfil do Praticante</h1>
           <p className="text-sm text-slate-500 font-bold uppercase tracking-widest mt-1">Dados e Identificação</p>
         </div>
         <div className="flex gap-2">
@@ -664,7 +664,7 @@ export const PaisAlunoPerfil = () => {
       <ActionSheet
         isOpen={isRegisterModalOpen}
         onClose={() => setIsRegisterModalOpen(false)}
-        title="Cadastrar Aluno"
+        title="Cadastrar Praticante"
         subtitle="Preencha os dados do praticante"
         footer={
           <button
@@ -769,7 +769,7 @@ export const PaisAlunoPerfil = () => {
       <ActionSheet
         isOpen={isStudentSelectorOpen}
         onClose={() => setIsStudentSelectorOpen(false)}
-        title="Selecionar Aluno"
+        title="Selecionar Praticante"
         subtitle="Escolha o perfil que deseja visualizar"
         footer={
           <button
@@ -780,7 +780,7 @@ export const PaisAlunoPerfil = () => {
             className="w-full h-14 bg-slate-900 text-white rounded-full font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
           >
             <UserPlus size={16} />
-            Cadastrar Novo Aluno
+            Cadastrar Novo Praticante
           </button>
         }
       >

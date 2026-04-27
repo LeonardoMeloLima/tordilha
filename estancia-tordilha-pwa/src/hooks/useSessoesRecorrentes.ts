@@ -76,6 +76,22 @@ export function useSessoesRecorrentes(alunoIds?: string[]) {
     },
   });
 
+  const updateRecorrente = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; dia_semana?: number; horario?: string; cavalo_id?: string | null }) => {
+      const { data, error } = await supabase
+        .from("sessoes_recorrentes")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["sessoes_recorrentes"] });
+    },
+  });
+
   const deleteRecorrente = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -94,6 +110,7 @@ export function useSessoesRecorrentes(alunoIds?: string[]) {
     isLoading: query.isLoading,
     createRecorrente,
     toggleRecorrente,
+    updateRecorrente,
     deleteRecorrente,
   };
 }

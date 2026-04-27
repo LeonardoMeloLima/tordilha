@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { AlertCircle } from "lucide-react";
 
 interface ImageRightsFormProps {
   responsibleName: string;
@@ -37,84 +38,154 @@ export const ImageRightsForm: React.FC<ImageRightsFormProps> = ({
   setAuthorized,
   onConfirm,
 }) => {
-  const isFormValid = rg && cpf && address && city && state;
+  const [showErrors, setShowErrors] = useState(false);
+
+  const isFormValid = !!(responsibleName && rg && cpf && address && city && state);
+
+  const fieldClass = (value: string) =>
+    `w-full h-12 px-4 rounded-xl border focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all font-semibold text-slate-900 bg-white ${
+      showErrors && !value
+        ? "border-red-400 bg-red-50"
+        : "border-slate-200"
+    }`;
+
+  const handleConfirm = () => {
+    if (!isFormValid) {
+      setShowErrors(true);
+      return;
+    }
+    onConfirm?.();
+  };
 
   return (
     <div className="space-y-6 text-sm text-slate-700 leading-relaxed bg-white p-2 rounded-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+      {showErrors && !isFormValid && (
+        <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-300">
+          <AlertCircle size={18} className="text-red-500 mt-0.5 shrink-0" />
+          <p className="text-sm font-semibold text-red-700">
+            Preencha todos os campos obrigatórios antes de confirmar.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-6">
         {/* Profile/Identity Section */}
         <div className="p-5 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-6">
           <div className="grid grid-cols-1 gap-5">
             {/* Responsável */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Nome do Responsável</label>
-              <input 
-                value={responsibleName} 
-                onChange={(e) => setResponsibleName(e.target.value)} 
-                placeholder="Nome completo conforme documento" 
-                className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all font-semibold text-slate-900 bg-white" 
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                Nome do Responsável <span className="text-red-400">*</span>
+              </label>
+              <input
+                value={responsibleName}
+                onChange={(e) => setResponsibleName(e.target.value)}
+                placeholder="Nome completo conforme documento"
+                className={fieldClass(responsibleName)}
                 required
               />
+              {showErrors && !responsibleName && (
+                <p className="text-xs text-red-500 font-semibold px-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Campo obrigatório
+                </p>
+              )}
             </div>
 
             {/* RG and CPF in a grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">RG nº</label>
-                <input 
-                  value={rg} 
-                  onChange={(e) => setRg(e.target.value)} 
-                  placeholder="Seu RG" 
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all bg-white" 
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                  RG nº <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={rg}
+                  onChange={(e) => setRg(e.target.value)}
+                  placeholder="Seu RG"
+                  className={fieldClass(rg)}
                   required
                 />
+                {showErrors && !rg && (
+                  <p className="text-xs text-red-500 font-semibold px-1 flex items-center gap-1">
+                    <AlertCircle size={12} /> Obrigatório
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">CPF nº</label>
-                <input 
-                  value={cpf} 
-                  onChange={(e) => setCpf(e.target.value)} 
-                  placeholder="Seu CPF" 
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all bg-white" 
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                  CPF nº <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={cpf}
+                  onChange={(e) => setCpf(e.target.value)}
+                  placeholder="Seu CPF"
+                  className={fieldClass(cpf)}
                   required
                 />
+                {showErrors && !cpf && (
+                  <p className="text-xs text-red-500 font-semibold px-1 flex items-center gap-1">
+                    <AlertCircle size={12} /> Obrigatório
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Address */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Endereço Residencial</label>
-              <input 
-                value={address} 
-                onChange={(e) => setAddress(e.target.value)} 
-                placeholder="Rua, número, bairro..." 
-                className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all bg-white" 
+              <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                Endereço Residencial <span className="text-red-400">*</span>
+              </label>
+              <input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="Rua, número, bairro..."
+                className={fieldClass(address)}
                 required
               />
+              {showErrors && !address && (
+                <p className="text-xs text-red-500 font-semibold px-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Campo obrigatório
+                </p>
+              )}
             </div>
 
             {/* City and State */}
             <div className="grid grid-cols-4 gap-4">
               <div className="col-span-3 space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">Cidade</label>
-                <input 
-                  value={city} 
-                  onChange={(e) => setCity(e.target.value)} 
-                  placeholder="Sua cidade" 
-                  className="w-full h-12 px-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all bg-white" 
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1">
+                  Cidade <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Sua cidade"
+                  className={fieldClass(city)}
                   required
                 />
+                {showErrors && !city && (
+                  <p className="text-xs text-red-500 font-semibold px-1 flex items-center gap-1">
+                    <AlertCircle size={12} /> Obrigatório
+                  </p>
+                )}
               </div>
               <div className="col-span-1 space-y-2">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 text-center block">UF</label>
-                <input 
-                  value={state} 
-                  onChange={(e) => setState(e.target.value)} 
-                  placeholder="UF" 
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider px-1 text-center block">
+                  UF <span className="text-red-400">*</span>
+                </label>
+                <input
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  placeholder="UF"
                   maxLength={2}
-                  className="w-full h-12 px-2 rounded-xl border border-slate-200 focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all uppercase text-center font-bold bg-white" 
+                  className={`w-full h-12 px-2 rounded-xl border focus:ring-2 focus:ring-[#4E593F] focus:border-transparent outline-none transition-all uppercase text-center font-bold bg-white ${
+                    showErrors && !state ? "border-red-400 bg-red-50" : "border-slate-200"
+                  }`}
                   required
                 />
+                {showErrors && !state && (
+                  <p className="text-[10px] text-red-500 font-semibold px-1 flex items-center gap-1">
+                    <AlertCircle size={10} /> Req.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -132,7 +203,7 @@ export const ImageRightsForm: React.FC<ImageRightsFormProps> = ({
             </div>
             <span className="font-bold">AUTORIZO</span>
           </button>
-          
+
           <button
             type="button"
             onClick={() => setAuthorized(false)}
@@ -160,9 +231,8 @@ export const ImageRightsForm: React.FC<ImageRightsFormProps> = ({
         {onConfirm && (
           <button
             type="button"
-            onClick={onConfirm}
-            disabled={!isFormValid}
-            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-2xl font-bold text-lg shadow-lg shadow-[#4E593F]/30 flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50 disabled:grayscale mt-2"
+            onClick={handleConfirm}
+            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-2xl font-bold text-lg shadow-lg shadow-[#4E593F]/30 flex items-center justify-center transition-all active:scale-[0.98] mt-2"
           >
             Confirmar Autorização
           </button>

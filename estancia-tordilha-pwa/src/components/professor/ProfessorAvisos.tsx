@@ -33,7 +33,7 @@ export const ProfessorAvisos = () => {
         <div className="space-y-6 animate-fade-in pb-24">
             <div>
                 <h1 className="text-xl font-extrabold text-foreground tracking-tight">Comunicados</h1>
-                <p className="text-sm text-muted-foreground font-medium mt-0.5">{filteredAvisos.length} avisos para professores</p>
+                <p className="text-sm text-muted-foreground font-medium mt-0.5">{filteredAvisos.length} avisos para terapeutas</p>
             </div>
 
             <div className="space-y-4">

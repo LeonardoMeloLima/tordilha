@@ -1,43 +1,70 @@
 import { useState, useEffect, useMemo } from "react";
-import { Clock, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
-import { ActionSheet } from "../ui/ActionSheet";
-import { useToast } from "@/components/ui/use-toast";
+import { Clock, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Repeat, Check } from "lucide-react";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
+import { ActionSheet } from "../ui/ActionSheet";
+import { useToast } from "@/components/ui/use-toast";
 import {
-  format, addDays, parseISO, isSameDay, isBefore,
+  format, addDays, parseISO, isSameDay,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   addMonths, subMonths, isToday, isSameMonth
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { SwipeableCard } from "../ui/SwipeableCard";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
+import { HORARIOS_BASE, sessionEndTime } from "@/lib/scheduling";
 
 type CalendarView = "semana" | "mes" | "futuro";
 
-const HORARIOS_BASE = [
-  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
-];
-
 export const GestorAgenda = () => {
   const { toast } = useToast();
-  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao } = useSessoes();
-  const { recorrentes, createRecorrente, deleteRecorrente } = useSessoesRecorrentes();
-  const { alunos, isLoading: loadingAlunos } = useAlunos();
-  const { cavalos, isLoading: loadingCavalos } = useCavalos();
+  const { sessoes, isLoading: loadingSessoes, createSessao } = useSessoes();
+  const { recorrentes } = useSessoesRecorrentes();
+  const { alunos } = useAlunos();
+  const { cavalos } = useCavalos();
+  const [showDemoForm, setShowDemoForm] = useState(false);
+  const [demoForm, setDemoForm] = useState({
+    visitanteNome: "",
+    data: format(new Date(), "yyyy-MM-dd"),
+    horario: "08:00",
+    cavaloId: "",
+  });
+
+  useEffect(() => {
+    const handler = () => setShowDemoForm(true);
+    window.addEventListener('open-form-sessao', handler);
+    return () => window.removeEventListener('open-form-sessao', handler);
+  }, []);
+
+  const handleSaveDemo = async () => {
+    if (!demoForm.visitanteNome.trim()) {
+      toast({ variant: "destructive", title: "Informe o nome do visitante." });
+      return;
+    }
+    try {
+      const [hh, mm] = demoForm.horario.split(':').map(Number);
+      const dt = new Date(demoForm.data);
+      dt.setHours(hh, mm, 0, 0);
+      await createSessao.mutateAsync({
+        data_hora: dt.toISOString(),
+        status: "confirmada",
+        cavalo_id: demoForm.cavaloId || null,
+        tipo: "demonstrativa",
+        visitante_nome: demoForm.visitanteNome.trim(),
+      } as any);
+      toast({ title: "Aula demonstrativa agendada!" });
+      setShowDemoForm(false);
+      setDemoForm({ visitanteNome: "", data: format(new Date(), "yyyy-MM-dd"), horario: "08:00", cavaloId: "" });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    }
+  };
 
   const [view, setView] = useState<CalendarView>("semana");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [showForm, setShowForm] = useState(false);
-  const [isRecorrente, setIsRecorrente] = useState(false);
   const [showRecorrencias, setShowRecorrencias] = useState(false);
-  const [newSession, setNewSession] = useState({
-    alunoId: "", cavaloId: "", hora: "08:00", diaSemana: 1
-  });
 
   // Week days: today + 6
   const weekDays = useMemo(() => {
@@ -121,92 +148,9 @@ export const GestorAgenda = () => {
     return set;
   }, [sessoes, recorrentes, currentMonth, weekDays]);
 
-  // Occupied times for selected day (for time slot grid)
-  const occupiedTimes = useMemo(() => {
-    const dateObj = parseISO(selectedDay);
-    return daySessoes.map(s => format(parseISO(s.data_hora), "HH:mm"));
-  }, [selectedDay, daySessoes]);
-
-  useEffect(() => {
-    const handleOpenForm = () => setShowForm(true);
-    window.addEventListener('open-form-sessao', handleOpenForm);
-    return () => window.removeEventListener('open-form-sessao', handleOpenForm);
-  }, []);
-
-  const handleSave = async () => {
-    if (!newSession.alunoId) {
-      toast({ variant: "destructive", title: "Erro", description: "Selecione um aluno." });
-      return;
-    }
-
-    try {
-      if (isRecorrente) {
-        await createRecorrente.mutateAsync({
-          aluno_id: newSession.alunoId,
-          cavalo_id: newSession.cavaloId || null,
-          dia_semana: newSession.diaSemana,
-          horario: newSession.hora + ":00",
-          ativo: true,
-        });
-        toast({ title: "Sucesso", description: "Aula recorrente criada!" });
-      } else {
-        if (!newSession.cavaloId) {
-          toast({ variant: "destructive", title: "Erro", description: "Selecione um cavalo." });
-          return;
-        }
-        const [hours, minutes] = newSession.hora.split(':').map(Number);
-        const selectedDateTime = parseISO(selectedDay);
-        selectedDateTime.setHours(hours, minutes, 0, 0);
-
-        if (isBefore(selectedDateTime, new Date())) {
-          toast({
-            variant: "destructive",
-            title: "Horário Inválido",
-            description: "Não é possível agendar sessões no passado."
-          });
-          return;
-        }
-
-        await createSessao.mutateAsync({
-          aluno_id: newSession.alunoId,
-          cavalo_id: newSession.cavaloId,
-          data_hora: selectedDateTime.toISOString(),
-          status: "confirmada"
-        });
-        toast({ title: "Sucesso", description: "Sessão agendada!" });
-      }
-
-      setShowForm(false);
-      setNewSession({ alunoId: "", cavaloId: "", hora: "08:00", diaSemana: 1 });
-      setIsRecorrente(false);
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      await deleteSessao.mutateAsync(id);
-      toast({ title: "Sucesso", description: "Agendamento excluído." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao excluir", description: error.message });
-    }
-  };
-
-  const handleDeleteRecorrente = async (id: string) => {
-    try {
-      await deleteRecorrente.mutateAsync(id);
-      toast({ title: "Sucesso", description: "Recorrência removida." });
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro", description: error.message });
-    }
-  };
-
   const handleDayClick = (dateStr: string) => {
     setSelectedDay(dateStr);
   };
-
-  const isPending = createSessao.isPending || createRecorrente.isPending;
 
   // ─── Shared session list ───────────────────────────────────────────────────
   const SessionList = () => (
@@ -223,41 +167,44 @@ export const GestorAgenda = () => {
         </div>
       ) : (
         daySessoes.map((s) => {
-            const isVirtual = (s as any)._isRecorrente;
-            const card = (
-              <div className={`flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow ${isVirtual ? "border border-[#4E593F]/20" : ""}`}>
-                <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
-                  <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
-                    <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${isVirtual ? "text-[#4E593F] bg-[#4E593F]/10" : s.status === "confirmada" ? "text-[#4E593F] bg-[#4E593F]/10" : "text-slate-400 bg-slate-100"}`}>
-                      {isVirtual && <Repeat size={8} />}
-                      {isVirtual ? "recorrente" : s.status}
+          const isVirtual = (s as any)._isRecorrente;
+          return (
+            <div key={s.id} className={`flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow ${isVirtual ? "border border-[#4E593F]/20" : ""}`}>
+              <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
+                <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-foreground">
+                  {(s as any).tipo === 'demonstrativa' ? ((s as any).visitante_nome || "Visitante") : (s.aluno?.nome || "Praticante não encontrado")}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground font-bold">{s.cavalo?.nome || "Sem cavalo"}</p>
+                  <span className={`text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full flex items-center gap-0.5 ${isVirtual ? "text-[#4E593F] bg-[#4E593F]/10" : s.status === "confirmada" ? "text-[#4E593F] bg-[#4E593F]/10" : "text-slate-400 bg-slate-100"}`}>
+                    {isVirtual && <Repeat size={8} />}
+                    {isVirtual ? "recorrente" : s.status}
+                  </span>
+                  {(s as any).tipo === 'demonstrativa' && (
+                    <span className="text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-full text-purple-600 bg-purple-50">
+                      demo
                     </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                    <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
-                    {format(parseISO(s.data_hora), "HH:mm")}
-                  </div>
+                  )}
                 </div>
               </div>
-            );
-            return isVirtual ? (
-              <div key={s.id}>{card}</div>
-            ) : (
-              <SwipeableCard key={s.id} onDelete={() => handleDelete(s.id)} deleteLabel="Excluir">
-                {card}
-              </SwipeableCard>
-            );
-          })
+              <div className="text-right">
+                <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                  <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
+                  {format(parseISO(s.data_hora), "HH:mm")}
+                </div>
+                <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
+                  até {sessionEndTime(format(parseISO(s.data_hora), "HH:mm"))}
+                </p>
+              </div>
+            </div>
+          );
+        })
       )}
     </div>
   );
@@ -409,155 +356,106 @@ export const GestorAgenda = () => {
               <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhuma recorrência cadastrada</p>
             </div>
           ) : recorrentes.map(r => (
-            <SwipeableCard key={r.id} onDelete={() => handleDeleteRecorrente(r.id)} deleteLabel="Remover">
-              <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
-                <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
-                  <AvatarWithFallback src={(r as any).aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">{(r as any).aluno?.nome}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
-                    </div>
-                    <p className="text-[11px] text-muted-foreground font-bold">
-                      {(r as any).cavalo?.nome || "Sem cavalo"}
-                    </p>
+            <div key={r.id} className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
+              <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
+                <AvatarWithFallback src={(r as any).aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-foreground">{(r as any).aluno?.nome}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
                   </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                    <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
-                    {r.horario.slice(0, 5)}
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
-                    {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
-                  </span>
+                  <p className="text-[11px] text-muted-foreground font-bold">
+                    {(r as any).cavalo?.nome || "Sem cavalo"}
+                  </p>
                 </div>
               </div>
-            </SwipeableCard>
+              <div className="text-right">
+                <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                  <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
+                  {r.horario.slice(0, 5)}
+                </div>
+                <p className="text-[10px] text-muted-foreground font-medium">até {sessionEndTime(r.horario.slice(0, 5))}</p>
+                <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
+                  {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
+                </span>
+              </div>
+            </div>
           ))}
         </div>
       ) : (
         <SessionList />
       )}
 
-      {/* Form ActionSheet */}
+      {/* Demo class ActionSheet */}
       <ActionSheet
-        isOpen={showForm}
-        onClose={() => { setShowForm(false); setIsRecorrente(false); }}
-        title="Agendar Sessão"
-        subtitle={isRecorrente ? "Configurar aula recorrente" : `Para o dia ${selectedDay.split('-').reverse().join('/')}`}
+        isOpen={showDemoForm}
+        onClose={() => setShowDemoForm(false)}
+        title="Aula Demonstrativa"
+        subtitle="Visitante não cadastrado"
         footer={
           <button
             type="button"
-            onClick={handleSave}
-            disabled={isPending}
-            className="w-full h-14 bg-[#4E593F] hover:bg-[#3E4732] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
+            onClick={handleSaveDemo}
+            disabled={createSessao.isPending}
+            className="w-full h-14 bg-[#4E593F] text-white rounded-full font-bold text-lg shadow-lg shadow-[#4E593F]/20 flex items-center justify-center gap-2 active:scale-[0.98] transition-all disabled:opacity-70"
           >
-            {isPending ? (
+            {createSessao.isPending ? (
               <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
-              <Check size={20} className="text-white" strokeWidth={2.5} />
+              <Check size={20} strokeWidth={2.5} />
             )}
-            {isPending ? "Agendando..." : isRecorrente ? "Criar Recorrência" : "Confirmar Agendamento"}
+            Agendar Aula Demo
           </button>
         }
       >
         <div className="space-y-5">
-
-          {/* Toggle recorrente */}
-          <div
-            onClick={() => setIsRecorrente(v => !v)}
-            className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${isRecorrente ? "border-[#4E593F] bg-[#4E593F]/5" : "border-slate-200 bg-slate-50"}`}
-          >
-            <div className="flex items-center gap-2">
-              <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
-              <div>
-                <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Aula Recorrente</p>
-                <p className="text-[11px] text-slate-400">Ex: toda terça às 10h</p>
-              </div>
-            </div>
-            <div className={`w-10 h-6 rounded-full transition-colors ${isRecorrente ? "bg-[#4E593F]" : "bg-slate-200"} flex items-center px-1`}>
-              <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${isRecorrente ? "translate-x-4" : "translate-x-0"}`} />
-            </div>
-          </div>
-
-          {/* Aluno */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Aluno</label>
-            <select
-              value={newSession.alunoId}
-              onChange={(e) => setNewSession({ ...newSession, alunoId: e.target.value })}
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
-              disabled={loadingAlunos}
-            >
-              <option value="">{loadingAlunos ? "Carregando..." : "Selecionar aluno..."}</option>
-              {alunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
-            </select>
+            <label className="text-sm font-medium text-slate-700 ml-1">Nome do Visitante</label>
+            <input
+              value={demoForm.visitanteNome}
+              onChange={e => setDemoForm({ ...demoForm, visitanteNome: e.target.value })}
+              placeholder="Ex: João Silva"
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] outline-none"
+            />
           </div>
-
-          {/* Cavalo */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Cavalo {isRecorrente && <span className="text-slate-400 text-xs">(opcional)</span>}</label>
-            <select
-              value={newSession.cavaloId}
-              onChange={(e) => setNewSession({ ...newSession, cavaloId: e.target.value })}
-              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
-              disabled={loadingCavalos}
-            >
-              <option value="">{loadingCavalos ? "Carregando..." : isRecorrente ? "Selecionar cavalo (opcional)..." : "Selecionar cavalo..."}</option>
-              {cavalos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-            </select>
+            <label className="text-sm font-medium text-slate-700 ml-1">Data</label>
+            <input
+              type="date"
+              value={demoForm.data}
+              onChange={e => setDemoForm({ ...demoForm, data: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] outline-none"
+            />
           </div>
-
-          {/* Dia da semana (só em recorrente) */}
-          {isRecorrente && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-slate-700 ml-1">Dia da Semana</label>
-              <div className="flex gap-1.5 flex-wrap">
-                {DIAS_SEMANA.map(d => (
-                  <button
-                    key={d.value}
-                    type="button"
-                    onClick={() => setNewSession({ ...newSession, diaSemana: d.value })}
-                    className={`h-10 px-3 rounded-xl font-bold text-sm transition-all ${newSession.diaSemana === d.value
-                      ? "bg-[#4E593F] text-white"
-                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"}`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Horário */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1">Horário</label>
             <div className="grid grid-cols-4 gap-1.5">
-              {HORARIOS_BASE.map(hora => {
-                const ocupado = !isRecorrente && occupiedTimes.includes(hora);
-                const selected = newSession.hora === hora;
-                return (
-                  <button
-                    key={hora}
-                    type="button"
-                    disabled={ocupado}
-                    onClick={() => setNewSession({ ...newSession, hora })}
-                    className={`h-11 rounded-xl font-bold text-xs transition-all border-2 ${selected
-                      ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md"
-                      : ocupado
-                        ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
-                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
-                      }`}
-                  >
-                    {hora}
-                    {ocupado && <div className="text-[7px] leading-none">ocupado</div>}
-                  </button>
-                );
-              })}
+              {HORARIOS_BASE.map(hora => (
+                <button
+                  key={hora}
+                  type="button"
+                  onClick={() => setDemoForm({ ...demoForm, horario: hora })}
+                  className={`h-11 rounded-xl font-bold text-xs transition-all border-2 ${demoForm.horario === hora
+                    ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md"
+                    : "bg-slate-50 border-transparent text-slate-600"}`}
+                >
+                  {hora}
+                </button>
+              ))}
             </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Cavalo <span className="text-slate-400 text-xs">(opcional)</span></label>
+            <select
+              value={demoForm.cavaloId}
+              onChange={e => setDemoForm({ ...demoForm, cavaloId: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] outline-none"
+            >
+              <option value="">Selecionar cavalo...</option>
+              {cavalos.filter(c => c.status === 'Ativo').map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
           </div>
         </div>
       </ActionSheet>

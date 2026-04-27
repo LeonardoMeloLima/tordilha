@@ -35,7 +35,7 @@ export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotifi
     ];
 
     const targets = [
-        { id: "professor", label: "Professores", icon: GraduationCap },
+        { id: "professor", label: "Terapeutas", icon: GraduationCap },
         { id: "pais", label: "Responsáveis", icon: Users },
         { id: "especifico", label: "Específico", icon: UserCheck },
         { id: "geral", label: "Geral", icon: Globe },

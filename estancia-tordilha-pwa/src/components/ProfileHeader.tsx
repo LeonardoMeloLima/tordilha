@@ -15,13 +15,16 @@ import {
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useResponsaveisPendentes } from "@/hooks/useResponsaveisPendentes";
 import { ActionSheet } from "./ui/ActionSheet";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CheckCircle2, Plus } from "lucide-react";
+import { CheckCircle2, Plus, UserCheck } from "lucide-react";
 import { GestorCreateNotification } from "./gestor/GestorCreateNotification";
 import { WelcomeSheet } from "./WelcomeSheet";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
+import { FalarComEstanciaModal } from "./pais/FalarComEstanciaModal";
+import { MessageSquarePlus } from "lucide-react";
 
 interface ProfileHeaderProps {
     userName: string;
@@ -36,11 +39,11 @@ interface ProfileHeaderProps {
 
 const roleBadges: Record<Role, { label: string; className: string }> = {
     professor: {
-        label: "Professor",
+        label: "Terapeuta",
         className: "bg-[#4E593F]/10 text-[#4E593F]",
     },
     pais: {
-        label: "Responsável/Aluno",
+        label: "Responsável/Praticante",
         className: "bg-[#8B4513]/10 text-[#8B4513]",
     },
     gestor: {
@@ -87,7 +90,9 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, isMaster
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
     const [isCreateAvisoOpen, setIsCreateAvisoOpen] = useState(false);
     const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
+    const [isFalarOpen, setIsFalarOpen] = useState(false);
     const { notifications, markAsRead, markAllAsRead, isLoading } = useNotifications();
+    const { totalPendentes } = useResponsaveisPendentes();
     const { toast } = useToast();
 
     const handleSignOut = async () => {
@@ -270,6 +275,14 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, isMaster
                                     </span>
                                 </span>
                             )}
+                            {role === 'gestor' && totalPendentes > 0 && activeUnreadCount === 0 && (
+                                <span className="absolute -top-1 -right-1 flex h-5 w-5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-500 opacity-40"></span>
+                                    <span className="relative inline-flex rounded-full h-5 w-5 bg-amber-500 border-2 border-white items-center justify-center">
+                                        <span className="text-[9px] font-black text-white">{totalPendentes > 9 ? '9+' : totalPendentes}</span>
+                                    </span>
+                                </span>
+                            )}
                         </button>
 
                         {isMaster && (
@@ -322,6 +335,9 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, isMaster
                 isLoading={isLoading}
                 role={role}
                 onCreateClick={() => setIsCreateAvisoOpen(true)}
+                onFalarClick={() => { setIsNotificationsOpen(false); setIsFalarOpen(true); }}
+                totalPendentes={totalPendentes}
+                onPendentesClick={() => { setIsNotificationsOpen(false); onAdminClick?.(); }}
             />
 
             <GestorCreateNotification
@@ -333,12 +349,18 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, isMaster
                 isOpen={isWelcomeOpen}
                 onClose={() => setIsWelcomeOpen(false)}
             />
+
+            <FalarComEstanciaModal
+                isOpen={isFalarOpen}
+                onClose={() => setIsFalarOpen(false)}
+            />
         </>
     );
 }
 
-const NotificationsModal = ({ isOpen, onClose, notifications, unreadCount, onMarkAsRead, onMarkAllAsRead, isLoading, role, onCreateClick }: any) => {
+const NotificationsModal = ({ isOpen, onClose, notifications, unreadCount, onMarkAsRead, onMarkAllAsRead, isLoading, role, onCreateClick, onFalarClick, totalPendentes, onPendentesClick }: any) => {
     const isGestor = role === 'gestor';
+    const isPais = role === 'pais';
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
     const handleNotificationClick = (n: any) => {
@@ -367,6 +389,14 @@ const NotificationsModal = ({ isOpen, onClose, notifications, unreadCount, onMar
                             </div>
                             Novo Comunicado
                         </button>
+                    ) : isPais ? (
+                        <button
+                            onClick={onFalarClick}
+                            className="flex items-center gap-2.5 px-5 py-2.5 border-2 border-[#4E593F]/20 bg-[#4E593F]/5 rounded-full text-[11px] font-black text-[#4E593F] uppercase tracking-widest hover:border-[#4E593F] hover:bg-[#4E593F]/10 active:bg-[#4E593F] active:text-white active:scale-95 transition-all duration-300 shadow-sm"
+                        >
+                            <MessageSquarePlus size={14} strokeWidth={3} className="-ml-0.5" />
+                            Falar com a Estância
+                        </button>
                     ) : (
                         <div />
                     )}
@@ -383,9 +413,35 @@ const NotificationsModal = ({ isOpen, onClose, notifications, unreadCount, onMar
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-4">
+                    {/* Card de pendentes para gestor */}
+                    {isGestor && totalPendentes > 0 && (
+                        <button
+                            type="button"
+                            onClick={onPendentesClick}
+                            className="w-full p-4 rounded-[24px] border border-amber-200 bg-amber-50 text-left active:scale-[0.98] transition-all"
+                        >
+                            <div className="flex gap-3 items-center">
+                                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 border-2 border-amber-300 bg-amber-100">
+                                    <UserCheck size={18} className="text-amber-600" strokeWidth={2.5} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <h4 className="text-sm font-black text-slate-900 leading-tight">
+                                            {totalPendentes === 1 ? "1 cadastro aguardando aprovação" : `${totalPendentes} cadastros aguardando aprovação`}
+                                        </h4>
+                                        <div className="w-2 h-2 bg-amber-500 rounded-full shrink-0 mt-1" />
+                                    </div>
+                                    <p className="text-sm text-slate-600 font-medium mt-1">
+                                        Novos responsáveis aguardam sua análise. Toque para revisar.
+                                    </p>
+                                </div>
+                            </div>
+                        </button>
+                    )}
+
                     {isLoading ? (
                         <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 text-[#4E593F] animate-spin" /></div>
-                    ) : notifications.length === 0 ? (
+                    ) : notifications.length === 0 && !(isGestor && totalPendentes > 0) ? (
                         <div className="py-24 text-center">
                             <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Bell className="w-10 h-10 text-slate-200" />

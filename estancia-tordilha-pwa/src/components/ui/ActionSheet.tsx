@@ -11,6 +11,7 @@ interface ActionSheetProps {
     children: React.ReactNode;
     footer?: React.ReactNode;
     className?: string;
+    preventClose?: boolean;
 }
 
 export const ActionSheet = ({
@@ -21,6 +22,7 @@ export const ActionSheet = ({
     children,
     footer,
     className,
+    preventClose = false,
 }: ActionSheetProps) => {
     const [mouseDownTarget, setMouseDownTarget] = React.useState<EventTarget | null>(null);
 
@@ -31,7 +33,7 @@ export const ActionSheet = ({
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-[2px] z-[80] flex items-end justify-center p-0 animate-in fade-in duration-200"
             onPointerDown={(e) => setMouseDownTarget(e.target)}
             onClick={(e) => {
-                if (e.target === e.currentTarget && mouseDownTarget === e.currentTarget) {
+                if (!preventClose && e.target === e.currentTarget && mouseDownTarget === e.currentTarget) {
                     onClose();
                 }
             }}
@@ -51,13 +53,15 @@ export const ActionSheet = ({
                             <p className="text-sm text-slate-500 font-medium tracking-tight">{subtitle}</p>
                         )}
                     </div>
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:scale-90 transition-all border border-slate-100/50"
-                    >
-                        <X size={20} strokeWidth={2} />
-                    </button>
+                    {!preventClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:scale-90 transition-all border border-slate-100/50"
+                        >
+                            <X size={20} strokeWidth={2} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Body - Scrollable */}

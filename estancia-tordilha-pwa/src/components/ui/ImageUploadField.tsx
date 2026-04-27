@@ -21,6 +21,8 @@ interface ImageUploadFieldProps {
     onUploadingChange?: (isUploading: boolean) => void;
     /** If true, the field is read-only */
     disabled?: boolean;
+    /** If true, hides the camera button and only allows gallery upload */
+    galleryOnly?: boolean;
 }
 
 export function ImageUploadField({
@@ -32,6 +34,7 @@ export function ImageUploadField({
     label = "Foto",
     onUploadingChange,
     disabled = false,
+    galleryOnly = false,
 }: ImageUploadFieldProps) {
     const { toast } = useToast();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -146,18 +149,20 @@ export function ImageUploadField({
                         <>
                             <Camera size={20} className="text-slate-300 mb-0.5" />
                             <div className="flex gap-2">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsCameraOpen(true)}
-                                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4E593F] text-white font-bold text-[13px] shadow-sm shadow-[#4E593F]/20 hover:bg-[#3E4732] transition-all active:scale-[0.97]"
-                                >
-                                    <Camera size={13} className="text-white" />
-                                    Tirar Foto
-                                </button>
+                                {!galleryOnly && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCameraOpen(true)}
+                                        className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4E593F] text-white font-bold text-[13px] shadow-sm shadow-[#4E593F]/20 hover:bg-[#3E4732] transition-all active:scale-[0.97]"
+                                    >
+                                        <Camera size={13} className="text-white" />
+                                        Tirar Foto
+                                    </button>
+                                )}
                                 <button
                                     type="button"
                                     onClick={() => fileInputRef.current?.click()}
-                                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-white text-slate-600 font-bold text-[13px] border border-slate-200 shadow-sm hover:bg-slate-50 transition-all active:scale-[0.97]"
+                                    className="flex items-center gap-1.5 h-9 px-4 rounded-full bg-[#4E593F] text-white font-bold text-[13px] shadow-sm shadow-[#4E593F]/20 hover:bg-[#3E4732] transition-all active:scale-[0.97]"
                                 >
                                     <Upload size={13} />
                                     Galeria

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check, ChevronRight, HeartPulse, Info, Activity, ShieldAlert, Calendar } from "lucide-react";
+import { Check, ChevronRight, HeartPulse, Info, Activity, ShieldAlert, Calendar, Trash2 } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCavalos } from "@/hooks/useCavalos";
@@ -94,6 +94,7 @@ export const GestorCavalos = () => {
         ano_nascimento: form.ano_nascimento ? Number(form.ano_nascimento) : null,
         altura: form.altura ? Number(form.altura) : null,
         peso: form.peso ? Number(form.peso) : null,
+        data_avaliacao: form.data_avaliacao || null,
       };
 
       if (selected) {
@@ -202,7 +203,7 @@ export const GestorCavalos = () => {
               deleteLabel="Remover"
             >
               {({ isOpen }) => (
-                <button type="button" onClick={() => openEdit(c)} className="w-full flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow text-left transition-all active:scale-[0.98]">
+                <button type="button" onClick={() => !isOpen && openEdit(c)} className="w-full flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow text-left transition-all active:scale-[0.98]">
                   <AvatarWithFallback
                     src={c.foto_url}
                     className="w-14 h-14 rounded-2xl"
@@ -214,6 +215,13 @@ export const GestorCavalos = () => {
                   </div>
                   <div className={`flex items-center gap-2 transition-opacity duration-200 ${isOpen ? "opacity-0 pointer-events-none" : "opacity-100"}`}>
                     <span className={`px-3 py-1 text-[11px] font-extrabold rounded-full tracking-wide ${c.status === "Ativo" ? "bg-[#4E593F] text-white" : "bg-[#DDE2D6] text-[#3E4732] border border-[#8C9A7A]"}`}>{c.status?.toUpperCase()}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setDeleteTarget({ id: c.id, nome: c.nome }); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 active:scale-90 transition-all"
+                    >
+                      <Trash2 size={14} className="text-slate-300 hover:text-red-400 transition-colors" strokeWidth={2} />
+                    </button>
                     <ChevronRight size={18} className="text-muted-foreground" />
                   </div>
                 </button>

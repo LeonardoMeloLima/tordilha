@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { ProfileHeader } from "@/components/ProfileHeader";
 import { BottomNav } from "@/components/BottomNav";
+import { PendingApprovalScreen } from "@/components/pais/PendingApprovalScreen";
+import { supabase } from "@/lib/supabase";
 import { GestorDashboard } from "@/components/gestor/GestorDashboard";
 import { GestorAlunos } from "@/components/gestor/GestorAlunos";
 import { GestorCavalos } from "@/components/gestor/GestorCavalos";
@@ -18,6 +21,7 @@ import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
 import { ProfessorPasswordPrompt } from "@/components/professor/ProfessorPasswordPrompt";
+import { PWAInstallBanner } from "@/components/ui/PWAInstallBanner";
 
 const defaultTabs: Record<string, string> = {
   gestor: "dashboard",
@@ -50,6 +54,23 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
 const Index = () => {
   const { role, userName, avatarUrl, loading, isSuperUser, isMaster, setDevRole } = useRoleSession();
   const safeRole = role || "gestor";
+
+  // Verificar status de aprovação para responsáveis
+  const { data: responsavelStatus, isLoading: statusLoading } = useQuery({
+    queryKey: ["responsavel-status"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.email) return null;
+      const { data } = await supabase
+        .from("responsaveis")
+        .select("status")
+        .eq("email", session.user.email)
+        .maybeSingle();
+      return data?.status ?? null;
+    },
+    enabled: role === "pais",
+    staleTime: 30000,
+  });
   const [activeTab, setActiveTab] = useState(defaultTabs[safeRole]);
   const [showQuickActions, setShowQuickActions] = useState(false);
 
@@ -122,12 +143,17 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  if (loading || (role === "pais" && statusLoading)) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Carregando perfil...</p>
       </div>
     );
+  }
+
+  // Bloquear acesso de responsáveis não aprovados
+  if (role === "pais" && responsavelStatus && responsavelStatus !== "aprovado") {
+    return <PendingApprovalScreen status={responsavelStatus} />;
   }
 
   return (
@@ -180,7 +206,7 @@ const Index = () => {
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shadow-sm shrink-0">
                   <UserCog size={20} className="text-blue-600" strokeWidth={1.5} />
                 </div>
-                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Professor</span>
+                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Terapeuta</span>
               </button>
 
               <button
@@ -221,6 +247,8 @@ const Index = () => {
         onTabChange={setActiveTab}
         onFabClick={() => window.dispatchEvent(new CustomEvent('fab-click'))}
       />
+
+      <PWAInstallBanner />
     </div>
   );
 };

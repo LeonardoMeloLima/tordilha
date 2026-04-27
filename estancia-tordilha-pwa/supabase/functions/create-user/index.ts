@@ -39,9 +39,10 @@ Deno.serve(async (req: Request) => {
       email: email,
       password: TEMP_PASSWORD,
       email_confirm: true,
-      user_metadata: { 
+      user_metadata: {
         full_name: fullName,
-        needs_password_change: true 
+        role: role,
+        needs_password_change: true
       }
     });
 
@@ -54,7 +55,7 @@ Deno.serve(async (req: Request) => {
           isExisting = true;
           // Garantir que os metadados também sejam marcados para troca de senha no re-convite
           await supabaseClient.auth.admin.updateUserById(targetId, {
-            user_metadata: { ...existingUser.user_metadata, needs_password_change: true }
+            user_metadata: { ...existingUser.user_metadata, role: role, needs_password_change: true }
           });
         } else {
           throw createError;

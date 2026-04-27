@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check } from "lucide-react";
+import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check, AlertCircle, FileText, Eye, EyeOff } from "lucide-react";
 import logoMarrom from "@/assets/logo-marrom.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionSheet } from "@/components/ui/ActionSheet";
@@ -12,7 +12,13 @@ import { ImageRightsForm } from "@/components/auth/ImageRightsForm";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const Login = () => {
-    const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
+    const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword" | "changePassword">("signIn");
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showNewConfirmPassword, setShowNewConfirmPassword] = useState(false);
+    const [newPassword, setNewPassword] = useState("");
+    const [newConfirmPassword, setNewConfirmPassword] = useState("");
     const [fullName, setFullName] = useState("");
     const [selectedRole, setSelectedRole] = useState<"gestor" | "professor" | "pais" | "">("");
     const [alunos, setAlunos] = useState<{ nome: string; idade: string; diagnostico: string }[]>([{ nome: "", idade: "", diagnostico: "" }]);
@@ -33,6 +39,13 @@ const Login = () => {
     const [loading, setLoading] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
+
+    // Close image rights sheet when leaving signUp mode
+    useEffect(() => {
+        if (mode !== "signUp") {
+            setShowImageRights(false);
+        }
+    }, [mode]);
 
     const addAluno = () => setAlunos([...alunos, { nome: "", idade: "", diagnostico: "" }]);
     const updateAlunoField = (index: number, field: "nome" | "idade" | "diagnostico", val: string) => {
@@ -64,6 +77,25 @@ const Login = () => {
                 });
                 setMode("signIn");
                 return;
+            } else if (mode === "changePassword") {
+                if (newPassword !== newConfirmPassword) {
+                    toast({ variant: "destructive", title: "Senhas não conferem", description: "A nova senha e a confirmação devem ser iguais." });
+                    setLoading(false);
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    toast({ variant: "destructive", title: "Senha muito curta", description: "A senha deve ter pelo menos 6 caracteres." });
+                    setLoading(false);
+                    return;
+                }
+                const { error: updateError } = await supabase.auth.updateUser({
+                    password: newPassword,
+                    data: { needs_password_change: false }
+                });
+                if (updateError) throw updateError;
+                toast({ title: "Senha criada!", description: "Seu acesso está configurado. Bem-vindo!" });
+                navigate("/");
+                return;
             } else if (mode === "signIn") {
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email,
@@ -72,10 +104,14 @@ const Login = () => {
                 if (error) throw error;
 
                 if (data.session) {
-                    toast({
-                        title: "Login realizado",
-                        description: "Bem-vindo de volta!",
-                    });
+                    const needsChange = data.user?.user_metadata?.needs_password_change;
+                    if (needsChange) {
+                        setMode("changePassword");
+                        setNewPassword("");
+                        setNewConfirmPassword("");
+                        return;
+                    }
+                    toast({ title: "Login realizado", description: "Bem-vindo de volta!" });
                     navigate("/");
                 }
             } else {
@@ -257,6 +293,7 @@ const Login = () => {
                     <p className="text-slate-500 font-medium">
                         {mode === "signIn" ? "Faça login para acessar o sistema" :
                             mode === "signUp" ? "Crie sua conta para começar" :
+                            mode === "changePassword" ? "Crie sua senha definitiva para continuar" :
                                 "Recupere o acesso à sua conta"}
                     </p>
                 </div>
@@ -297,7 +334,7 @@ const Login = () => {
                                         className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "professor" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <UserCircle size={24} strokeWidth={1.5} className="mb-2" />
-                                        <span className="text-xs font-bold">Professor</span>
+                                        <span className="text-xs font-bold">Terapeuta</span>
                                     </button>
                                     <button
                                         type="button"
@@ -320,7 +357,7 @@ const Login = () => {
                                 <>
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center justify-between ml-1">
-                                            <label className="text-sm font-bold text-slate-700">Aluno(s) Sob sua Responsabilidade</label>
+                                            <label className="text-sm font-bold text-slate-700">Praticante(s) Sob sua Responsabilidade</label>
                                             <button
                                                 type="button"
                                                 onClick={addAluno}
@@ -354,7 +391,7 @@ const Login = () => {
                                                             </div>
                                                             <Input
                                                                 type="text"
-                                                                placeholder="Nome do Aluno"
+                                                                placeholder="Nome do Praticante"
                                                                 value={aluno.nome}
                                                                 onChange={(e) => updateAlunoField(index, "nome", e.target.value)}
                                                                 className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium"
@@ -370,7 +407,7 @@ const Login = () => {
                                                                         </div>
                                                                         <Input
                                                                             type="number"
-                                                                            placeholder="Idade do Aluno"
+                                                                            placeholder="Idade do Praticante"
                                                                             value={aluno.idade}
                                                                             onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
                                                                             onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do aluno precisa ser preenchida.')}
@@ -454,22 +491,39 @@ const Login = () => {
                                         </div>
                                     </div>
 
-                                    {selectedRole === "pais" && imageRightsConfirmed && (
-                                        <div className="p-4 bg-[#4E593F]/5 rounded-2xl border border-[#4E593F]/20 flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-[#4E593F] flex items-center justify-center">
-                                                    <Check size={16} className="text-white" />
+                                    {selectedRole === "pais" && (
+                                        imageRightsConfirmed ? (
+                                            <div className="p-4 bg-[#4E593F]/5 rounded-2xl border border-[#4E593F]/20 flex items-center justify-between animate-in fade-in duration-300">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-8 h-8 rounded-full bg-[#4E593F] flex items-center justify-center">
+                                                        <Check size={16} className="text-white" />
+                                                    </div>
+                                                    <span className="text-xs font-bold text-[#4E593F]">Autorização de Imagem Concluída</span>
                                                 </div>
-                                                <span className="text-xs font-bold text-[#4E593F]">Autorização de Imagem Concluída</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowImageRights(true)}
+                                                    className="text-[10px] font-bold uppercase underline text-[#4E593F]"
+                                                >
+                                                    Editar
+                                                </button>
                                             </div>
-                                            <button 
-                                                type="button" 
+                                        ) : (
+                                            <button
+                                                type="button"
                                                 onClick={() => setShowImageRights(true)}
-                                                className="text-[10px] font-bold uppercase underline text-[#4E593F]"
+                                                className="w-full p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl flex items-center gap-3 text-left animate-in fade-in duration-300 hover:bg-amber-100 transition-colors"
                                             >
-                                                Editar
+                                                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                                    <FileText size={18} className="text-amber-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-amber-800">Autorização de Imagem pendente</p>
+                                                    <p className="text-xs text-amber-600 font-medium">Obrigatório para concluir o cadastro</p>
+                                                </div>
+                                                <AlertCircle size={18} className="text-amber-500 ml-auto shrink-0" />
                                             </button>
-                                        </div>
+                                        )
                                     )}
                                 </>
                             )}
@@ -480,7 +534,8 @@ const Login = () => {
                         isOpen={showImageRights}
                         onClose={() => setShowImageRights(false)}
                         title="Autorização de Imagem"
-                        subtitle="Preencha os dados e confirme sua autorização"
+                        subtitle="Preencha todos os campos para continuar"
+                        preventClose
                     >
                         <ImageRightsForm 
                             responsibleName={fullName}
@@ -522,7 +577,7 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {mode !== "forgotPassword" && (
+                    {mode !== "forgotPassword" && mode !== "changePassword" && (
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-slate-700 ml-1">Senha</label>
                             <div className="relative">
@@ -530,13 +585,20 @@ const Login = () => {
                                     <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                                 </div>
                                 <Input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
+                                    className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -549,15 +611,73 @@ const Login = () => {
                                     <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                                 </div>
                                 <Input
-                                    type="password"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
+                                    className={`h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                </button>
                             </div>
                         </div>
+                    )}
+
+                    {mode === "changePassword" && (
+                        <>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 ml-1">Nova Senha</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
+                                    </div>
+                                    <Input
+                                        type={showNewPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewPassword(!showNewPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        {showNewPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                    </button>
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 ml-1">Confirme a Nova Senha</label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                        <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
+                                    </div>
+                                    <Input
+                                        type={showNewConfirmPassword ? "text" : "password"}
+                                        placeholder="••••••••"
+                                        value={newConfirmPassword}
+                                        onChange={(e) => setNewConfirmPassword(e.target.value)}
+                                        className={`h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${newConfirmPassword && newPassword !== newConfirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewConfirmPassword(!showNewConfirmPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                                    >
+                                        {showNewConfirmPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                    </button>
+                                </div>
+                            </div>
+                        </>
                     )}
 
                     <Button
@@ -567,7 +687,7 @@ const Login = () => {
                     >
                         {loading ? "Processando..." : (
                             <span className="flex items-center gap-2">
-                                {mode === "signIn" ? "Entrar" : mode === "signUp" ? "Criar Conta" : "Enviar Email"} <LogIn size={20} strokeWidth={2} className="text-white" />
+                                {mode === "signIn" ? "Entrar" : mode === "signUp" ? "Criar Conta" : mode === "changePassword" ? "Salvar Senha" : "Enviar Email"} <LogIn size={20} strokeWidth={2} className="text-white" />
                             </span>
                         )}
                     </Button>
