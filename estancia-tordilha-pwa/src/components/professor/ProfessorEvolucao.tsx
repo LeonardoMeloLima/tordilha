@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { CheckCircle, Mic, Save, Loader2, Brain, BookOpen, Users, Heart, Activity, MessageCircle, LogIn } from "lucide-react";
+import { Mic, Loader2, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Dumbbell, LogIn } from "lucide-react";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useEvolucao } from "@/hooks/useEvolucao";
 import { format, parseISO } from "date-fns";
@@ -12,13 +12,12 @@ export const ProfessorEvolucao = () => {
   const { sessoes, isLoading: loadingSessoes, updateSessao } = useSessoes();
   const { createEvolucao } = useEvolucao();
 
-  const activeSessoes = useMemo(() => 
-    sessoes.filter(s => s.status !== "concluida"),
+  const activeSessoes = useMemo(() =>
+    sessoes.filter(s => s.status !== "concluida" && s.status !== "cancelada" && s.status !== "falta"),
     [sessoes]
   );
 
   const [selectedSessaoId, setSelectedSessaoId] = useState("");
-  const [checkedIn, setCheckedIn] = useState(false);
   const [notas, setNotas] = useState("");
   const [cognitivo, setCognitivo] = useState(0);
   const [pedagogico, setPedagogico] = useState(0);
@@ -26,6 +25,7 @@ export const ProfessorEvolucao = () => {
   const [emocional, setEmocional] = useState(0);
   const [agitacao, setAgitacao] = useState(0);
   const [interacao, setInteracao] = useState(0);
+  const [fisico, setFisico] = useState(0);
 
   const selectedSessao = useMemo(() =>
     sessoes.find(s => s.id === selectedSessaoId),
@@ -66,7 +66,7 @@ export const ProfessorEvolucao = () => {
       return;
     }
 
-    const hasClinicalValue = [cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0);
+    const hasClinicalValue = [cognitivo, pedagogico, social, emocional, agitacao, interacao, fisico].some(v => v > 0);
     if (!hasClinicalValue) {
       toast({
         title: "Avaliação incompleta",
@@ -86,6 +86,7 @@ export const ProfessorEvolucao = () => {
         emocional,
         agitacao,
         interacao,
+        fisico,
       });
 
       // Update session status to completed
@@ -107,7 +108,7 @@ export const ProfessorEvolucao = () => {
       setEmocional(0);
       setAgitacao(0);
       setInteracao(0);
-      setCheckedIn(false);
+      setFisico(0);
       setSelectedSessaoId("");
 
       // Navigate back to agenda
@@ -162,34 +163,24 @@ export const ProfessorEvolucao = () => {
 
       {selectedSessao && (
         <>
-          {/* Check-in button */}
-          <button
-            type="button"
-            onClick={() => setCheckedIn(!checkedIn)}
-            className={`w-full py-5 rounded-3xl font-extrabold text-base touch-target transition-all flex items-center justify-center gap-3 ${checkedIn
-              ? "bg-primary/10 text-primary border-2 border-primary"
-              : "bg-primary text-primary-foreground"
-              }`}
-            style={!checkedIn ? { boxShadow: '0 8px 24px hsla(45, 93%, 47%, 0.35)' } : {}}
-          >
-            {checkedIn ? <CheckCircle size={24} /> : <LogIn size={24} />}
-            {checkedIn ? "Check-in Realizado ✓" : "Realizar Check-in"}
-          </button>
-
           {/* Session Notes */}
           <div className="bg-card rounded-3xl p-5 card-shadow space-y-3">
-            <label className="text-sm font-medium text-slate-700 ml-1">NOTAS DA SESSÃO</label>
+            <div className="flex items-center justify-between ml-1">
+              <label className="text-sm font-medium text-slate-700">OBSERVAÇÃO</label>
+              <span className="text-xs font-medium text-slate-400">{notas.length}/120</span>
+            </div>
             <div className="relative">
-              <textarea
+              <input
+                type="text"
                 value={notas}
                 onChange={(e) => setNotas(e.target.value)}
-                placeholder="Descreva o progresso do aluno nesta sessão..."
-                rows={4}
-                className="w-full p-4 pr-14 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium resize-none focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm"
+                maxLength={120}
+                placeholder="Resumo curto da sessão..."
+                className="w-full h-14 px-4 pr-14 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm"
               />
               <button
                 type="button"
-                className="absolute right-3 bottom-5 w-11 h-11 rounded-2xl bg-slate-100/50 text-slate-400 hover:text-[#4E593F] flex items-center justify-center transition-colors">
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-2xl bg-slate-100/50 text-slate-400 hover:text-[#4E593F] flex items-center justify-center transition-colors">
                 <Mic size={18} />
               </button>
             </div>
@@ -240,20 +231,27 @@ export const ProfessorEvolucao = () => {
               value={interacao}
               onChange={setInteracao}
             />
+
+            <ClinicalSlice
+              label="Físico"
+              icon={Dumbbell}
+              value={fisico}
+              onChange={setFisico}
+            />
           </div>
 
           <button
             onClick={handleSave}
-            disabled={createEvolucao.isPending || !selectedSessaoId || !notas.trim() || ![cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0)}
+            disabled={createEvolucao.isPending || !selectedSessaoId || !notas.trim() || ![cognitivo, pedagogico, social, emocional, agitacao, interacao, fisico].some(v => v > 0)}
             className="w-full py-5 bg-primary text-primary-foreground rounded-3xl font-extrabold text-base touch-target flex items-center justify-center gap-3 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed transition-all"
             style={{
-              boxShadow: ![cognitivo, pedagogico, social, emocional, agitacao, interacao].some(v => v > 0) || !selectedSessaoId || !notas.trim()
+              boxShadow: ![cognitivo, pedagogico, social, emocional, agitacao, interacao, fisico].some(v => v > 0) || !selectedSessaoId || !notas.trim()
                 ? 'none'
                 : '0 8px 24px hsla(45, 93%, 47%, 0.35)'
             }}
           >
-            {createEvolucao.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
-            Salvar Evolução
+            {createEvolucao.isPending ? <Loader2 className="w-5 h-5 animate-spin" /> : <LogIn size={20} />}
+            Realizar Check-in
           </button>
         </>
       )}

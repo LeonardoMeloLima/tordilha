@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Loader2, CalendarCheck, Search } from "lucide-react";
+import { Download, ChevronLeft, Brain, BookOpen, Users, Heart, Activity, MessageCircle, Dumbbell, Loader2, CalendarCheck, Search, X } from "lucide-react";
 import { useState } from "react";
 import { useEvolucaoClinica, type EvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useSessoesStats } from "@/hooks/useSessoesStats";
@@ -105,7 +105,7 @@ const Estatisticas = () => {
                     {/* Donut Chart - NOW Global Evolution */}
                     <div className="bg-white rounded-[32px] p-6 pt-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                         <div className="flex flex-col mb-4 gap-0.5">
-                            <h3 className="text-[17px] font-extrabold text-[#1A1D1E] tracking-tight">Status dos Alunos</h3>
+                            <h3 className="text-[17px] font-extrabold text-[#1A1D1E] tracking-tight">Status dos Praticantes</h3>
                             <div className="flex items-center justify-between">
                                 <p className="text-[13px] font-bold text-slate-400">Evolução Global</p>
                                 <button className="text-sm font-bold text-slate-400">Ver det.</button>
@@ -208,23 +208,32 @@ const Estatisticas = () => {
                             )}
                         </div>
                     </div>
-                    {/* Progresso dos Alunos */}
+                    {/* Progresso dos Praticantes */}
                     <div className="bg-white rounded-[32px] p-6 pt-7 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                            <h3 className="text-[17px] font-black text-[#1A1D1E] tracking-tight">Progresso dos Alunos</h3>
+                            <h3 className="text-[17px] font-black text-[#1A1D1E] tracking-tight">Progresso dos Praticantes</h3>
                             
                             <div className="relative w-full sm:max-w-[220px]">
-                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                                <input 
+                                <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <input
                                     type="text"
-                                    placeholder="Buscar aluno..."
+                                    placeholder="Buscar praticante..."
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
                                         setVisibleCount(10);
                                     }}
-                                    className="w-full h-11 pl-10 pr-4 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#4E593F] transition-all"
+                                    className="w-full h-11 pl-10 pr-10 bg-slate-50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-[#4E593F] transition-all"
                                 />
+                                {searchTerm && (
+                                    <button
+                                        type="button"
+                                        onClick={() => { setSearchTerm(""); setVisibleCount(10); }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-300 flex items-center justify-center hover:bg-slate-400 transition-colors"
+                                    >
+                                        <X size={12} className="text-white" strokeWidth={3} />
+                                    </button>
+                                )}
                             </div>
                         </div>
 
@@ -291,7 +300,7 @@ const Estatisticas = () => {
                                 {isLoadingProgress ? (
                                     <Loader2 className="animate-spin mx-auto text-slate-300" size={20} />
                                 ) : (
-                                    `Carregar mais ${Math.min(10, filteredStudents.length - visibleCount)} alunos`
+                                    `Carregar mais ${Math.min(10, filteredStudents.length - visibleCount)} praticantes`
                                 )}
                             </button>
                         )}
@@ -329,6 +338,7 @@ const Estatisticas = () => {
                                 <ClinicalCategory label="Emocional" icon={Heart} value={selectedStudent.media_emocional} />
                                 <ClinicalCategory label="Agitação" icon={Activity} value={selectedStudent.media_agitacao} />
                                 <ClinicalCategory label="Interação" icon={MessageCircle} value={selectedStudent.media_interacao} />
+                                <ClinicalCategory label="Físico" icon={Dumbbell} value={selectedStudent.media_fisico} />
                             </div>
                         </>
                     )}
@@ -338,22 +348,25 @@ const Estatisticas = () => {
     );
 };
 
-const ClinicalCategory = ({ label, icon: Icon, value }: { label: string, icon: any, value: number }) => (
-    <div className="space-y-2">
-        <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wider">
-            <div className="flex items-center gap-2">
-                <Icon size={14} className="text-slate-400" />
-                <span>{label}</span>
+const ClinicalCategory = ({ label, icon: Icon, value }: { label: string, icon: any, value: number | null }) => {
+    const hasValue = value !== null && value !== undefined;
+    return (
+        <div className="space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                    <Icon size={14} className="text-slate-400" />
+                    <span>{label}</span>
+                </div>
+                <span className="text-slate-700">{hasValue ? `${value}/5` : "—"}</span>
             </div>
-            <span className="text-slate-700">{value}/5</span>
+            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div
+                    className="h-full bg-[#4E593F] rounded-full transition-all duration-700"
+                    style={{ width: hasValue ? `${(value / 5) * 100}%` : "0%" }}
+                />
+            </div>
         </div>
-        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div
-                className="h-full bg-[#4E593F] rounded-full transition-all duration-700"
-                style={{ width: `${(value / 5) * 100}%` }}
-            />
-        </div>
-    </div>
-);
+    );
+};
 
 export default Estatisticas;

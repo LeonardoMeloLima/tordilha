@@ -9,10 +9,10 @@ import { Button } from "@/components/ui/button";
 import { FileText, Users, TrendingUp, ChevronRight, Loader2, Search } from "lucide-react";
 import { useRelatorioProfessores } from "@/hooks/useRelatorioProfessores";
 import { useProgressoAlunos } from "@/hooks/useProgressoAlunos";
-import { generatePDF, generateSocialImpactPDF } from "@/services/pdfService";
+import { generatePDF, generateSocialImpactPDF, generateEvolucaoClinicaPDF } from "@/services/pdfService";
 import { useEvolucaoClinica } from "@/hooks/useEvolucaoClinica";
 import { useAlunos } from "@/hooks/useAlunos";
-import { startOfMonth, subMonths, parseISO } from "date-fns";
+import { startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import {
     Select,
     SelectContent,
@@ -42,9 +42,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
     const { alunos } = useAlunos();
     const { data: evolucaoClinica } = useEvolucaoClinica();
 
-    const filteredAlunos = (alunos || []).filter(a => 
-        a.nome.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredAlunos = (alunos || [])
+        .filter(a => a.nome.toLowerCase().includes(searchTerm.toLowerCase()))
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
 
     const handleGenerate = async () => {
         setIsGenerating(true);
@@ -53,13 +53,15 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                 console.log("Gerando Relatório de Produtividade...");
                 const result = await refetchProductivity();
                 if (result.data) {
-                    const columns = ["Professor", "Sessões", "Alunos Únicos"];
+                    const columns = ["Terapeuta", "Sessões", "Praticantes Únicos"];
                     const data = result.data.map((p: any) => [
                         p.nome_professor,
                         p.total_sessoes,
                         p.total_alunos_unicos
                     ]);
-                    await generatePDF("Relatório de Produtividade da Equipe", columns, data, "produtividade_equipe.pdf");
+                    const now2 = new Date();
+                    const prodSubtitle = `Período: ${format(startOfMonth(now2), "dd/MM/yyyy")} a ${format(endOfMonth(now2), "dd/MM/yyyy")}`;
+                    await generatePDF("Relatório de Produtividade da Equipe", columns, data, "produtividade_equipe.pdf", prodSubtitle);
                     toast.success("Relatório de produtividade gerado com sucesso!");
                 }
             } else if (selectedType === "social") {
@@ -81,7 +83,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
 
                 // 2. Prepare Indicadores-Chave Section
                 const indicadoresData = [
-                    ["Total de Alunos Atendidos", totalAlunos?.toString() || "0"],
+                    ["Total de Praticantes Atendidos", totalAlunos?.toString() || "0"],
                     ["Sessões Realizadas", totalSessoes.toString()],
                     ["Evolução Global Média", `${globalEvolution || 0}%`],
                     ["Cavalos Ativos", totalCavalos?.toString() || "0"],
@@ -126,7 +128,9 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     .select('id, nome, diagnostico, sessoes(id)')
                     .eq('arquivado', false);
 
-                const progressoData = (studentsWithDiagnosis || []).map(student => {
+                const progressoData = (studentsWithDiagnosis || [])
+                .sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'))
+                .map(student => {
                     const stats = evolucaoClinica?.find(e => e.aluno_id === student.id);
                     const sessoesCount = student.sessoes?.length || 0;
                     
@@ -142,7 +146,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     const scorePercent = totalScore > 0 ? Math.round((totalScore / 30) * 100) : 0;
 
                     return [
-                        student.nome || "Aluno",
+                        student.nome || "Praticante",
                         student.diagnostico || "-",
                         sessoesCount.toString(),
                         `${scorePercent}%`
@@ -152,7 +156,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                 const sections = [
                     { title: "Indicadores-Chave", columns: ["Indicador", "Valor"], data: indicadoresData },
                     { title: "Frequência Mensal", columns: ["Mês", "Presenças", "Faltas", "% Presença"], data: frequenciaData },
-                    { title: "Progresso Individual dos Alunos", columns: ["Aluno", "Diagnóstico", "Sessões", "Evolução"], data: progressoData },
+                    { title: "Progresso Individual dos Praticantes", columns: ["Praticante", "Diagnóstico", "Sessões", "Evolução"], data: progressoData },
                 ];
 
                 await generateSocialImpactPDF(sections, "impacto_social.pdf");
@@ -178,6 +182,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                             emocional,
                             agitacao,
                             interacao,
+                            fisico,
                             observacoes
                         )
                     `)
@@ -191,8 +196,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     return;
                 }
 
-                const studentName = students?.find(s => s.id === selectedStudentId)?.nome || "Aluno";
-                const columns = ["Data", "C", "P", "S", "E", "A", "I", "Observações"];
+                const studentName = students?.find(s => s.id === selectedStudentId)?.nome || "Praticante";
                 const data = sessions
                     .filter(s => s.evolucao_sessoes && s.evolucao_sessoes.length > 0)
                     .map(s => {
@@ -205,6 +209,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                             ev.emocional ?? "-",
                             ev.agitacao ?? "-",
                             ev.interacao ?? "-",
+                            ev.fisico ?? "-",
                             ev.observacoes || "-"
                         ];
                     });
@@ -214,10 +219,11 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     return;
                 }
 
-                await generatePDF(
-                    `Evolução Clínica: ${studentName}`,
-                    columns,
+                const evoSubtitle = `Histórico completo até ${format(new Date(), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`;
+                await generateEvolucaoClinicaPDF(
+                    studentName,
                     data,
+                    evoSubtitle,
                     `evolucao_${studentName.toLowerCase().replace(/\s+/g, '_')}.pdf`
                 );
                 toast.success("Relatório de evolução gerado com sucesso!");
@@ -242,7 +248,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         {
             id: "productivity",
             title: "Produtividade da Equipe",
-            description: "Sessões e alunos únicos por professor",
+            description: "Sessões e alunos únicos por terapeuta",
             icon: <Users className="text-[#4E593F]" size={24} />,
         },
         {

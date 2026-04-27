@@ -252,6 +252,7 @@ export type Database = {
           comportamento_escala: number | null
           criado_em: string | null
           emocional: number | null
+          fisico: number | null
           fotos_urls: string[] | null
           id: string
           interacao: number | null
@@ -268,6 +269,7 @@ export type Database = {
           comportamento_escala?: number | null
           criado_em?: string | null
           emocional?: number | null
+          fisico?: number | null
           fotos_urls?: string[] | null
           id?: string
           interacao?: number | null
@@ -284,6 +286,7 @@ export type Database = {
           comportamento_escala?: number | null
           criado_em?: string | null
           emocional?: number | null
+          fisico?: number | null
           fotos_urls?: string[] | null
           id?: string
           interacao?: number | null
@@ -522,6 +525,7 @@ export type Database = {
           endereco: string | null
           cidade: string | null
           estado: string | null
+          status: string
         }
         Insert: {
           atualizado_em?: string | null
@@ -535,6 +539,7 @@ export type Database = {
           endereco?: string | null
           cidade?: string | null
           estado?: string | null
+          status?: string
         }
         Update: {
           atualizado_em?: string | null
@@ -548,6 +553,7 @@ export type Database = {
           endereco?: string | null
           cidade?: string | null
           estado?: string | null
+          status?: string
         }
         Relationships: []
       }
@@ -705,6 +711,7 @@ export type Database = {
           media_agitacao: number
           media_cognitivo: number
           media_emocional: number
+          media_fisico: number | null
           media_interacao: number
           media_pedagogico: number
           media_social: number
