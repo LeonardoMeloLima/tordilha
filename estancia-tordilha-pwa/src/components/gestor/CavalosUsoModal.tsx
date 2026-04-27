@@ -34,12 +34,10 @@ export const CavalosUsoModal = ({ isOpen, onClose }: Props) => {
                     <div className="space-y-6">
                         {/* Resumo */}
                         <div className="bg-[#F1F3EF] rounded-2xl p-5">
-                            <div className="flex items-baseline gap-2">
-                                <p className="text-[40px] font-extrabold text-[#1A1D1E] leading-none tracking-tight">
-                                    {data.totalCavalosAtivos}
-                                </p>
-                                <p className="text-lg font-semibold text-slate-500">/ {data.totalCavalosCadastrados}</p>
-                            </div>
+                            <p className="text-[40px] font-extrabold text-[#1A1D1E] leading-none tracking-tight">
+                                {data.totalCavalosAtivos}
+                                <span className="text-2xl font-semibold text-slate-400 ml-2">/ {data.totalCavalosCadastrados}</span>
+                            </p>
                             <p className="text-sm font-semibold text-slate-600 mt-2">
                                 cavalos ativos
                             </p>
@@ -62,24 +60,13 @@ export const CavalosUsoModal = ({ isOpen, onClose }: Props) => {
                                     Nenhum atendimento realizado ainda.
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {data.ranking.map((c) => (
                                         <CavaloRow key={c.cavaloId} cavalo={c} />
                                     ))}
                                 </div>
                             )}
                         </div>
-
-                        {/* Insight de balanceamento — só aparece se tiver mais de 1 cavalo com uso */}
-                        {data.ranking.filter(c => c.totalSessoes > 0).length >= 2 && (
-                            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-                                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider mb-1">💡 Balanceamento</p>
-                                <p className="text-xs text-slate-600 leading-relaxed">
-                                    Cavalos com uso muito acima da média podem precisar de descanso.
-                                    Os com uso baixo podem estar disponíveis para mais sessões.
-                                </p>
-                            </div>
-                        )}
                     </div>
                 )}
             </DialogContent>
@@ -87,26 +74,29 @@ export const CavalosUsoModal = ({ isOpen, onClose }: Props) => {
     );
 };
 
-const CavaloRow = ({ cavalo }: { cavalo: { nome: string; fotoUrl: string | null; totalSessoes: number; percentualUso: number; percentualVsMax: number } }) => (
-    <div className="flex items-center gap-3">
-        <AvatarWithFallback
-            src={cavalo.fotoUrl}
-            className="w-10 h-10 rounded-2xl shrink-0"
-            type="horse"
-        />
-        <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-1.5">
-                <span className="text-sm font-bold text-slate-700 truncate">{cavalo.nome}</span>
-                <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
-                    {cavalo.totalSessoes} {cavalo.totalSessoes === 1 ? "sessão" : "sessões"} · {cavalo.percentualUso.toFixed(1)}%
-                </span>
-            </div>
-            <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                <div
-                    className="h-full bg-[#4E593F] rounded-full transition-all duration-700"
-                    style={{ width: `${cavalo.percentualVsMax}%` }}
-                />
+const CavaloRow = ({ cavalo }: { cavalo: { nome: string; fotoUrl: string | null; totalSessoes: number; percentualUso: number; percentualVsMax: number } }) => {
+    const semUso = cavalo.totalSessoes === 0;
+    return (
+        <div className={`flex items-center gap-3 py-2.5 px-3 rounded-xl bg-slate-50 ${semUso ? "opacity-60" : ""}`}>
+            <AvatarWithFallback
+                src={cavalo.fotoUrl}
+                className="w-9 h-9 rounded-xl shrink-0"
+                type="horse"
+            />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-sm font-bold text-slate-700 truncate">{cavalo.nome}</span>
+                    <span className="text-xs font-bold text-slate-500 whitespace-nowrap">
+                        {semUso ? "sem uso" : `${cavalo.totalSessoes} ${cavalo.totalSessoes === 1 ? "sessão" : "sessões"} · ${cavalo.percentualUso.toFixed(1)}%`}
+                    </span>
+                </div>
+                <div className="h-1 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-[#4E593F] rounded-full transition-all duration-700"
+                        style={{ width: `${cavalo.percentualVsMax}%` }}
+                    />
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
