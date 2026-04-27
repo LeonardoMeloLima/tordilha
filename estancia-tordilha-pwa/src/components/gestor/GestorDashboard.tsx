@@ -8,6 +8,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTaxaPresencaStats } from "@/hooks/useTaxaPresencaStats";
 import { TaxaPresencaModal } from "@/components/gestor/TaxaPresencaModal";
+import { CavalosUsoModal } from "@/components/gestor/CavalosUsoModal";
 
 export const GestorDashboard = () => {
   const { alunos, isLoading: loadingAlunos } = useAlunos();
@@ -16,6 +17,7 @@ export const GestorDashboard = () => {
   const navigate = useNavigate();
   const { data: taxaPresencaStats, isLoading: loadingTaxaPresenca } = useTaxaPresencaStats();
   const [taxaModalOpen, setTaxaModalOpen] = useState(false);
+  const [cavalosModalOpen, setCavalosModalOpen] = useState(false);
 
   const metrics = useMemo(() => [
     {
@@ -53,7 +55,8 @@ export const GestorDashboard = () => {
       icon: HeartPulse,
       color: 'bg-[#F1F3EF]',
       iconBg: 'bg-[#DDE2D6]',
-      iconCol: 'text-[#3E4732]'
+      iconCol: 'text-[#3E4732]',
+      onClick: () => setCavalosModalOpen(true),
     },
   ], [alunos, sessoes, cavalos, loadingAlunos, loadingSessoes, loadingCavalos, taxaPresencaStats, loadingTaxaPresenca]);
 
@@ -170,6 +173,7 @@ export const GestorDashboard = () => {
       </div>
 
       <TaxaPresencaModal isOpen={taxaModalOpen} onClose={() => setTaxaModalOpen(false)} />
+      <CavalosUsoModal isOpen={cavalosModalOpen} onClose={() => setCavalosModalOpen(false)} />
     </div>
   );
 };
