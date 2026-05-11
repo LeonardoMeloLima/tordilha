@@ -54,6 +54,10 @@ const Login = () => {
         setLoading(true);
 
         try {
+            /* Desativado em 2026-05-11 — fluxo de recuperação migrado pro gestor (resetar no painel Admin).
+               Pra religar: descomentar este bloco, restaurar o link "Recuperar" no JSX, e descomentar
+               a rota /reset-password em App.tsx + body de ResetPassword.tsx.
+
             if (mode === "forgotPassword") {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
                     redirectTo: `${window.location.origin}/reset-password`,
@@ -65,7 +69,8 @@ const Login = () => {
                 });
                 setMode("signIn");
                 return;
-            } else if (mode === "signIn") {
+            } else */
+            if (mode === "signIn") {
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
@@ -102,7 +107,7 @@ const Login = () => {
                     email,
                     password,
                     options: {
-                        emailRedirectTo: window.location.origin,
+                        // emailRedirectTo: window.location.origin, // Desativado em 2026-05-11 — não há mais email de confirmação
                         data: {
                             nome_completo: fullName,
                             role: selectedRole,
@@ -239,7 +244,7 @@ const Login = () => {
             console.error("Auth error:", error);
             toast({
                 variant: "destructive",
-                title: mode === "forgotPassword" ? "Erro ao recuperar senha" : mode === "signIn" ? "Erro no login" : "Erro no cadastro",
+                title: mode === "signIn" ? "Erro no login" : "Erro no cadastro",
                 description: error.message || "Ocorreu um erro inesperado.",
             });
         } finally {
@@ -256,9 +261,7 @@ const Login = () => {
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Estância Tordilha</h1>
                     <p className="text-slate-500 font-medium">
-                        {mode === "signIn" ? "Faça login para acessar o sistema" :
-                            mode === "signUp" ? "Crie sua conta para começar" :
-                                "Recupere o acesso à sua conta"}
+                        {mode === "signIn" ? "Faça login para acessar o sistema" : "Crie sua conta para começar"}
                     </p>
                 </div>
 
@@ -523,32 +526,30 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {mode !== "forgotPassword" && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 ml-1">Senha</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
-                                </div>
-                                <Input
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword((v) => !v)}
-                                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
-                                >
-                                    {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
-                                </button>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 ml-1">Senha</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                             </div>
+                            <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+                            >
+                                {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                            </button>
                         </div>
-                    )}
+                    </div>
 
                     {mode === "signUp" && (
                         <div className="space-y-2">
@@ -576,7 +577,7 @@ const Login = () => {
                     >
                         {loading ? "Processando..." : (
                             <span className="flex items-center gap-2">
-                                {mode === "signIn" ? "Entrar" : mode === "signUp" ? "Criar Conta" : "Enviar Email"} <LogIn size={20} strokeWidth={2} className="text-white" />
+                                {mode === "signIn" ? "Entrar" : "Criar Conta"} <LogIn size={20} strokeWidth={2} className="text-white" />
                             </span>
                         )}
                     </Button>
@@ -618,12 +619,15 @@ const Login = () => {
                     {mode === "signIn" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Esqueceu sua senha?{" "}
-                            <button type="button" onClick={() => setMode("forgotPassword")} className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors">
-                                Recuperar
-                            </button>
+                            <span className="text-slate-700 font-bold">
+                                Procure o gestor da Estância.
+                            </span>
                         </p>
                     )}
 
+                    {/* Desativado em 2026-05-11 — modo forgotPassword removido. Pra religar:
+                        substituir o <span> acima por um <button onClick={() => setMode("forgotPassword")}>Recuperar</button>
+                        e descomentar este bloco.
                     {mode === "forgotPassword" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Lembrou a senha?{" "}
@@ -631,7 +635,7 @@ const Login = () => {
                                 Voltar ao Login
                             </button>
                         </p>
-                    )}
+                    )} */}
                 </div>
             </div>
         </div>
