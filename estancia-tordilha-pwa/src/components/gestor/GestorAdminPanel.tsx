@@ -395,7 +395,7 @@ export const GestorAdminPanel = () => {
         isOpen={showForm} 
         onClose={() => setShowForm(false)}
         title={formType === 'professor' ? "Novo Terapeuta" : "Novo Gestor"}
-        subtitle="O usuário receberá um convite por e-mail"
+        subtitle="Defina o acesso ao app — você passa a senha temporária ao usuário"
       >
         <form onSubmit={handleCreateUser} className="space-y-4 py-2">
           {/* ... campos de nome e email permanecem os mesmos ... */}
@@ -460,7 +460,7 @@ export const GestorAdminPanel = () => {
             disabled={submitting}
             className="w-full h-12 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold mt-4 shadow-lg shadow-[#4E593F]/20"
           >
-            {submitting ? "Processando..." : `Convidar ${formType === 'professor' ? "Terapeuta" : "Gestor"}`}
+            {submitting ? "Processando..." : `Criar ${formType === 'professor' ? "Terapeuta" : "Gestor"}`}
           </Button>
         </form>
       </ActionSheet>
