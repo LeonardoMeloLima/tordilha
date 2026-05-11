@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { Button } from "@/components/ui/button";
 import { Copy, Check, ShieldCheck } from "lucide-react";
@@ -21,14 +21,21 @@ export function TempPasswordSuccessModal({
   tempPassword,
 }: TempPasswordSuccessModalProps) {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(tempPassword);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard pode falhar em http (não-https). Não bloqueia o fluxo.
+      // Clipboard pode falhar em http (não-https). Gestor pode selecionar
+      // o texto manualmente (o <code> tem select-all) e usar Ctrl/Cmd+C.
     }
   };
 
@@ -44,7 +51,7 @@ export function TempPasswordSuccessModal({
             Senha temporária
           </p>
           <div className="flex items-center gap-3">
-            <code className="flex-1 text-2xl font-bold text-[#4E593F] tracking-wider">
+            <code className="flex-1 text-2xl font-bold text-[#4E593F] tracking-wider select-all">
               {tempPassword}
             </code>
             <button
