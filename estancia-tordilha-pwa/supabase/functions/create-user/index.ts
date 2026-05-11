@@ -6,127 +6,158 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const TEMP_PASSWORD = "Tordilha@2026";
+const PROTECTED_EMAIL = "leonardo.informatica@gmail.com";
+
+async function resolveUserId(
+  supabase: any,
+  userId?: string,
+  email?: string
+): Promise<{ id: string; email: string }> {
+  if (userId) {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
+    if (error || !data?.user) throw new Error('Usuário não encontrado pelo ID informado');
+    return { id: data.user.id, email: data.user.email };
+  }
+  if (email) {
+    const { data: { users } } = await supabase.auth.admin.listUsers();
+    const found = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+    if (!found) throw new Error(`Usuário com email ${email} não encontrado`);
+    return { id: found.id, email: found.email };
+  }
+  throw new Error('Forneça userId ou email');
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const supabaseClient = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
     const { action, userId, email, fullName, role } = await req.json();
 
-    const TEMP_PASSWORD = "Tordilha@2026";
-
-    // AÇÃO: EXCLUIR USUÁRIO
+    // ============ DELETE ============
     if (action === 'delete') {
-      if (!userId) throw new Error('ID do usuário é obrigatório');
-      const { data: { user: userToProtect } } = await supabaseClient.auth.admin.getUserById(userId);
-      if (userToProtect?.email?.toLowerCase() === "leonardo.informatica@gmail.com") {
+      const { id: targetId, email: targetEmail } = await resolveUserId(supabaseClient, userId, email);
+      if (targetEmail?.toLowerCase() === PROTECTED_EMAIL) {
         throw new Error("Este usuário é um Super Admin e não pode ser excluído.");
       }
-      await supabaseClient.from('user_roles').delete().eq('user_id', userId);
-      await supabaseClient.from('profiles').delete().eq('id', userId);
-      await supabaseClient.auth.admin.deleteUser(userId);
-      return new Response(JSON.stringify({ message: 'Usuário removido' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      await supabaseClient.from('user_roles').delete().eq('user_id', targetId);
+      await supabaseClient.from('profiles').delete().eq('id', targetId);
+      await supabaseClient.auth.admin.deleteUser(targetId);
+      return new Response(
+        JSON.stringify({ message: 'Usuário removido' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // AÇÃO: CRIAR USUÁRIO
-    if (!email || !role) throw new Error('E-mail e Cargo são obrigatórios');
-
-    let targetId: string;
-    let isExisting = false;
-
-    const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
-      email: email,
-      password: TEMP_PASSWORD,
-      email_confirm: true,
-      user_metadata: {
-        full_name: fullName,
-        role: role,
-        needs_password_change: true
+    // ============ RESET PASSWORD ============
+    if (action === 'reset-password') {
+      const { id: targetId, email: targetEmail } = await resolveUserId(supabaseClient, userId, email);
+      if (targetEmail?.toLowerCase() === PROTECTED_EMAIL) {
+        throw new Error("Este usuário é um Super Admin e não pode ter a senha resetada por esta via.");
       }
-    });
+      const { data: { user: current } } = await supabaseClient.auth.admin.getUserById(targetId);
+      await supabaseClient.auth.admin.updateUserById(targetId, {
+        password: TEMP_PASSWORD,
+        user_metadata: { ...(current?.user_metadata ?? {}), needs_password_change: true }
+      });
+      return new Response(
+        JSON.stringify({ message: 'Senha resetada', tempPassword: TEMP_PASSWORD }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (createError) {
-      if (createError.message.includes('already been registered')) {
-        const { data: { users } } = await supabaseClient.auth.admin.listUsers();
-        const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-        if (existingUser) {
-          targetId = existingUser.id;
-          isExisting = true;
-          // Garantir que os metadados também sejam marcados para troca de senha no re-convite
-          await supabaseClient.auth.admin.updateUserById(targetId, {
-            user_metadata: { ...existingUser.user_metadata, role: role, needs_password_change: true }
-          });
-        } else {
-          throw createError;
+    // ============ CREATE ============
+    if (action === 'create') {
+      if (!email || !role) throw new Error('E-mail e Cargo são obrigatórios');
+
+      const { data: newUser, error: createError } = await supabaseClient.auth.admin.createUser({
+        email: email,
+        password: TEMP_PASSWORD,
+        email_confirm: true,
+        user_metadata: {
+          full_name: fullName,
+          role: role,
+          needs_password_change: true
         }
-      } else {
+      });
+
+      if (createError) {
+        if (createError.message.includes('already been registered')) {
+          // Bloqueia em vez de re-invitar. Vide design 2026-05-11.
+          throw new Error("Este e-mail já tem cadastro. Use 'Resetar senha' do usuário existente.");
+        }
         throw createError;
       }
-    } else {
-      targetId = newUser.user.id;
-    }
 
-    // Linkar no banco (Profiles e Roles)
-    await supabaseClient.from('profiles').upsert({ id: targetId, full_name: fullName, email });
-    await supabaseClient.from('user_roles').upsert({ user_id: targetId, role }, { onConflict: 'user_id' });
+      const targetId = newUser.user.id;
+      await supabaseClient.from('profiles').upsert({ id: targetId, full_name: fullName, email });
+      await supabaseClient.from('user_roles').upsert({ user_id: targetId, role }, { onConflict: 'user_id' });
 
-    // DISPARAR E-MAIL VIA RESEND
-    let resendStatus = "Resend API Key not found";
-    if (resendApiKey) {
-      try {
-        const emailHtml = `
-          <div style="font-family: sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
-            <div style="background-color: #4E593F; padding: 24px; text-align: center;">
-              <h1 style="color: white; margin: 0; font-size: 24px;">Bem-vindo à Tordilha!</h1>
-            </div>
-            <div style="padding: 32px;">
-              <p style="font-size: 16px; line-height: 1.6;">Olá, <strong>${fullName || 'Colaborador'}</strong>!</p>
-              <p style="font-size: 16px; line-height: 1.6;">Seu acesso ao App da Estância Tordilha como <strong>${role}</strong> foi liberado.</p>
+      /* Desativado em 2026-05-11 — fluxo migrado pra gestor gerencia senhas (sem email).
+         Pra religar: descomentar este bloco inteiro e o `resendStatus` no JSON de resposta.
+         RESEND_API_KEY no Supabase pode permanecer ou ser removida.
 
-              <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
-                <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: bold; text-transform: uppercase;">Sua Senha Temporária</p>
-                <code style="font-size: 24px; color: #4E593F; font-weight: bold;">${TEMP_PASSWORD}</code>
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      let resendStatus = "Resend API Key not found";
+      if (resendApiKey) {
+        try {
+          const emailHtml = `
+            <div style="font-family: sans-serif; color: #334155; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+              <div style="background-color: #4E593F; padding: 24px; text-align: center;">
+                <h1 style="color: white; margin: 0; font-size: 24px;">Bem-vindo à Tordilha!</h1>
               </div>
-
-              <p style="font-size: 14px; color: #64748b;">Ao entrar pela primeira vez, o app pedirá para você criar sua própria senha definitiva.</p>
-
-              <div style="text-align: center; margin-top: 32px;">
-                <a href="https://estancia-tordilha.vercel.app" style="background-color: #4E593F; color: white; padding: 16px 32px; border-radius: 100px; text-decoration: none; font-weight: bold; display: inline-block;">Acessar o App</a>
+              <div style="padding: 32px;">
+                <p style="font-size: 16px; line-height: 1.6;">Olá, <strong>${fullName || 'Colaborador'}</strong>!</p>
+                <p style="font-size: 16px; line-height: 1.6;">Seu acesso ao App da Estância Tordilha como <strong>${role}</strong> foi liberado.</p>
+                <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
+                  <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: bold; text-transform: uppercase;">Sua Senha Temporária</p>
+                  <code style="font-size: 24px; color: #4E593F; font-weight: bold;">${TEMP_PASSWORD}</code>
+                </div>
+                <p style="font-size: 14px; color: #64748b;">Ao entrar pela primeira vez, o app pedirá para você criar sua própria senha definitiva.</p>
+                <div style="text-align: center; margin-top: 32px;">
+                  <a href="https://estancia-tordilha.vercel.app" style="background-color: #4E593F; color: white; padding: 16px 32px; border-radius: 100px; text-decoration: none; font-weight: bold; display: inline-block;">Acessar o App</a>
+                </div>
               </div>
             </div>
-          </div>
-        `;
-
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Tordilha App <onboarding@resend.dev>',
-            to: [email],
-            subject: 'Bem-vindo ao App Estância Tordilha!',
-            html: emailHtml,
-          }),
-        });
-
-        const resendData = await resendResponse.json();
-        resendStatus = resendResponse.ok ? "Sent" : `Error: ${JSON.stringify(resendData)}`;
-      } catch (e) {
-        resendStatus = `Critical Error: ${e.message}`;
+          `;
+          const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              from: 'Tordilha App <onboarding@resend.dev>',
+              to: [email],
+              subject: 'Bem-vindo ao App Estância Tordilha!',
+              html: emailHtml,
+            }),
+          });
+          const resendData = await resendResponse.json();
+          resendStatus = resendResponse.ok ? "Sent" : `Error: ${JSON.stringify(resendData)}`;
+        } catch (e) {
+          resendStatus = `Critical Error: ${e.message}`;
+        }
       }
+      */
+
+      return new Response(
+        JSON.stringify({
+          message: 'Usuário criado com sucesso!',
+          tempPassword: TEMP_PASSWORD,
+          isExisting: false
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    return new Response(JSON.stringify({
-      message: isExisting ? 'Cargo atualizado e e-mail enviado.' : 'Usuário criado com sucesso!',
-      resendStatus,
-      isExisting,
-      tempPassword: isExisting ? null : TEMP_PASSWORD
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    throw new Error(`Action inválida: ${action}. Esperado: 'create' | 'delete' | 'reset-password'`);
 
   } catch (error: any) {
-    return new Response(JSON.stringify({ error: error.message }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 });
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+    );
   }
 });
