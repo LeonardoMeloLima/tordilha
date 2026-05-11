@@ -67,7 +67,7 @@ export const MuralPostModal = ({ isOpen, onClose, alunoId, alunoNome }: MuralPos
 
                     if (!hasCheckin) {
                         setCanPost(false);
-                        setPostError("O professor ainda não realizou o check-in desta aula. Aguarde um pouquinho! ✨");
+                        setPostError("O terapeuta ainda não realizou o check-in desta aula. Aguarde um pouquinho! ✨");
                     } else {
                         setCanPost(true);
                         setPostError(null);

@@ -36,7 +36,7 @@ interface ProfileHeaderProps {
 
 const roleBadges: Record<Role, { label: string; className: string }> = {
     professor: {
-        label: "Professor",
+        label: "Terapeuta",
         className: "bg-[#4E593F]/10 text-[#4E593F]",
     },
     pais: {

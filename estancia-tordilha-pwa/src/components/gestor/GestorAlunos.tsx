@@ -401,12 +401,12 @@ export const GestorAlunos = () => {
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1 flex items-center gap-1.5">
               <GraduationCap size={14} className="text-slate-400" />
-              Professor Responsável
+              Terapeuta Responsável
             </label>
             {professores.length === 0 ? (
               <div className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-sm text-slate-400">
                 <GraduationCap size={16} />
-                <span>Nenhum professor cadastrado ainda.</span>
+                <span>Nenhum terapeuta cadastrado ainda.</span>
               </div>
             ) : (
               <select
@@ -414,10 +414,10 @@ export const GestorAlunos = () => {
                 onChange={(e) => setForm({ ...form, professor_id: e.target.value })}
                 className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white appearance-none cursor-pointer"
               >
-                <option value="">— Nenhum professor —</option>
+                <option value="">— Nenhum terapeuta —</option>
                 {professores.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.full_name || "Professor sem nome"}
+                    {p.full_name || "Terapeuta sem nome"}
                   </option>
                 ))}
               </select>

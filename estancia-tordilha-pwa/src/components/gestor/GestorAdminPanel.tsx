@@ -48,12 +48,12 @@ export const GestorAdminPanel = () => {
     setSubmitting(true);
 
     try {
-      const { error } = await supabase.functions.invoke('create-user', {
-        body: { 
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: {
           action: 'create',
-          email: newUserEmail, 
-          fullName: newUserName, 
-          role: formType 
+          email: newUserEmail,
+          fullName: newUserName,
+          role: formType
         },
       });
 
@@ -64,7 +64,9 @@ export const GestorAdminPanel = () => {
 
       toast({
         title: "Sucesso!",
-        description: `Usuário criado. Senha temporária: Tordilha@2026. Peça para ele confirmar o e-mail.`,
+        description: data?.tempPassword
+          ? `Usuário criado. Senha temporária: ${data.tempPassword}. Já enviamos por e-mail.`
+          : `Cargo atualizado. O usuário já existia no sistema.`,
       });
       
       setNewUserName("");
@@ -138,7 +140,7 @@ export const GestorAdminPanel = () => {
               activeType === "professor" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500"
             }`}
           >
-            Professores
+            Terapeutas
           </button>
           <button
             onClick={() => setActiveType("gestor")}
@@ -153,7 +155,7 @@ export const GestorAdminPanel = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <Input
-            placeholder={`Buscar ${activeType}...`}
+            placeholder={`Buscar ${activeType === 'professor' ? 'terapeuta' : 'gestor'}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-12 rounded-2xl bg-white border-slate-200 shadow-sm"
@@ -202,7 +204,7 @@ export const GestorAdminPanel = () => {
           ))
         ) : (
           <div className="bg-slate-50 rounded-3xl p-8 border border-dashed border-slate-200 text-center">
-            <p className="text-sm text-slate-500">Nenhum {activeType === 'professor' ? 'professor' : 'gestor'} encontrado.</p>
+            <p className="text-sm text-slate-500">Nenhum {activeType === 'professor' ? 'terapeuta' : 'gestor'} encontrado.</p>
           </div>
         )}
       </div>
@@ -210,7 +212,7 @@ export const GestorAdminPanel = () => {
       <ActionSheet 
         isOpen={showForm} 
         onClose={() => setShowForm(false)}
-        title={formType === 'professor' ? "Novo Professor" : "Novo Gestor"}
+        title={formType === 'professor' ? "Novo Terapeuta" : "Novo Gestor"}
         subtitle="O usuário receberá um convite por e-mail"
       >
         <form onSubmit={handleCreateUser} className="space-y-4 py-2">
@@ -249,9 +251,9 @@ export const GestorAdminPanel = () => {
               <ShieldCheck size={18} className="text-blue-600" />
             </div>
             <div>
-              <p className="text-xs font-bold text-blue-900">Configuração de Senha</p>
+              <p className="text-xs font-bold text-blue-900">Senha temporária</p>
               <p className="text-[11px] text-blue-700 leading-tight mt-0.5">
-                O usuário receberá um link por e-mail para criar sua senha e ativar o acesso.
+                O usuário receberá a senha temporária por e-mail. No primeiro acesso, ele será obrigado a definir uma senha pessoal.
               </p>
             </div>
           </div>
@@ -260,7 +262,7 @@ export const GestorAdminPanel = () => {
             disabled={submitting}
             className="w-full h-12 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold mt-4 shadow-lg shadow-[#4E593F]/20"
           >
-            {submitting ? "Processando..." : `Convidar ${formType === 'professor' ? "Professor" : "Gestor"}`}
+            {submitting ? "Processando..." : `Convidar ${formType === 'professor' ? "Terapeuta" : "Gestor"}`}
           </Button>
         </form>
       </ActionSheet>

@@ -180,7 +180,7 @@ const Index = () => {
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shadow-sm shrink-0">
                   <UserCog size={20} className="text-blue-600" strokeWidth={1.5} />
                 </div>
-                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Professor</span>
+                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Terapeuta</span>
               </button>
 
               <button

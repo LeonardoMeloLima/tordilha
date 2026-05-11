@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check } from "lucide-react";
+import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check, Eye, EyeOff } from "lucide-react";
 import logoMarrom from "@/assets/logo-marrom.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionSheet } from "@/components/ui/ActionSheet";
@@ -31,6 +31,7 @@ const Login = () => {
     const [showImageRights, setShowImageRights] = useState(false);
     const [imageRightsConfirmed, setImageRightsConfirmed] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
 
@@ -297,7 +298,7 @@ const Login = () => {
                                         className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "professor" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <UserCircle size={24} strokeWidth={1.5} className="mb-2" />
-                                        <span className="text-xs font-bold">Professor</span>
+                                        <span className="text-xs font-bold">Terapeuta</span>
                                     </button>
                                     <button
                                         type="button"
@@ -530,13 +531,21 @@ const Login = () => {
                                     <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                                 </div>
                                 <Input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
+                                    className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((v) => !v)}
+                                    aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                </button>
                             </div>
                         </div>
                     )}

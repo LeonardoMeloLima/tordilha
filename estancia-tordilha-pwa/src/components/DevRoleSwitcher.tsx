@@ -19,7 +19,7 @@ export function DevRoleSwitcher({ isSuperUser, activeRole, onRoleChange }: DevRo
                 className="bg-transparent text-[9px] font-bold text-red-500 outline-none cursor-pointer appearance-none uppercase tracking-wider"
             >
                 <option value="gestor">DEV: GESTOR</option>
-                <option value="professor">DEV: PROFESSOR</option>
+                <option value="professor">DEV: TERAPEUTA</option>
                 <option value="pais">DEV: RESPONSÁVEL</option>
             </select>
         </div>

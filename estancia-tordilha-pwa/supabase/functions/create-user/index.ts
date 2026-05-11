@@ -39,9 +39,10 @@ Deno.serve(async (req: Request) => {
       email: email,
       password: TEMP_PASSWORD,
       email_confirm: true,
-      user_metadata: { 
+      user_metadata: {
         full_name: fullName,
-        needs_password_change: true 
+        role: role,
+        needs_password_change: true
       }
     });
 
@@ -54,7 +55,7 @@ Deno.serve(async (req: Request) => {
           isExisting = true;
           // Garantir que os metadados também sejam marcados para troca de senha no re-convite
           await supabaseClient.auth.admin.updateUserById(targetId, {
-            user_metadata: { ...existingUser.user_metadata, needs_password_change: true }
+            user_metadata: { ...existingUser.user_metadata, role: role, needs_password_change: true }
           });
         } else {
           throw createError;
@@ -82,7 +83,7 @@ Deno.serve(async (req: Request) => {
             <div style="padding: 32px;">
               <p style="font-size: 16px; line-height: 1.6;">Olá, <strong>${fullName || 'Colaborador'}</strong>!</p>
               <p style="font-size: 16px; line-height: 1.6;">Seu acesso ao App da Estância Tordilha como <strong>${role}</strong> foi liberado.</p>
-              
+
               <div style="background-color: #f8fafc; padding: 24px; border-radius: 8px; margin: 24px 0; text-align: center;">
                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #64748b; font-weight: bold; text-transform: uppercase;">Sua Senha Temporária</p>
                 <code style="font-size: 24px; color: #4E593F; font-weight: bold;">${TEMP_PASSWORD}</code>
@@ -110,7 +111,7 @@ Deno.serve(async (req: Request) => {
             html: emailHtml,
           }),
         });
-        
+
         const resendData = await resendResponse.json();
         resendStatus = resendResponse.ok ? "Sent" : `Error: ${JSON.stringify(resendData)}`;
       } catch (e) {
@@ -118,10 +119,11 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return new Response(JSON.stringify({ 
+    return new Response(JSON.stringify({
       message: isExisting ? 'Cargo atualizado e e-mail enviado.' : 'Usuário criado com sucesso!',
       resendStatus,
-      isExisting
+      isExisting,
+      tempPassword: isExisting ? null : TEMP_PASSWORD
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (error: any) {
