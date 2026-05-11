@@ -40,15 +40,61 @@ Deno.serve(async (req: Request) => {
 
     // ============ DELETE ============
     if (action === 'delete') {
-      const { id: targetId, email: targetEmail } = await resolveUserId(supabaseClient, userId, email);
-      if (targetEmail?.toLowerCase() === PROTECTED_EMAIL) {
+      // Tolerante: auth user pode não existir (caso de responsavel seedado direto
+      // em public.responsaveis sem signup). Cleanup separado pra cada tabela.
+      let authUserId: string | null = null;
+      let authEmail: string | null = null;
+
+      if (userId) {
+        const { data } = await supabaseClient.auth.admin.getUserById(userId);
+        if (data?.user) {
+          authUserId = data.user.id;
+          authEmail = data.user.email ?? null;
+        }
+      } else if (email) {
+        const { data: { users } } = await supabaseClient.auth.admin.listUsers();
+        const found = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (found) {
+          authUserId = found.id;
+          authEmail = found.email ?? null;
+        }
+      }
+
+      const effectiveEmail = (authEmail ?? email ?? '').toLowerCase();
+      if (effectiveEmail === PROTECTED_EMAIL) {
         throw new Error("Este usuário é um Super Admin e não pode ser excluído.");
       }
-      await supabaseClient.from('user_roles').delete().eq('user_id', targetId);
-      await supabaseClient.from('profiles').delete().eq('id', targetId);
-      await supabaseClient.auth.admin.deleteUser(targetId);
+
+      // Cleanup responsavel-side. FK aluno_responsavel.responsavel_id é CASCADE,
+      // então os links com alunos somem automaticamente.
+      let respDeleted = false;
+      if (effectiveEmail) {
+        const { data: existing } = await supabaseClient
+          .from('responsaveis')
+          .select('id')
+          .eq('email', effectiveEmail)
+          .maybeSingle();
+        if (existing?.id) {
+          await supabaseClient.from('responsaveis').delete().eq('id', existing.id);
+          respDeleted = true;
+        }
+      }
+
+      // Cleanup auth-side (só se auth user existir).
+      let authDeleted = false;
+      if (authUserId) {
+        await supabaseClient.from('user_roles').delete().eq('user_id', authUserId);
+        await supabaseClient.from('profiles').delete().eq('id', authUserId);
+        await supabaseClient.auth.admin.deleteUser(authUserId);
+        authDeleted = true;
+      }
+
+      if (!respDeleted && !authDeleted) {
+        throw new Error('Usuário não encontrado em nenhuma tabela');
+      }
+
       return new Response(
-        JSON.stringify({ message: 'Usuário removido' }),
+        JSON.stringify({ message: 'Usuário removido', respDeleted, authDeleted }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
