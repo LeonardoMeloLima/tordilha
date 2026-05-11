@@ -246,7 +246,7 @@ export const GestorAdminPanel = () => {
                   aria-label="Resetar senha"
                   className="p-2.5 rounded-xl hover:bg-[#4E593F]/10 text-slate-300 hover:text-[#4E593F] transition-colors disabled:opacity-50"
                 >
-                  <Key size={18} />
+                  {submitting ? <Loader2 className="animate-spin" size={18} /> : <Key size={18} />}
                 </button>
                 <button
                   disabled={submitting}
