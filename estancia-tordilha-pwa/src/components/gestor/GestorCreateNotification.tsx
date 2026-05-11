@@ -15,7 +15,7 @@ type TargetRole = "geral" | "professor" | "pais" | "especifico";
 
 export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotificationProps) {
     const { createAviso } = useAvisos();
-    const { data: responsaveis } = useResponsaveis();
+    const { responsaveis } = useResponsaveis();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
