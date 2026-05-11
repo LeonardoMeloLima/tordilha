@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { supabase } from "@/lib/supabase";
+import { TempPasswordSuccessModal } from "./TempPasswordSuccessModal";
 
 export const GestorAdminPanel = () => {
   const { professores, isLoading, refetch } = useProfessores(); 
@@ -17,6 +18,12 @@ export const GestorAdminPanel = () => {
   const [newUserName, setNewUserName] = useState("");
   const [newUserEmail, setNewUserEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [successModal, setSuccessModal] = useState<{
+    variant: 'created' | 'reset';
+    userName: string;
+    email: string;
+    tempPassword: string;
+  } | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -62,13 +69,18 @@ export const GestorAdminPanel = () => {
         throw new Error(body?.error || error.message);
       }
 
-      toast({
-        title: "Sucesso!",
-        description: data?.tempPassword
-          ? `Usuário criado. Senha temporária: ${data.tempPassword}. Já enviamos por e-mail.`
-          : `Cargo atualizado. O usuário já existia no sistema.`,
-      });
-      
+      // Modal de sucesso (em vez do toast efêmero) — gestor precisa de tempo pra copiar.
+      if (data?.tempPassword) {
+        setSuccessModal({
+          variant: 'created',
+          userName: newUserName,
+          email: newUserEmail,
+          tempPassword: data.tempPassword,
+        });
+      } else {
+        toast({ title: "Sucesso!", description: "Operação concluída." });
+      }
+
       setNewUserName("");
       setNewUserEmail("");
       setShowForm(false);
@@ -266,6 +278,20 @@ export const GestorAdminPanel = () => {
           </Button>
         </form>
       </ActionSheet>
+
+      {successModal && (
+        <TempPasswordSuccessModal
+          isOpen={!!successModal}
+          onClose={() => {
+            setSuccessModal(null);
+            refetch?.();
+          }}
+          variant={successModal.variant}
+          userName={successModal.userName}
+          email={successModal.email}
+          tempPassword={successModal.tempPassword}
+        />
+      )}
     </div>
   );
 };
