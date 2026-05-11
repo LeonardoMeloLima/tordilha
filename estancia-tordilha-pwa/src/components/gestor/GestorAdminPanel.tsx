@@ -307,16 +307,32 @@ export const GestorAdminPanel = () => {
             </div>
           </div>
 
-          <div className="bg-blue-50 p-4 rounded-2xl flex gap-3 mt-4">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-              <ShieldCheck size={18} className="text-blue-600" />
+          <div className="bg-blue-50 p-4 rounded-2xl mt-4">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                <ShieldCheck size={18} className="text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-blue-900">Senha temporária: Tordilha@2026</p>
+                <p className="text-[11px] text-blue-700 leading-tight mt-0.5">
+                  Anote e compartilhe com o usuário. No primeiro acesso, ele será obrigado a definir uma senha pessoal.
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-bold text-blue-900">Senha temporária</p>
-              <p className="text-[11px] text-blue-700 leading-tight mt-0.5">
-                O usuário receberá a senha temporária por e-mail. No primeiro acesso, ele será obrigado a definir uma senha pessoal.
-              </p>
-            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText('Tordilha@2026');
+                  toast({ title: "Senha copiada", description: "Tordilha@2026 copiada pro clipboard." });
+                } catch {
+                  toast({ variant: "destructive", title: "Falha ao copiar", description: "Anote manualmente: Tordilha@2026" });
+                }
+              }}
+              className="mt-3 w-full h-9 rounded-xl bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+            >
+              📋 Copiar senha temporária
+            </button>
           </div>
 
           <Button 
