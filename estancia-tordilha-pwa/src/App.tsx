@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
 const Index = lazy(() => import("./pages/Index"));
 const Estatisticas = lazy(() => import("./pages/Estatisticas"));
 const Login = lazy(() => import("./pages/Login"));
+// Desativado em 2026-05-11 — fluxo de recuperação por email removido. Pra religar: descomentar.
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
