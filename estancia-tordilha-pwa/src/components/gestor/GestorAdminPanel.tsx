@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useProfessores } from "@/hooks/useProfessores";
-import { Mail, User, ChevronRight, Search, Loader2, ShieldCheck, Trash2 } from "lucide-react";
+import { Mail, User, ChevronRight, Search, Loader2, ShieldCheck, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
@@ -140,6 +140,43 @@ export const GestorAdminPanel = () => {
     }
   };
 
+  const handleResetPassword = async (userId: string, userName: string, email: string) => {
+    if (!confirm(
+      `Resetar senha de ${userName} (${email})?\n\n` +
+      `A senha atual será substituída por Tordilha@2026.\n` +
+      `O usuário será obrigado a definir uma nova senha no próximo login.`
+    )) return;
+
+    try {
+      setSubmitting(true);
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: { action: 'reset-password', userId },
+      });
+
+      if (error) {
+        const body = await (error as any).context?.json().catch(() => ({}));
+        throw new Error(body?.error || error.message);
+      }
+
+      if (data?.tempPassword) {
+        setSuccessModal({
+          variant: 'reset',
+          userName,
+          email,
+          tempPassword: data.tempPassword,
+        });
+      }
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro ao resetar",
+        description: err.message || "Falha ao resetar a senha.",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -204,8 +241,20 @@ export const GestorAdminPanel = () => {
                   disabled={submitting}
                   onClick={(e) => {
                     e.stopPropagation();
+                    handleResetPassword(user.id, user.full_name || user.email || "Usuário", user.email || "");
+                  }}
+                  aria-label="Resetar senha"
+                  className="p-2.5 rounded-xl hover:bg-[#4E593F]/10 text-slate-300 hover:text-[#4E593F] transition-colors disabled:opacity-50"
+                >
+                  <Key size={18} />
+                </button>
+                <button
+                  disabled={submitting}
+                  onClick={(e) => {
+                    e.stopPropagation();
                     handleDeleteUser(user.id, user.full_name || "");
                   }}
+                  aria-label="Excluir usuário"
                   className="p-2.5 rounded-xl hover:bg-red-50 text-slate-300 hover:text-red-500 transition-colors disabled:opacity-50"
                 >
                   {submitting ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18} />}
