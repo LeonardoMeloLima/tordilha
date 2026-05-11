@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Lock, Check, AlertCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-export const ProfessorPasswordPrompt = () => {
+export const FirstAccessPasswordPrompt = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

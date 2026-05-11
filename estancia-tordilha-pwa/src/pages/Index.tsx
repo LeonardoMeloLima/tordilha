@@ -17,7 +17,7 @@ import { PaisCavalos } from "@/components/pais/PaisCavalos";
 import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
-import { ProfessorPasswordPrompt } from "@/components/professor/ProfessorPasswordPrompt";
+import { FirstAccessPasswordPrompt } from "@/components/auth/FirstAccessPasswordPrompt";
 
 const defaultTabs: Record<string, string> = {
   gestor: "dashboard",
@@ -146,7 +146,7 @@ const Index = () => {
 
       <main className="px-5 pt-2 pb-8">
         {screens[safeRole]?.[activeTab]}
-        <ProfessorPasswordPrompt />
+        <FirstAccessPasswordPrompt />
       </main>
 
       {/* Global Quick Actions (Gestor only) - Replicating User Print exactly */}
