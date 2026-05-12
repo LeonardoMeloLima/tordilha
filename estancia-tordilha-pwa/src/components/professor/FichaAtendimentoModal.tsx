@@ -30,18 +30,19 @@ export const FichaAtendimentoModal = ({ isOpen, onClose, aluno }: FichaAtendimen
   });
 
   useEffect(() => {
-    if (ficha) {
-      setForm({
-        equipe: ficha.equipe || "",
-        cavalo_id: ficha.cavalo_id || "",
-        encilhamento: ficha.encilhamento || "",
-        objetivo_t1: ficha.objetivo_t1 || "",
-        objetivo_t2: ficha.objetivo_t2 || "",
-        objetivo_t3: ficha.objetivo_t3 || "",
-        objetivo_t4: ficha.objetivo_t4 || "",
-      });
-    }
-  }, [ficha]);
+    // Sincroniza form com o ficha do aluno atual. Antes, o `if (ficha)` ignorava
+    // o caso "aluno sem ficha" e o form retinha os dados do aluno anteriormente
+    // aberto — risco de salvar planejamento de Y com conteúdo de X.
+    setForm({
+      equipe: ficha?.equipe || "",
+      cavalo_id: ficha?.cavalo_id || "",
+      encilhamento: ficha?.encilhamento || "",
+      objetivo_t1: ficha?.objetivo_t1 || "",
+      objetivo_t2: ficha?.objetivo_t2 || "",
+      objetivo_t3: ficha?.objetivo_t3 || "",
+      objetivo_t4: ficha?.objetivo_t4 || "",
+    });
+  }, [ficha, aluno?.id]);
 
   const handleSave = async () => {
     try {
