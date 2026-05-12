@@ -40,7 +40,7 @@ const roleBadges: Record<Role, { label: string; className: string }> = {
         className: "bg-[#4E593F]/10 text-[#4E593F]",
     },
     pais: {
-        label: "Responsável/Aluno",
+        label: "Responsável/Praticante",
         className: "bg-[#8B4513]/10 text-[#8B4513]",
     },
     gestor: {

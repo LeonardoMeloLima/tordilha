@@ -126,7 +126,7 @@ export const GestorAlunos = () => {
 
   const handleSave = async () => {
     if (!form.nome.trim()) {
-      toast({ variant: "destructive", title: "Campo obrigatório", description: "Preencha o nome do aluno." });
+      toast({ variant: "destructive", title: "Campo obrigatório", description: "Preencha o nome do praticante." });
       return;
     }
 
@@ -138,14 +138,14 @@ export const GestorAlunos = () => {
           idade: form.idade ? Number(form.idade) : null,
           professor_id: form.professor_id || null,
         });
-        toast({ title: "Sucesso", description: "Dados do aluno atualizados!" });
+        toast({ title: "Sucesso", description: "Dados do praticante atualizados!" });
       } else {
         await createAluno.mutateAsync({
           ...form,
           idade: form.idade ? Number(form.idade) : null,
           professor_id: form.professor_id || null,
         });
-        toast({ title: "Sucesso", description: "Aluno cadastrado com sucesso!" });
+        toast({ title: "Sucesso", description: "Praticante cadastrado com sucesso!" });
       }
       setShowForm(false);
       setSelectedAluno(null);
@@ -199,8 +199,8 @@ export const GestorAlunos = () => {
   return (
     <div className="space-y-5 animate-fade-in">
       <div>
-        <h1 className="text-xl font-extrabold text-foreground">Alunos</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">{isLoading ? "Carregando..." : `${alunos.length} alunos cadastrados`}</p>
+        <h1 className="text-xl font-extrabold text-foreground">Praticantes</h1>
+        <p className="text-sm text-muted-foreground font-medium mt-0.5">{isLoading ? "Carregando..." : `${alunos.length} praticantes cadastrados`}</p>
       </div>
 
       <div className="relative">
@@ -208,7 +208,7 @@ export const GestorAlunos = () => {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar aluno..."
+          placeholder="Buscar praticante..."
           className="w-full pl-11 pr-4 py-4 rounded-2xl bg-card card-shadow text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/30 border-0"
         />
       </div>
@@ -228,7 +228,7 @@ export const GestorAlunos = () => {
           </div>
         ) : error ? (
           <div className="p-10 text-center space-y-4">
-            <p className="text-muted-foreground font-medium">Ops! Erro ao carregar alunos.</p>
+            <p className="text-muted-foreground font-medium">Ops! Erro ao carregar praticantes.</p>
             <button
               type="button"
               onClick={() => window.location.reload()}
@@ -243,8 +243,8 @@ export const GestorAlunos = () => {
               <UserPlus size={40} className="text-primary/30" />
             </div>
             <div className="space-y-2">
-              <p className="text-lg font-bold text-slate-900">Nenhum aluno cadastrado</p>
-              <p className="text-sm text-muted-foreground font-medium px-4">Os alunos são cadastrados pelos seus respectivos responsáveis no aplicativo.</p>
+              <p className="text-lg font-bold text-slate-900">Nenhum praticante cadastrado</p>
+              <p className="text-sm text-muted-foreground font-medium px-4">Os praticantes são cadastrados pelos seus respectivos responsáveis no aplicativo.</p>
             </div>
           </div>
         ) : (
@@ -320,7 +320,7 @@ export const GestorAlunos = () => {
       <ActionSheet
         isOpen={showForm}
         onClose={() => setShowForm(false)}
-        title="Visualizar Aluno"
+        title="Visualizar Praticante"
         subtitle={`Informações de cadastro de ${selectedAluno?.nome}`}
         footer={
           <button
@@ -334,7 +334,7 @@ export const GestorAlunos = () => {
             ) : (
               <Check size={20} className="text-white" strokeWidth={2.5} />
             )}
-            {createAluno.isPending || updateAluno.isPending ? "Salvando..." : (selectedAluno ? "Salvar Alterações" : "Cadastrar Aluno")}
+            {createAluno.isPending || updateAluno.isPending ? "Salvando..." : (selectedAluno ? "Salvar Alterações" : "Cadastrar Praticante")}
           </button>
         }
       >
@@ -345,7 +345,7 @@ export const GestorAlunos = () => {
             onChange={(url) => setForm({ ...form, avatar_url: url })}
             defaultFacingMode="user"
             shape="circle"
-            label="Foto do Aluno"
+            label="Foto do Praticante"
             disabled={!!selectedAluno}
           />
 
@@ -628,7 +628,7 @@ export const GestorAlunos = () => {
                 }`}
             >
               <span className={`w-2 h-2 rounded-full ${form.ativo ? "bg-[#4E593F]" : "bg-slate-400"}`} />
-              {form.ativo ? "Aluno Ativo" : "Aluno Inativo"}
+              {form.ativo ? "Praticante Ativo" : "Praticante Inativo"}
             </button>
           )}
 
@@ -640,7 +640,7 @@ export const GestorAlunos = () => {
       {/* Confirmation Modal for Soft Delete */}
       <ConfirmDeleteModal
         isOpen={!!deleteTarget}
-        title="Remover Aluno?"
+        title="Remover Praticante?"
         description={`Tem certeza que deseja remover ${deleteTarget?.nome ?? ""}? O histórico de sessões e evoluções será mantido.`}
         confirmLabel="Sim, remover"
         isLoading={deleteAluno.isPending}

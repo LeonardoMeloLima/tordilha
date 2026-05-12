@@ -304,7 +304,7 @@ export const GestorAdminPanel = () => {
                     <h3 className="font-bold text-slate-900 leading-tight">{r.nome || "Sem nome"}</h3>
                     <p className="text-[10px] font-bold text-slate-400 mt-1 uppercase">{r.email}</p>
                     <p className="text-[10px] font-medium text-slate-500 mt-0.5">
-                      {r.alunos_count} {r.alunos_count === 1 ? 'aluno' : 'alunos'} vinculado{r.alunos_count === 1 ? '' : 's'}
+                      {r.alunos_count} {r.alunos_count === 1 ? 'praticante' : 'praticantes'} vinculado{r.alunos_count === 1 ? '' : 's'}
                     </p>
                   </div>
                 </div>

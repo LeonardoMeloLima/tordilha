@@ -12,20 +12,20 @@ interface NavItem {
 const navConfig: Record<string, NavItem[]> = {
   gestor: [
     { label: "Dashboard", icon: <LayoutDashboard size={22} strokeWidth={1.5} />, activeIcon: <LayoutDashboard size={22} strokeWidth={1.5} />, id: "dashboard" },
-    { label: "Alunos", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
+    { label: "Praticantes", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
   ],
   professor: [
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
-    { label: "Alunos", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
+    { label: "Praticantes", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Evolução", icon: <TrendingUp size={22} strokeWidth={1.5} />, activeIcon: <TrendingUp size={22} strokeWidth={1.5} />, id: "evolucao" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
-    { label: "Aluno", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "aluno" },
+    { label: "Praticante", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "aluno" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
   ],
 };

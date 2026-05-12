@@ -65,7 +65,7 @@ export const ConsentModal = ({ isOpen, onClose }: ConsentModalProps) => {
             toast({
                 variant: "destructive",
                 title: "Acesso Negado",
-                description: "Você ainda não tem um aluno vinculado ao seu perfil. Entre em contato com a gestão.",
+                description: "Você ainda não tem um praticante vinculado ao seu perfil. Entre em contato com a gestão.",
             });
             return;
         }
@@ -138,7 +138,7 @@ export const ConsentModal = ({ isOpen, onClose }: ConsentModalProps) => {
                     <>
                         {/* Student Name */}
                         <div className="space-y-1.5">
-                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Criança / Aluno(a)</label>
+                            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest ml-1">Criança / Praticante(a)</label>
                             <div className="w-full h-14 px-4 rounded-2xl bg-white border border-slate-200 text-slate-900 text-base font-bold flex items-center shadow-sm">
                                 {aluno.nome}
                             </div>

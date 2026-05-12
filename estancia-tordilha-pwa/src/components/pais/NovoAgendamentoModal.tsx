@@ -180,7 +180,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <User size={16} />
-                        Escolha o Aluno
+                        Escolha o Praticante
                     </label>
                     <div className="grid grid-cols-1 gap-3">
                         {loadingAlunos ? (

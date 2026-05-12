@@ -324,7 +324,7 @@ const Login = () => {
                                 <>
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center justify-between ml-1">
-                                            <label className="text-sm font-bold text-slate-700">Aluno(s) Sob sua Responsabilidade</label>
+                                            <label className="text-sm font-bold text-slate-700">Praticante(s) Sob sua Responsabilidade</label>
                                             <button
                                                 type="button"
                                                 onClick={addAluno}
@@ -339,7 +339,7 @@ const Login = () => {
                                                 <div key={index} className="space-y-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                                            Aluno {index + 1}
+                                                            Praticante {index + 1}
                                                         </span>
                                                         {alunos.length > 1 && (
                                                             <button
@@ -358,7 +358,7 @@ const Login = () => {
                                                             </div>
                                                             <Input
                                                                 type="text"
-                                                                placeholder="Nome do Aluno"
+                                                                placeholder="Nome do Praticante"
                                                                 value={aluno.nome}
                                                                 onChange={(e) => updateAlunoField(index, "nome", e.target.value)}
                                                                 className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium"
@@ -374,10 +374,10 @@ const Login = () => {
                                                                         </div>
                                                                         <Input
                                                                             type="number"
-                                                                            placeholder="Idade do Aluno"
+                                                                            placeholder="Idade do Praticante"
                                                                             value={aluno.idade}
                                                                             onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
-                                                                            onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do aluno precisa ser preenchida.')}
+                                                                            onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do praticante precisa ser preenchida.')}
                                                                             onInput={(e: any) => e.target.setCustomValidity('')}
                                                                             className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                             required={index === 0}
@@ -385,7 +385,7 @@ const Login = () => {
                                                                     </div>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent side="top" className="bg-slate-800 text-white border-none shadow-lg">
-                                                                    <p className="text-xs font-semibold">Esta informação é usada para adequar as atividades ao nível de desenvolvimento do aluno.</p>
+                                                                    <p className="text-xs font-semibold">Esta informação é usada para adequar as atividades ao nível de desenvolvimento do praticante.</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </div>

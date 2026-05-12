@@ -21,15 +21,15 @@ export const ProfessorAlunos = () => {
   return (
     <div className="space-y-6 animate-fade-in pb-24">
       <div>
-        <h1 className="text-xl font-extrabold text-foreground tracking-tight">Meus Alunos</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">{alunos.length} alunos cadastrados</p>
+        <h1 className="text-xl font-extrabold text-foreground tracking-tight">Meus Praticantes</h1>
+        <p className="text-sm text-muted-foreground font-medium mt-0.5">{alunos.length} praticantes cadastrados</p>
       </div>
 
       <div className="relative group">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#4E593F] transition-colors" size={20} />
         <input
           type="text"
-          placeholder="Buscar aluno..."
+          placeholder="Buscar praticante..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full h-14 pl-12 pr-4 rounded-[20px] bg-white border-2 border-slate-50 focus:border-[#4E593F] focus:bg-white outline-none transition-all card-shadow text-sm font-medium"
@@ -51,7 +51,7 @@ export const ProfessorAlunos = () => {
           ))
         ) : displayedAlunos.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-[32px] border-2 border-dashed border-slate-100">
-            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum aluno encontrado</p>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum praticante encontrado</p>
           </div>
         ) : (
           displayedAlunos.map((a) => (

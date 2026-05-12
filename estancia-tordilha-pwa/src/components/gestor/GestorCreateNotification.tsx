@@ -92,7 +92,7 @@ export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotifi
             isOpen={isOpen}
             onClose={onClose}
             title="Novo Comunicado"
-            subtitle="Crie um comunicado para sua equipe ou alunos"
+            subtitle="Crie um comunicado para sua equipe ou praticantes"
         >
             <form onSubmit={handleSubmit} className="space-y-6 pb-8">
                 {/* Categorias */}

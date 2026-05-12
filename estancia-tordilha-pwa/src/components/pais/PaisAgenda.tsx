@@ -132,7 +132,7 @@ export const PaisAgenda = () => {
                 <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno"}</p>
+                <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Praticante"}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
                     <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />

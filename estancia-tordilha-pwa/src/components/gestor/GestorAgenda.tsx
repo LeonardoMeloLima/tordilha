@@ -135,7 +135,7 @@ export const GestorAgenda = () => {
 
   const handleSave = async () => {
     if (!newSession.alunoId) {
-      toast({ variant: "destructive", title: "Erro", description: "Selecione um aluno." });
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um praticante." });
       return;
     }
 
@@ -230,7 +230,7 @@ export const GestorAgenda = () => {
                   <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
+                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Praticante não encontrado"}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
@@ -485,14 +485,14 @@ export const GestorAgenda = () => {
 
           {/* Aluno */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Aluno</label>
+            <label className="text-sm font-medium text-slate-700 ml-1">Praticante</label>
             <select
               value={newSession.alunoId}
               onChange={(e) => setNewSession({ ...newSession, alunoId: e.target.value })}
               className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
               disabled={loadingAlunos}
             >
-              <option value="">{loadingAlunos ? "Carregando..." : "Selecionar aluno..."}</option>
+              <option value="">{loadingAlunos ? "Carregando..." : "Selecionar praticante..."}</option>
               {alunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
           </div>

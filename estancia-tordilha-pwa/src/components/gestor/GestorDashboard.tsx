@@ -21,7 +21,7 @@ export const GestorDashboard = () => {
 
   const metrics = useMemo(() => [
     {
-      label: 'Alunos Ativos',
+      label: 'Praticantes Ativos',
       value: loadingAlunos ? '...' : alunos.length.toString(),
       icon: UsersRound,
       color: 'bg-[#fdf4ff]', // fuchsia-50
@@ -144,7 +144,7 @@ export const GestorDashboard = () => {
                     type="user"
                   />
                   <div className="flex-1">
-                    <h3 className="text-base font-extrabold text-[#1A1D1E] tracking-tight">{s.aluno?.nome || "Aluno"}</h3>
+                    <h3 className="text-base font-extrabold text-[#1A1D1E] tracking-tight">{s.aluno?.nome || "Praticante"}</h3>
                     <p className="text-sm text-slate-500 font-medium mt-0.5">c/ {s.cavalo?.nome || "Sem cavalo"}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
