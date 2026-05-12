@@ -1,12 +1,27 @@
-import { useState, useMemo } from "react";
-import { WifiOff, Clock, Play, Calendar as CalendarIcon } from "lucide-react";
+import { useState, useMemo, useEffect } from "react";
+import { /* WifiOff, */ Clock, Play, Calendar as CalendarIcon } from "lucide-react";
 import { useSessoes } from "@/hooks/useSessoes";
-import { format, addDays, parseISO, isSameDay } from "date-fns";
+import { useAlunos } from "@/hooks/useAlunos";
+import { useCavalos } from "@/hooks/useCavalos";
+import { useRoleSession } from "@/hooks/supabase/useRoleSession";
+import { useToast } from "@/components/ui/use-toast";
+import { ActionSheet } from "@/components/ui/ActionSheet";
+import { format, addDays, parseISO, isSameDay, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 
+const HORARIOS_BASE = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00", "17:30"
+];
+
 export const ProfessorAgenda = () => {
-  const { sessoes, isLoading } = useSessoes();
+  const { sessoes, isLoading, createSessao } = useSessoes();
+  const { alunos, isLoading: loadingAlunos } = useAlunos();
+  const { cavalos, isLoading: loadingCavalos } = useCavalos();
+  const { session } = useRoleSession();
+  const { toast } = useToast();
+  const userId = session?.user?.id;
 
   // Generate dynamic days (today + 6 days)
   const days = useMemo(() => {
@@ -22,6 +37,14 @@ export const ProfessorAgenda = () => {
   }, []);
 
   const [selectedDay, setSelectedDay] = useState(days[0].date);
+  const [showForm, setShowForm] = useState(false);
+  const [newSession, setNewSession] = useState({ alunoId: "", cavaloId: "", hora: "08:00" });
+
+  // Só os praticantes atribuídos a este terapeuta podem ser agendados por ele.
+  const meusAlunos = useMemo(() => {
+    if (!userId) return [];
+    return alunos.filter(a => a.professor_id === userId);
+  }, [alunos, userId]);
 
   const daySessoes = useMemo(() => {
     return sessoes
@@ -33,6 +56,57 @@ export const ProfessorAgenda = () => {
       .sort((a, b) => a.data_hora.localeCompare(b.data_hora));
   }, [sessoes, selectedDay]);
 
+  // Horários já ocupados no dia selecionado (pra desabilitar slots na grade do form)
+  const occupiedTimes = useMemo(() => {
+    return daySessoes.map(s => format(parseISO(s.data_hora), "HH:mm"));
+  }, [daySessoes]);
+
+  // FAB do BottomNav (Index.tsx dispatcha 'fab-click-local' pra non-gestor) → abre form.
+  useEffect(() => {
+    const handleFAB = () => setShowForm(true);
+    window.addEventListener('fab-click-local', handleFAB);
+    return () => window.removeEventListener('fab-click-local', handleFAB);
+  }, []);
+
+  const handleSave = async () => {
+    if (!newSession.alunoId) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um praticante." });
+      return;
+    }
+    if (!newSession.cavaloId) {
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um cavalo." });
+      return;
+    }
+    if (!userId) {
+      toast({ variant: "destructive", title: "Erro", description: "Sessão expirada. Faça login novamente." });
+      return;
+    }
+
+    try {
+      const [hours, minutes] = newSession.hora.split(':').map(Number);
+      const selectedDateTime = parseISO(selectedDay);
+      selectedDateTime.setHours(hours, minutes, 0, 0);
+
+      if (isBefore(selectedDateTime, new Date())) {
+        toast({ variant: "destructive", title: "Horário Inválido", description: "Não é possível agendar sessões no passado." });
+        return;
+      }
+
+      await createSessao.mutateAsync({
+        aluno_id: newSession.alunoId,
+        cavalo_id: newSession.cavaloId,
+        data_hora: selectedDateTime.toISOString(),
+        status: "confirmada",
+        professor_id: userId,
+      });
+      toast({ title: "Sucesso", description: "Sessão agendada!" });
+      setShowForm(false);
+      setNewSession({ alunoId: "", cavaloId: "", hora: "08:00" });
+    } catch (error: any) {
+      toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-fade-in pb-24">
       <div className="flex items-center justify-between">
@@ -42,10 +116,14 @@ export const ProfessorAgenda = () => {
             {format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}
           </p>
         </div>
+        {/* Desativado em 2026-05-12 — pill "Online" tinha ícone WifiOff (contradição) e
+            não refletia status real de rede. Pra religar com lógica correta: trocar pra
+            <Wifi /> ou usar navigator.onLine + listener 'online'/'offline'.
         <div className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-accent/15 text-accent-foreground text-[10px] font-extrabold">
           <WifiOff size={12} />
           Online
         </div>
+        */}
       </div>
 
       {/* Horizontal calendar */}
@@ -119,7 +197,92 @@ export const ProfessorAgenda = () => {
           ))
         )}
       </div>
+
+      {/* ============ Form modal de criar sessão (apenas terapeuta, sem recorrente) ============ */}
+      <ActionSheet
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        title="Nova Sessão"
+        subtitle={`Para ${format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}`}
+      >
+        <div className="space-y-5 py-2">
+          {/* Praticante (filtrado pelos meus) */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Praticante</label>
+            <select
+              value={newSession.alunoId}
+              onChange={(e) => setNewSession({ ...newSession, alunoId: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
+              disabled={loadingAlunos || meusAlunos.length === 0}
+            >
+              <option value="">
+                {loadingAlunos
+                  ? "Carregando..."
+                  : meusAlunos.length === 0
+                    ? "Nenhum praticante atribuído a você"
+                    : "Selecionar praticante..."}
+              </option>
+              {meusAlunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+            {meusAlunos.length === 0 && !loadingAlunos && (
+              <p className="text-[11px] text-slate-500 ml-1">
+                O gestor precisa atribuir praticantes a você antes que você possa agendar.
+              </p>
+            )}
+          </div>
+
+          {/* Cavalo */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Cavalo</label>
+            <select
+              value={newSession.cavaloId}
+              onChange={(e) => setNewSession({ ...newSession, cavaloId: e.target.value })}
+              className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
+              disabled={loadingCavalos}
+            >
+              <option value="">{loadingCavalos ? "Carregando..." : "Selecionar cavalo..."}</option>
+              {cavalos.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
+            </select>
+          </div>
+
+          {/* Horário */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-slate-700 ml-1">Horário</label>
+            <div className="grid grid-cols-4 gap-1.5">
+              {HORARIOS_BASE.map(hora => {
+                const ocupado = occupiedTimes.includes(hora);
+                const selected = newSession.hora === hora;
+                return (
+                  <button
+                    key={hora}
+                    type="button"
+                    disabled={ocupado}
+                    onClick={() => setNewSession({ ...newSession, hora })}
+                    className={`h-11 rounded-xl font-bold text-xs transition-all border-2 ${selected
+                      ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md"
+                      : ocupado
+                        ? "bg-slate-100 border-transparent text-slate-300 cursor-not-allowed opacity-50"
+                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                      }`}
+                  >
+                    {hora}
+                    {ocupado && <div className="text-[7px] leading-none">ocupado</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={createSessao.isPending || meusAlunos.length === 0}
+            className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-lg mt-4 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            {createSessao.isPending ? "Agendando..." : "Agendar Sessão"}
+          </button>
+        </div>
+      </ActionSheet>
     </div>
   );
 };
-
