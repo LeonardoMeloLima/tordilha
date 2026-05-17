@@ -1,18 +1,27 @@
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { useAlunos } from "@/hooks/useAlunos";
+import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { Search, Brain, Shield, ShieldOff } from "lucide-react";
 import { FichaAtendimentoModal } from "./FichaAtendimentoModal";
 
 export const ProfessorAlunos = () => {
   const { alunos, isLoading } = useAlunos();
+  const { session } = useRoleSession();
+  const userId = session?.user?.id;
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
   const [isFichaOpen, setIsFichaOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
 
-  const filteredAlunos = alunos.filter(a =>
+  // Só os praticantes atribuídos a este terapeuta (alunos.professor_id === userId)
+  const meusAlunos = useMemo(() => {
+    if (!userId) return [];
+    return alunos.filter((a: any) => a.professor_id === userId);
+  }, [alunos, userId]);
+
+  const filteredAlunos = meusAlunos.filter(a =>
     a.nome.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -22,7 +31,7 @@ export const ProfessorAlunos = () => {
     <div className="space-y-6 animate-fade-in pb-24">
       <div>
         <h1 className="text-xl font-extrabold text-foreground tracking-tight">Meus Praticantes</h1>
-        <p className="text-sm text-muted-foreground font-medium mt-0.5">{alunos.length} praticantes cadastrados</p>
+        <p className="text-sm text-muted-foreground font-medium mt-0.5">{meusAlunos.length} praticantes sob seus cuidados</p>
       </div>
 
       <div className="relative group">
