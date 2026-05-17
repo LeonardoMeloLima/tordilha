@@ -41,6 +41,7 @@ export const PaisAlunoPerfil = () => {
   const [selectedAlunoId, setSelectedAlunoId] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [isStudentSelectorOpen, setIsStudentSelectorOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -204,10 +205,12 @@ export const PaisAlunoPerfil = () => {
   };
 
   const handleRegisterStudent = async () => {
+    if (isRegistering) return;
     if (!registerForm.nome) {
       toast({ variant: "destructive", title: "Erro", description: "Nome é obrigatório" });
       return;
     }
+    setIsRegistering(true);
 
     try {
       // 1. Get current user
@@ -295,6 +298,8 @@ export const PaisAlunoPerfil = () => {
       window.location.reload(); // Hard refresh to update everything
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro ao cadastrar", description: err.message });
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -703,9 +708,10 @@ export const PaisAlunoPerfil = () => {
         footer={
           <button
             onClick={handleRegisterStudent}
-            className="w-full h-14 bg-primary text-white rounded-full font-black text-lg shadow-lg active:scale-95 transition-all"
+            disabled={isRegistering}
+            className="w-full h-14 bg-primary text-white rounded-full font-black text-lg shadow-lg active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Finalizar Cadastro
+            {isRegistering ? "Enviando..." : "Finalizar Cadastro"}
           </button>
         }
       >
