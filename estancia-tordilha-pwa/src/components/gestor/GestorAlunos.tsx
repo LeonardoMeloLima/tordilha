@@ -10,6 +10,7 @@ import { ConfirmDeleteModal } from "@/components/ui/ConfirmDeleteModal";
 import { useProfessores } from "@/hooks/useProfessores";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { generateImageRightsPDF } from "@/services/pdfService";
+import { Badge } from "@/components/ui/badge";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
@@ -264,7 +265,19 @@ export const GestorAlunos = () => {
                   type="user"
                 />
                 <div className="flex-1">
-                  <p className="font-bold text-sm text-foreground">{aluno.nome}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold text-sm text-foreground">{aluno.nome}</p>
+                    {(aluno as any).status === "pendente" && (
+                      <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300 text-[9px] px-1.5 py-0">
+                        Pendente
+                      </Badge>
+                    )}
+                    {(aluno as any).status === "rejeitado" && (
+                      <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300 text-[9px] px-1.5 py-0">
+                        Rejeitado
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-xs text-muted-foreground font-medium mt-0.5">
                     {aluno.diagnostico || "Sem diagnóstico"} · {aluno.idade || "?"} anos
                   </p>
