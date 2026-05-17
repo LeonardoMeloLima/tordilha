@@ -2,10 +2,13 @@ import { useState, useEffect, useMemo } from "react";
 import { Clock, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
+import { Button } from "@/components/ui/button";
+import { ModalSugerirHorario } from "@/components/shared/ModalSugerirHorario";
 import {
   format, addDays, parseISO, isSameDay, isBefore,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -24,10 +27,13 @@ const HORARIOS_BASE = [
 
 export const GestorAgenda = () => {
   const { toast } = useToast();
-  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao } = useSessoes();
+  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao, updateSessao } = useSessoes();
   const { recorrentes, createRecorrente, deleteRecorrente } = useSessoesRecorrentes();
   const { alunos, isLoading: loadingAlunos } = useAlunos();
   const { cavalos, isLoading: loadingCavalos } = useCavalos();
+
+  // Remarcar sessão pontual (Task 20)
+  const [remarcandoSessao, setRemarcandoSessao] = useState<any | null>(null);
 
   const [view, setView] = useState<CalendarView>("semana");
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -242,11 +248,21 @@ export const GestorAgenda = () => {
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                     <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {format(parseISO(s.data_hora), "HH:mm")}
                   </div>
+                  {!isVirtual && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px] px-2"
+                      onClick={(e) => { e.stopPropagation(); setRemarcandoSessao(s); }}
+                    >
+                      Remarcar
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -561,6 +577,30 @@ export const GestorAgenda = () => {
           </div>
         </div>
       </ActionSheet>
+
+      {/* Modal: remarcar sessão pontual (Task 20 — gestor pula validação 24h) */}
+      {remarcandoSessao && (
+        <ModalSugerirHorario
+          open={!!remarcandoSessao}
+          onClose={() => setRemarcandoSessao(null)}
+          modo="sessao"
+          pularValidacao24h={true}
+          atual={{ data_hora: remarcandoSessao.data_hora }}
+          onSubmit={async (data) => {
+            try {
+              await updateSessao.mutateAsync({
+                id: remarcandoSessao.id,
+                data_hora: new Date(data.data_hora).toISOString(),
+              });
+              sonnerToast.success("Sessão remarcada.");
+              setRemarcandoSessao(null);
+            } catch (err: any) {
+              sonnerToast.error(err?.message || "Erro ao remarcar sessão.");
+            }
+          }}
+        />
+      )}
+
     </div>
   );
 };

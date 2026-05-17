@@ -27,6 +27,7 @@ interface PropsRecorrencia {
   modo: "recorrencia";
   atual: { dia_semana: number; horario: string };
   onSubmit: (data: SugerirRecorrenciaData) => Promise<void>;
+  pularValidacao24h?: boolean;
 }
 interface PropsSessao {
   open: boolean;
@@ -34,6 +35,7 @@ interface PropsSessao {
   modo: "sessao";
   atual: { data_hora: string };
   onSubmit: (data: SugerirSessaoData) => Promise<void>;
+  pularValidacao24h?: boolean;
 }
 
 export function ModalSugerirHorario(props: PropsRecorrencia | PropsSessao) {
@@ -43,19 +45,21 @@ export function ModalSugerirHorario(props: PropsRecorrencia | PropsSessao) {
   return <SessaoForm {...props} />;
 }
 
-function RecorrenciaForm({ open, onClose, atual, onSubmit }: PropsRecorrencia) {
+function RecorrenciaForm({ open, onClose, atual, onSubmit, pularValidacao24h }: PropsRecorrencia) {
   const form = useForm<SugerirRecorrenciaData>({
     resolver: zodResolver(schemaRecorrencia),
     defaultValues: { dia_semana: atual.dia_semana, horario: atual.horario },
   });
 
   const submit = form.handleSubmit(async (data) => {
-    // Validar antecedência ≥ 24h
-    const proximaOcorrencia = calcularProximaOcorrencia(data.dia_semana, data.horario);
-    const diff = proximaOcorrencia.getTime() - Date.now();
-    if (diff < 24 * 60 * 60 * 1000) {
-      form.setError("horario", { message: "Mínimo 24h de antecedência." });
-      return;
+    // Validar antecedência ≥ 24h (skippable via prop)
+    if (!pularValidacao24h) {
+      const proximaOcorrencia = calcularProximaOcorrencia(data.dia_semana, data.horario);
+      const diff = proximaOcorrencia.getTime() - Date.now();
+      if (diff < 24 * 60 * 60 * 1000) {
+        form.setError("horario", { message: "Mínimo 24h de antecedência." });
+        return;
+      }
     }
     await onSubmit(data);
     onClose();
@@ -103,18 +107,20 @@ function RecorrenciaForm({ open, onClose, atual, onSubmit }: PropsRecorrencia) {
   );
 }
 
-function SessaoForm({ open, onClose, atual, onSubmit }: PropsSessao) {
+function SessaoForm({ open, onClose, atual, onSubmit, pularValidacao24h }: PropsSessao) {
   const form = useForm<SugerirSessaoData>({
     resolver: zodResolver(schemaSessao),
     defaultValues: { data_hora: atual.data_hora.slice(0, 16) },
   });
 
   const submit = form.handleSubmit(async (data) => {
-    const novaData = new Date(data.data_hora);
-    const diff = novaData.getTime() - Date.now();
-    if (diff < 24 * 60 * 60 * 1000) {
-      form.setError("data_hora", { message: "Mínimo 24h de antecedência." });
-      return;
+    if (!pularValidacao24h) {
+      const novaData = new Date(data.data_hora);
+      const diff = novaData.getTime() - Date.now();
+      if (diff < 24 * 60 * 60 * 1000) {
+        form.setError("data_hora", { message: "Mínimo 24h de antecedência." });
+        return;
+      }
     }
     await onSubmit(data);
     onClose();
