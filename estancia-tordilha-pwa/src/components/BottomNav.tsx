@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { LayoutDashboard, Users, Calendar, BookOpen, TrendingUp, Plus, ChessKnight, UserPlus, CalendarPlus, Bell, Inbox } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, BookOpen, TrendingUp, Plus, ChessKnight, UserPlus, CalendarPlus, ClipboardCheck, Inbox } from "lucide-react";
 import type { Role } from "@/hooks/supabase/useRoleSession";
 import { useSolicitacoes, useSolicitacoesPendentesCount } from "@/hooks/useSolicitacoes";
 
@@ -18,14 +18,14 @@ const navConfig: Record<string, NavItem[]> = {
     { label: "Praticantes", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
-    { label: "Pendências", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "pendencias" },
+    { label: "Pendências", icon: <ClipboardCheck size={22} strokeWidth={1.5} />, activeIcon: <ClipboardCheck size={22} strokeWidth={1.5} />, id: "pendencias" },
   ],
   professor: [
     { label: "Agenda", icon: <Calendar size={22} strokeWidth={1.5} />, activeIcon: <Calendar size={22} strokeWidth={1.5} />, id: "agenda" },
     { label: "Praticantes", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Evolução", icon: <TrendingUp size={22} strokeWidth={1.5} />, activeIcon: <TrendingUp size={22} strokeWidth={1.5} />, id: "evolucao" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
-    { label: "Pendências", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "pendencias" },
+    { label: "Pendências", icon: <ClipboardCheck size={22} strokeWidth={1.5} />, activeIcon: <ClipboardCheck size={22} strokeWidth={1.5} />, id: "pendencias" },
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
