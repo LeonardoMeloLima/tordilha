@@ -3,12 +3,15 @@ import { Clock, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Repe
 import { ActionSheet } from "../ui/ActionSheet";
 import { useToast } from "@/components/ui/use-toast";
 import { toast as sonnerToast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { Button } from "@/components/ui/button";
 import { ModalSugerirHorario } from "@/components/shared/ModalSugerirHorario";
+import { ModalImpactoMudanca } from "@/components/shared/ModalImpactoMudanca";
+import { supabase } from "@/lib/supabase";
 import {
   format, addDays, parseISO, isSameDay, isBefore,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -27,6 +30,7 @@ const HORARIOS_BASE = [
 
 export const GestorAgenda = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao, updateSessao } = useSessoes();
   const { recorrentes, createRecorrente, deleteRecorrente } = useSessoesRecorrentes();
   const { alunos, isLoading: loadingAlunos } = useAlunos();
@@ -34,6 +38,12 @@ export const GestorAgenda = () => {
 
   // Remarcar sessão pontual (Task 20)
   const [remarcandoSessao, setRemarcandoSessao] = useState<any | null>(null);
+  // Editar recorrência (Task 19)
+  const [editandoRecorrencia, setEditandoRecorrencia] = useState<any | null>(null);
+  const [impactandoRecorrencia, setImpactandoRecorrencia] = useState<{
+    recorrencia: any;
+    novo: { dia_semana: number; horario: string };
+  } | null>(null);
 
   const [view, setView] = useState<CalendarView>("semana");
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -441,7 +451,7 @@ export const GestorAgenda = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                     <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {r.horario.slice(0, 5)}
@@ -449,6 +459,14 @@ export const GestorAgenda = () => {
                   <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
                     {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
                   </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[10px] px-2"
+                    onClick={(e) => { e.stopPropagation(); setEditandoRecorrencia(r); }}
+                  >
+                    Editar
+                  </Button>
                 </div>
               </div>
             </SwipeableCard>
@@ -601,6 +619,60 @@ export const GestorAgenda = () => {
         />
       )}
 
+      {/* Modal: editar recorrência (Task 19 — passo 1: sugerir novo horário) */}
+      {editandoRecorrencia && (
+        <ModalSugerirHorario
+          open={!!editandoRecorrencia}
+          onClose={() => setEditandoRecorrencia(null)}
+          modo="recorrencia"
+          pularValidacao24h={true}
+          atual={{
+            dia_semana: editandoRecorrencia.dia_semana,
+            horario: editandoRecorrencia.horario.slice(0, 5),
+          }}
+          onSubmit={async (data) => {
+            setImpactandoRecorrencia({
+              recorrencia: editandoRecorrencia,
+              novo: { dia_semana: data.dia_semana, horario: data.horario },
+            });
+            setEditandoRecorrencia(null);
+          }}
+        />
+      )}
+
+      {/* Modal: confirmar impacto (Task 19 — passo 2: aplicar via RPC) */}
+      {impactandoRecorrencia && (
+        <ModalImpactoMudanca
+          open={!!impactandoRecorrencia}
+          onClose={() => setImpactandoRecorrencia(null)}
+          recorrencia_id={impactandoRecorrencia.recorrencia.id}
+          aluno_nome={impactandoRecorrencia.recorrencia.aluno?.nome || "Praticante"}
+          atual={{
+            dia_semana: impactandoRecorrencia.recorrencia.dia_semana,
+            horario: impactandoRecorrencia.recorrencia.horario.slice(0, 5),
+          }}
+          novo={impactandoRecorrencia.novo}
+          onConfirm={async () => {
+            try {
+              const { error } = await supabase.rpc("rpc_atualizar_recorrencia", {
+                p_recorrencia_id: impactandoRecorrencia.recorrencia.id,
+                p_dia_semana: impactandoRecorrencia.novo.dia_semana,
+                p_horario: impactandoRecorrencia.novo.horario,
+              });
+              if (error) throw error;
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["sessoes_recorrentes"] }),
+                queryClient.invalidateQueries({ queryKey: ["sessoes"] }),
+                queryClient.invalidateQueries({ queryKey: ["solicitacoes"] }),
+              ]);
+              sonnerToast.success("Recorrência atualizada.");
+              setImpactandoRecorrencia(null);
+            } catch (err: any) {
+              sonnerToast.error(err?.message || "Erro ao atualizar recorrência.");
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
