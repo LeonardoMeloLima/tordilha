@@ -11,6 +11,8 @@ import { useCavalos } from "@/hooks/useCavalos";
 import { Button } from "@/components/ui/button";
 import { ModalSugerirHorario } from "@/components/shared/ModalSugerirHorario";
 import { ModalImpactoMudanca } from "@/components/shared/ModalImpactoMudanca";
+import { PendenteBadge } from "@/components/shared/PendenteBadge";
+import { usePendentesByAlvo } from "@/hooks/useSolicitacoes";
 import { supabase } from "@/lib/supabase";
 import {
   format, addDays, parseISO, isSameDay, isBefore,
@@ -35,6 +37,7 @@ export const GestorAgenda = () => {
   const { recorrentes, createRecorrente, deleteRecorrente } = useSessoesRecorrentes();
   const { alunos, isLoading: loadingAlunos } = useAlunos();
   const { cavalos, isLoading: loadingCavalos } = useCavalos();
+  const { byAlvo: pendentesByAlvo } = usePendentesByAlvo();
 
   // Remarcar sessão pontual (Task 20)
   const [remarcandoSessao, setRemarcandoSessao] = useState<any | null>(null);
@@ -263,6 +266,7 @@ export const GestorAgenda = () => {
                     <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {format(parseISO(s.data_hora), "HH:mm")}
                   </div>
+                  <PendenteBadge solicitacao={pendentesByAlvo.get(s.id)} />
                   {!isVirtual && (
                     <Button
                       size="sm"
@@ -459,6 +463,7 @@ export const GestorAgenda = () => {
                   <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
                     {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
                   </span>
+                  <PendenteBadge solicitacao={pendentesByAlvo.get(r.id)} />
                   <Button
                     size="sm"
                     variant="outline"
