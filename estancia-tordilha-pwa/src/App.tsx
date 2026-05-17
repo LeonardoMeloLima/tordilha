@@ -14,6 +14,9 @@ const Login = lazy(() => import("./pages/Login"));
 // Desativado em 2026-05-11 — fluxo de recuperação por email removido. Pra religar: descomentar.
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const PaisSolicitacoes = lazy(() =>
+  import("./components/pais/PaisSolicitacoes").then((m) => ({ default: m.PaisSolicitacoes }))
+);
 
 const queryClient = new QueryClient();
 
@@ -41,6 +44,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Estatisticas />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pais/solicitacoes"
+                element={
+                  <ProtectedRoute>
+                    <PaisSolicitacoes />
                   </ProtectedRoute>
                 }
               />
