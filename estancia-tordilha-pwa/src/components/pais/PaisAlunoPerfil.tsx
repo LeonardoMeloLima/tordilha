@@ -279,8 +279,15 @@ export const PaisAlunoPerfil = () => {
           payload: {},
         });
       if (solErr) {
-        console.error("Falha ao criar solicitação:", solErr);
-        sonnerToast.warning("Cadastro salvo mas não criou solicitação. Avise o gestor.");
+        // Rollback manual: sem solicitação não há como o gestor aprovar,
+        // o aluno ficaria órfão como pendente. Apaga pra forçar reenvio limpo.
+        await supabase.from("aluno_responsavel")
+          .delete()
+          .eq("aluno_id", aluno.id)
+          .eq("responsavel_id", respId);
+        await supabase.from("alunos").delete().eq("id", aluno.id);
+        console.error("Falha ao criar solicitação, cadastro revertido:", solErr);
+        throw new Error("Não foi possível enviar o cadastro. Tente novamente.");
       }
 
       setIsRegisterModalOpen(false);

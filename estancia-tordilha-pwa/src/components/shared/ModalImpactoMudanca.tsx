@@ -103,7 +103,10 @@ export function ModalImpactoMudanca({
 function calcularNovaDataHora(atual: Date, novoDia: number, novoHorario: string): Date {
   const [hh, mm] = novoHorario.split(":").map(Number);
   const diaAtual = atual.getDay();
-  const offsetDias = novoDia - diaAtual;
+  // Forward-only offset: próxima ocorrência do novoDia a partir de `atual`
+  // (evita mover sessão pra dia da semana anterior dentro da mesma semana,
+  // o que cairia no passado e seria cancelada erroneamente)
+  const offsetDias = (novoDia - diaAtual + 7) % 7;
   const nova = new Date(atual);
   nova.setDate(atual.getDate() + offsetDias);
   nova.setHours(hh, mm, 0, 0);
