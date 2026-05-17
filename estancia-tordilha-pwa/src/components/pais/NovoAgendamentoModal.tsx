@@ -48,10 +48,10 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
 
     const alunos = useMemo(() => {
         if (vinculos && vinculos.length > 0) {
-            return vinculos.map(v => ({ id: v.aluno_id, nome: v.alunos?.nome }));
+            return vinculos.map(v => ({ id: v.aluno_id, nome: v.alunos?.nome, status: (v.alunos as any)?.status }));
         }
         if (isSuperUser) {
-            return allAlunos.map(a => ({ id: a.id, nome: a.nome }));
+            return allAlunos.map(a => ({ id: a.id, nome: a.nome, status: (a as any).status }));
         }
         return [];
     }, [vinculos, allAlunos, isSuperUser]);
@@ -188,23 +188,25 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                                 <Loader2 className="animate-spin text-slate-300" />
                             </div>
                         ) : alunos.map(aluno => (
-                            <button
-                                key={aluno.id}
-                                type="button"
-                                onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
-                                className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
-                                    ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
-                                    : "bg-slate-50 border-transparent hover:border-slate-200"}`}
-                            >
-                                <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
-                                    {aluno.nome}
-                                </span>
-                                {selectedAluno === aluno.id && (
-                                    <div className="w-6 h-6 rounded-full bg-[#4E593F] flex items-center justify-center">
-                                        <Check size={14} className="text-white" strokeWidth={3} />
-                                    </div>
-                                )}
-                            </button>
+                            aluno.status === "ativo" && (
+                                <button
+                                    key={aluno.id}
+                                    type="button"
+                                    onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
+                                    className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
+                                        ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
+                                        : "bg-slate-50 border-transparent hover:border-slate-200"}`}
+                                >
+                                    <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
+                                        {aluno.nome}
+                                    </span>
+                                    {selectedAluno === aluno.id && (
+                                        <div className="w-6 h-6 rounded-full bg-[#4E593F] flex items-center justify-center">
+                                            <Check size={14} className="text-white" strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </button>
+                            )
                         ))}
                     </div>
                 </div>

@@ -19,6 +19,7 @@ import {
   Phone
 } from "lucide-react";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
+import { Badge } from "@/components/ui/badge";
 import { CameraCaptureModal } from "@/components/CameraCaptureModal";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
@@ -401,6 +402,16 @@ export const PaisAlunoPerfil = () => {
             <div className="mt-8 text-center">
               <div className="flex items-center justify-center gap-2">
                 <h2 className="text-2xl font-black text-slate-900 leading-none">{currentAluno.nome}</h2>
+                {currentAluno.status === "pendente" && (
+                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                    Pendente
+                  </Badge>
+                )}
+                {currentAluno.status === "rejeitado" && (
+                  <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                    Rejeitado
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center justify-center gap-2 mt-3">
                 {currentAluno.lgpd_assinado ? (
@@ -818,9 +829,21 @@ export const PaisAlunoPerfil = () => {
                 <AvatarWithFallback type="user" src={aluno.avatar_url} />
               </div>
               <div className="flex-1 text-left">
-                <p className={`font-black text-base tracking-tight ${selectedAlunoId === aluno.id ? 'text-primary' : 'text-slate-900'}`}>
-                  {aluno.nome}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className={`font-black text-base tracking-tight ${selectedAlunoId === aluno.id ? 'text-primary' : 'text-slate-900'}`}>
+                    {aluno.nome}
+                  </p>
+                  {aluno.status === "pendente" && (
+                    <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-300">
+                      Pendente
+                    </Badge>
+                  )}
+                  {aluno.status === "rejeitado" && (
+                    <Badge variant="outline" className="bg-red-100 text-red-800 border-red-300">
+                      Rejeitado
+                    </Badge>
+                  )}
+                </div>
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   Ver informações completas
                 </p>
