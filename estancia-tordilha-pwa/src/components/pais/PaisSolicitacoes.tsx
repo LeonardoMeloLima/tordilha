@@ -26,7 +26,7 @@ export function PaisSolicitacoes() {
   if (isLoading) return <div className="p-4">Carregando...</div>;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-32 space-y-4">
       <h1 className="text-2xl font-bold">Minhas solicitações</h1>
 
       <Tabs value={filter} onValueChange={(v) => setFilter(v as any)}>

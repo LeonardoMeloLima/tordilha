@@ -64,7 +64,7 @@ export function GestorPendencias() {
   };
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-32 space-y-4">
       <h1 className="text-2xl font-bold">Pendências</h1>
 
       <Tabs value={status} onValueChange={(v) => setStatus(v as SolicitacaoStatus)}>
@@ -75,13 +75,14 @@ export function GestorPendencias() {
         </TabsList>
       </Tabs>
 
-      <div className="flex gap-2 text-sm">
+      <div className="flex gap-2 text-sm overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
         {(["todos", "novo_cadastro", "mudanca_recorrencia", "remarcacao_sessao"] as const).map(t => (
           <Button
             key={t}
             size="sm"
             variant={tipoFilter === t ? "default" : "outline"}
             onClick={() => setTipoFilter(t)}
+            className="shrink-0 whitespace-nowrap"
           >
             {t === "todos" ? "Todos" : TIPO_LABEL[t]}
           </Button>
