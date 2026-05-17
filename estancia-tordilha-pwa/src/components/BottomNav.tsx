@@ -25,6 +25,7 @@ const navConfig: Record<string, NavItem[]> = {
     { label: "Praticantes", icon: <Users size={22} strokeWidth={1.5} />, activeIcon: <Users size={22} strokeWidth={1.5} />, id: "alunos" },
     { label: "Evolução", icon: <TrendingUp size={22} strokeWidth={1.5} />, activeIcon: <TrendingUp size={22} strokeWidth={1.5} />, id: "evolucao" },
     { label: "Cavalos", icon: <ChessKnight size={22} strokeWidth={1.5} />, activeIcon: <ChessKnight size={22} strokeWidth={1.5} />, id: "cavalos" },
+    { label: "Pendências", icon: <Bell size={22} strokeWidth={1.5} />, activeIcon: <Bell size={22} strokeWidth={1.5} />, id: "pendencias" },
   ],
   pais: [
     { label: "Mural", icon: <BookOpen size={22} strokeWidth={1.5} />, activeIcon: <BookOpen size={22} strokeWidth={1.5} />, id: "mural" },
@@ -130,6 +131,12 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
 
   const badgeFor = (id: string): number | undefined => {
     if (role === "gestor" && id === "pendencias") return pendentesCount;
+    // DÍVIDA: useSolicitacoesPendentesCount não filtra por "quem precisa
+    // aprovar". Pro terapeuta o RLS já filtra pra solicitações dos seus
+    // praticantes — mas ainda pode contar novo_cadastro (que ele não decide)
+    // ou alguma própria que ele criou pendente da contraparte. Aceitável
+    // por enquanto; melhorar com hook dedicado depois.
+    if (role === "professor" && id === "pendencias") return pendentesCount;
     if (role === "pais" && id === "solicitacoes") return novasDecisoesPais;
     return undefined;
   };
@@ -142,7 +149,7 @@ export const BottomNav = memo(({ role, activeTab, onTabChange, onFabClick }: Bot
 
   const showFab = (() => {
     if (role === "pais") return ["agenda", "mural", "aluno"].includes(activeTab);
-    if (role === "professor") return !["alunos", "cavalos"].includes(activeTab);
+    if (role === "professor") return !["alunos", "cavalos", "pendencias"].includes(activeTab);
     return !["pendencias"].includes(activeTab); // gestor
   })();
 
