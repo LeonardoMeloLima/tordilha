@@ -22,6 +22,7 @@ import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { CameraCaptureModal } from "@/components/CameraCaptureModal";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { ConsentModal } from "@/components/pais/ConsentModal";
@@ -248,6 +249,7 @@ export const PaisAlunoPerfil = () => {
           autoriza_imagem: registerForm.autoriza_imagem,
           data_autorizacao_imagem: registerForm.autoriza_imagem ? new Date().toISOString() : null,
           ativo: true,
+          status: 'pendente',
           arquivado: false
         })
         .select()
@@ -266,8 +268,22 @@ export const PaisAlunoPerfil = () => {
 
       if (linkError) throw linkError;
 
+      // 5. Cria solicitação de aprovação do cadastro
+      const { error: solErr } = await supabase
+        .from("solicitacoes")
+        .insert({
+          tipo: "novo_cadastro",
+          aluno_id: aluno.id,
+          solicitante_id: user.id,
+          payload: {},
+        });
+      if (solErr) {
+        console.error("Falha ao criar solicitação:", solErr);
+        sonnerToast.warning("Cadastro salvo mas não criou solicitação. Avise o gestor.");
+      }
+
       setIsRegisterModalOpen(false);
-      toast({ title: "Bem-vindo!", description: "Praticante cadastrado com sucesso!" });
+      sonnerToast.success("Cadastro enviado! Aguardando aprovação do gestor.");
       window.location.reload(); // Hard refresh to update everything
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro ao cadastrar", description: err.message });
