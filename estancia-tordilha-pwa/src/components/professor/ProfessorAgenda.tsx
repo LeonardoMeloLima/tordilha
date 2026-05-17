@@ -47,6 +47,8 @@ export const ProfessorAgenda = () => {
   const [selectedDay, setSelectedDay] = useState(days[0].date);
   const [showForm, setShowForm] = useState(false);
   const [newSession, setNewSession] = useState({ alunoId: "", cavaloId: "", hora: "08:00" });
+  const [isRecorrente, setIsRecorrente] = useState(false);
+  const [diaSemana, setDiaSemana] = useState<number>(1); // padrão segunda
   const [showRecorrencias, setShowRecorrencias] = useState(false);
   const [sugerirRec, setSugerirRec] = useState<{ open: boolean; recorrencia?: any }>({ open: false });
   const [sugerirSes, setSugerirSes] = useState<{ open: boolean; sessao?: any }>({ open: false });
@@ -104,27 +106,46 @@ export const ProfessorAgenda = () => {
     }
 
     try {
-      const [hours, minutes] = newSession.hora.split(':').map(Number);
-      const selectedDateTime = parseISO(selectedDay);
-      selectedDateTime.setHours(hours, minutes, 0, 0);
+      if (isRecorrente) {
+        // Aula recorrente: vira solicitação pendente do responsável (bilateral).
+        await criarSol.mutateAsync({
+          tipo: "nova_recorrencia",
+          aluno_id: newSession.alunoId,
+          payload: {
+            dia_semana: diaSemana,
+            horario: newSession.hora,
+            cavalo_id: newSession.cavaloId,
+          },
+        });
+        sonnerToast.success("Proposta enviada ao responsável. Após aprovação, a aula recorrente será criada.");
+      } else {
+        // Sessão pontual: criada direto (terapeuta tem autoridade clínica).
+        const [hours, minutes] = newSession.hora.split(':').map(Number);
+        const selectedDateTime = parseISO(selectedDay);
+        selectedDateTime.setHours(hours, minutes, 0, 0);
 
-      if (isBefore(selectedDateTime, new Date())) {
-        toast({ variant: "destructive", title: "Horário Inválido", description: "Não é possível agendar sessões no passado." });
-        return;
+        if (isBefore(selectedDateTime, new Date())) {
+          toast({ variant: "destructive", title: "Horário Inválido", description: "Não é possível agendar sessões no passado." });
+          return;
+        }
+
+        await createSessao.mutateAsync({
+          aluno_id: newSession.alunoId,
+          cavalo_id: newSession.cavaloId,
+          data_hora: selectedDateTime.toISOString(),
+          status: "confirmada",
+          professor_id: userId,
+        });
+        toast({ title: "Sucesso", description: "Sessão agendada!" });
       }
-
-      await createSessao.mutateAsync({
-        aluno_id: newSession.alunoId,
-        cavalo_id: newSession.cavaloId,
-        data_hora: selectedDateTime.toISOString(),
-        status: "confirmada",
-        professor_id: userId,
-      });
-      toast({ title: "Sucesso", description: "Sessão agendada!" });
       setShowForm(false);
+      setIsRecorrente(false);
       setNewSession({ alunoId: "", cavaloId: "", hora: "08:00" });
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Erro ao agendar", description: error.message });
+      const msg = error?.message === "DUPLICATE_PENDING"
+        ? "Já existe uma proposta pendente similar."
+        : error?.message ?? "Erro desconhecido";
+      toast({ variant: "destructive", title: "Erro", description: msg });
     }
   };
 
@@ -319,11 +340,37 @@ export const ProfessorAgenda = () => {
       {/* ============ Form modal de criar sessão (apenas terapeuta, sem recorrente) ============ */}
       <ActionSheet
         isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="Nova Sessão"
-        subtitle={`Para ${format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}`}
+        onClose={() => { setShowForm(false); setIsRecorrente(false); }}
+        title={isRecorrente ? "Propor aula recorrente" : "Nova Sessão"}
+        subtitle={isRecorrente
+          ? "Será enviada pra aprovação do responsável"
+          : `Para ${format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}`}
       >
         <div className="space-y-5 py-2">
+          {/* Toggle Recorrência */}
+          <button
+            type="button"
+            onClick={() => setIsRecorrente(v => !v)}
+            className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all ${
+              isRecorrente ? "border-[#4E593F] bg-[#4E593F]/5" : "border-slate-200 bg-slate-50"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
+              <div className="text-left">
+                <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>
+                  Aula Recorrente
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {isRecorrente ? "Toda semana, pendente de aprovação" : "Ex: toda terça às 10h"}
+                </p>
+              </div>
+            </div>
+            <div className={`w-10 h-6 rounded-full transition-colors ${isRecorrente ? "bg-[#4E593F]" : "bg-slate-200"} flex items-center px-1`}>
+              <div className={`w-4 h-4 rounded-full bg-white shadow transition-transform ${isRecorrente ? "translate-x-4" : "translate-x-0"}`} />
+            </div>
+          </button>
+
           {/* Praticante (filtrado pelos meus) */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1">Praticante</label>
@@ -363,12 +410,38 @@ export const ProfessorAgenda = () => {
             </select>
           </div>
 
+          {/* Dia da semana — só em recorrente */}
+          {isRecorrente && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-slate-700 ml-1">Dia da semana</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {DIAS_SEMANA.map(d => {
+                  const selected = diaSemana === d.value;
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => setDiaSemana(d.value)}
+                      className={`h-11 rounded-xl font-bold text-xs transition-all border-2 ${selected
+                        ? "bg-[#4E593F] border-[#4E593F] text-white shadow-md"
+                        : "bg-slate-50 border-transparent text-slate-600 hover:border-slate-200"
+                        }`}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Horário */}
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-slate-700 ml-1">Horário</label>
             <div className="grid grid-cols-4 gap-1.5">
               {HORARIOS_BASE.map(hora => {
-                const ocupado = occupiedTimes.includes(hora);
+                // Slots ocupados só fazem sentido pra sessão pontual no dia selecionado.
+                const ocupado = !isRecorrente && occupiedTimes.includes(hora);
                 const selected = newSession.hora === hora;
                 return (
                   <button
@@ -394,10 +467,12 @@ export const ProfessorAgenda = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={createSessao.isPending || meusAlunos.length === 0}
+            disabled={createSessao.isPending || criarSol.isPending || meusAlunos.length === 0}
             className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-lg mt-4 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {createSessao.isPending ? "Agendando..." : "Agendar Sessão"}
+            {createSessao.isPending || criarSol.isPending
+              ? (isRecorrente ? "Enviando..." : "Agendando...")
+              : (isRecorrente ? "Enviar proposta" : "Agendar Sessão")}
           </button>
         </div>
       </ActionSheet>
