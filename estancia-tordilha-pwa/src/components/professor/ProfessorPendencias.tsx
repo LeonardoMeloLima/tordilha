@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ModalRejeitarSolicitacao } from "@/components/gestor/ModalRejeitarSolicitacao";
 import { ModalImpactoMudanca } from "@/components/shared/ModalImpactoMudanca";
+import { PendenciasTipoFilter } from "@/components/shared/PendenciasTipoFilter";
 import { toast } from "sonner";
 import { AlertTriangle } from "lucide-react";
 
@@ -111,19 +112,7 @@ export function ProfessorPendencias() {
         </TabsList>
       </Tabs>
 
-      <div className="flex gap-2 text-sm overflow-x-auto scrollbar-hide -mx-4 px-4 pb-1">
-        {(["todos", "novo_cadastro", "mudanca_recorrencia", "remarcacao_sessao", "nova_recorrencia"] as const).map(t => (
-          <Button
-            key={t}
-            size="sm"
-            variant={tipoFilter === t ? "default" : "outline"}
-            onClick={() => setTipoFilter(t)}
-            className="shrink-0 whitespace-nowrap"
-          >
-            {t === "todos" ? "Todos" : TIPO_LABEL[t]}
-          </Button>
-        ))}
-      </div>
+      <PendenciasTipoFilter value={tipoFilter} onChange={setTipoFilter} />
 
       {isLoading ? <div>Carregando...</div> : (
         <div className="space-y-3">
