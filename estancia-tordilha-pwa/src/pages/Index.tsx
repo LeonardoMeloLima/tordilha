@@ -14,6 +14,8 @@ import { PaisMural } from "@/components/pais/PaisMural";
 import { PaisAgenda } from "@/components/pais/PaisAgenda";
 import { PaisAlunoPerfil } from "@/components/pais/PaisAlunoPerfil";
 import { PaisCavalos } from "@/components/pais/PaisCavalos";
+import { GestorPendencias } from "@/components/gestor/GestorPendencias";
+import { PaisSolicitacoes } from "@/components/pais/PaisSolicitacoes";
 import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
@@ -31,6 +33,7 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     alunos: <GestorAlunos />,
     cavalos: <GestorCavalos />,
     agenda: <GestorAgenda />,
+    pendencias: <GestorPendencias />,
     admin: <GestorAdminPanel />,
   },
   professor: {
@@ -44,6 +47,7 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     agenda: <PaisAgenda />,
     aluno: <PaisAlunoPerfil />,
     cavalos: <PaisCavalos />,
+    solicitacoes: <PaisSolicitacoes />,
   },
 };
 
