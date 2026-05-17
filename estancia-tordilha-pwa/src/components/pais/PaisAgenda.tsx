@@ -6,10 +6,15 @@ import { ptBR } from "date-fns/locale";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
+import { useSolicitacoes } from "@/hooks/useSolicitacoes";
+import { useCriarSolicitacao } from "@/hooks/useCriarSolicitacao";
 import { SwipeableCard } from "../ui/SwipeableCard";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
+import { Button } from "@/components/ui/button";
 import { NovoAgendamentoModal } from "./NovoAgendamentoModal";
+import { ModalSugerirHorario } from "@/components/shared/ModalSugerirHorario";
 import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 type CalendarView = "semana" | "mes" | "futuro";
 
@@ -18,14 +23,28 @@ export const PaisAgenda = () => {
   const { data: linkedAlunos, isLoading: isLoadingVinculo } = useResponsavelAlunos();
   const alunoIds = useMemo(() => (linkedAlunos || []).map(v => v.aluno_id), [linkedAlunos]);
 
-  const { sessoes, isLoading: isLoadingSessoes, deleteSessao } = useSessoes(undefined, alunoIds);
+  const { sessoes, isLoading: isLoadingSessoes, deleteSessao, updateSessao } = useSessoes(undefined, alunoIds);
   const { recorrentes } = useSessoesRecorrentes(alunoIds);
+
+  // Solicitações pendentes — pra desabilitar botões de alvos com pedido em aberto
+  const { data: pendentes } = useSolicitacoes({ status: "pendente" });
+  const recorrenciasPendentes = useMemo(
+    () => new Set((pendentes ?? []).filter(s => s.tipo === "mudanca_recorrencia").map(s => s.alvo_id)),
+    [pendentes]
+  );
+  const sessoesPendentes = useMemo(
+    () => new Set((pendentes ?? []).filter(s => s.tipo === "remarcacao_sessao").map(s => s.alvo_id)),
+    [pendentes]
+  );
+  const criarSol = useCriarSolicitacao();
 
   const [view, setView] = useState<CalendarView>("semana");
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState(format(new Date(), "yyyy-MM-dd"));
   const [showAgendar, setShowAgendar] = useState(false);
   const [showRecorrencias, setShowRecorrencias] = useState(false);
+  const [sugerirRec, setSugerirRec] = useState<{ open: boolean; recorrencia?: any }>({ open: false });
+  const [sugerirSes, setSugerirSes] = useState<{ open: boolean; sessao?: any }>({ open: false });
 
   useEffect(() => {
     const handleFAB = () => setShowAgendar(true);
@@ -108,6 +127,19 @@ export const PaisAgenda = () => {
     }
   };
 
+  // Cancelamento via botão explícito (Task 13) — marca status="cancelada"
+  // em vez de deletar (mantém histórico). O handleCancelar antigo segue
+  // usado pelo SwipeableCard (swipe gesture).
+  const handleCancelarSessao = async (id: string) => {
+    if (!confirm("Cancelar esta sessão?")) return;
+    try {
+      await updateSessao.mutateAsync({ id, status: "cancelada" });
+      sonnerToast.success("Sessão cancelada");
+    } catch (e: any) {
+      sonnerToast.error(e?.message ?? "Erro ao cancelar");
+    }
+  };
+
   const isLoading = isLoadingVinculo || isLoadingSessoes;
 
   // ─── Session list ──────────────────────────────────────────────────────────
@@ -152,12 +184,29 @@ export const PaisAgenda = () => {
               </div>
             </div>
           );
-          return isVirtual ? (
-            <div key={s.id}>{card}</div>
-          ) : (
-            <SwipeableCard key={s.id} onDelete={() => handleCancelar(s.id)} deleteLabel="Cancelar">
-              {card}
-            </SwipeableCard>
+          if (isVirtual) {
+            return <div key={s.id}>{card}</div>;
+          }
+          const pendenteRemarcacao = sessoesPendentes.has(s.id);
+          return (
+            <div key={s.id} className="space-y-2">
+              <SwipeableCard onDelete={() => handleCancelar(s.id)} deleteLabel="Cancelar">
+                {card}
+              </SwipeableCard>
+              <div className="flex items-center justify-end gap-2 px-1">
+                <Button size="sm" variant="ghost" onClick={() => handleCancelarSessao(s.id)}>
+                  Cancelar
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pendenteRemarcacao}
+                  onClick={() => setSugerirSes({ open: true, sessao: s })}
+                >
+                  {pendenteRemarcacao ? "Remarcação pendente" : "Remarcar"}
+                </Button>
+              </div>
+            </div>
           );
         })
       )}
@@ -295,37 +344,112 @@ export const PaisAgenda = () => {
               <Repeat size={32} className="mx-auto text-slate-300 mb-2" />
               <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhuma recorrência cadastrada</p>
             </div>
-          ) : recorrentes.map(r => (
-            <div key={r.id} className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
-              <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
-                <AvatarWithFallback src={(r as any).aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{(r as any).aluno?.nome}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
+          ) : recorrentes.map(r => {
+            const pendenteRec = recorrenciasPendentes.has(r.id);
+            return (
+              <div key={r.id} className="space-y-2">
+                <div className="flex items-center gap-4 p-5 bg-card rounded-3xl card-shadow">
+                  <div className="w-12 h-12 rounded-2xl bg-[#4E593F]/10 flex items-center justify-center">
+                    <AvatarWithFallback src={(r as any).aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
                   </div>
-                  <p className="text-[11px] text-muted-foreground font-bold">{(r as any).cavalo?.nome || "Sem cavalo"}</p>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-foreground">{(r as any).aluno?.nome}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
+                      </div>
+                      <p className="text-[11px] text-muted-foreground font-bold">{(r as any).cavalo?.nome || "Sem cavalo"}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
+                      <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
+                      {r.horario.slice(0, 5)}
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
+                      {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2 px-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={pendenteRec}
+                    onClick={() => setSugerirRec({ open: true, recorrencia: r })}
+                  >
+                    {pendenteRec ? "Mudança pendente" : "Sugerir novo horário"}
+                  </Button>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
-                  <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
-                  {r.horario.slice(0, 5)}
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
-                  {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
-                </span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <SessionList />
       )}
 
       <NovoAgendamentoModal isOpen={showAgendar} onClose={() => setShowAgendar(false)} />
+
+      {sugerirRec.open && sugerirRec.recorrencia && (
+        <ModalSugerirHorario
+          open
+          onClose={() => setSugerirRec({ open: false })}
+          modo="recorrencia"
+          atual={{
+            dia_semana: sugerirRec.recorrencia.dia_semana,
+            horario: sugerirRec.recorrencia.horario,
+          }}
+          onSubmit={async (data) => {
+            try {
+              await criarSol.mutateAsync({
+                tipo: "mudanca_recorrencia",
+                aluno_id: sugerirRec.recorrencia.aluno_id,
+                alvo_id: sugerirRec.recorrencia.id,
+                payload: {
+                  dia_semana_atual: sugerirRec.recorrencia.dia_semana,
+                  horario_atual: sugerirRec.recorrencia.horario,
+                  dia_semana_novo: data.dia_semana,
+                  horario_novo: data.horario,
+                },
+              });
+              sonnerToast.success("Sua solicitação foi enviada para o gestor.");
+            } catch (e: any) {
+              if (e?.message === "DUPLICATE_PENDING") {
+                sonnerToast.error("Já existe uma solicitação pendente nesse horário.");
+              } else {
+                sonnerToast.error("Erro ao enviar solicitação.");
+              }
+            }
+          }}
+        />
+      )}
+      {sugerirSes.open && sugerirSes.sessao && (
+        <ModalSugerirHorario
+          open
+          onClose={() => setSugerirSes({ open: false })}
+          modo="sessao"
+          atual={{ data_hora: sugerirSes.sessao.data_hora }}
+          onSubmit={async (data) => {
+            try {
+              await criarSol.mutateAsync({
+                tipo: "remarcacao_sessao",
+                aluno_id: sugerirSes.sessao.aluno_id,
+                alvo_id: sugerirSes.sessao.id,
+                payload: {
+                  data_hora_atual: sugerirSes.sessao.data_hora,
+                  data_hora_nova: new Date(data.data_hora).toISOString(),
+                },
+              });
+              sonnerToast.success("Sua solicitação foi enviada para o gestor.");
+            } catch (e: any) {
+              sonnerToast.error(e?.message === "DUPLICATE_PENDING"
+                ? "Já existe uma solicitação pendente."
+                : "Erro ao enviar solicitação.");
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
