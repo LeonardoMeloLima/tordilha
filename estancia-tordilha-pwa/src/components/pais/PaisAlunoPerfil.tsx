@@ -217,11 +217,12 @@ export const PaisAlunoPerfil = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
 
-      // 2. Get or create responsible record for this user
+      // 2. Get or create responsible record for this user (case-insensitive lookup)
+      const userEmailLower = (user.email || "").trim().toLowerCase();
       let { data: resp } = await supabase
         .from("responsaveis")
         .select("id")
-        .eq("email", user.email || "")
+        .ilike("email", userEmailLower)
         .maybeSingle();
 
       let respId = resp?.id;
@@ -229,13 +230,13 @@ export const PaisAlunoPerfil = () => {
       if (!respId) {
         const { data: newResp, error: createRespError } = await supabase
           .from("responsaveis")
-          .insert({ 
+          .insert({
             nome: user.user_metadata?.full_name || user.email?.split('@')[0] || "Responsável",
-            email: user.email 
+            email: userEmailLower,
           })
           .select("id")
           .single();
-        
+
         if (createRespError) throw createRespError;
         respId = newResp.id;
       }

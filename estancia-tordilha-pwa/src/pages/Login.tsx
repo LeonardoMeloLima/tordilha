@@ -52,6 +52,7 @@ const Login = () => {
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return; // guard contra double-submit (Enter rápido / clique duplo)
         setLoading(true);
 
         try {
@@ -127,11 +128,15 @@ const Login = () => {
                     throw signUpError;
                 }
                 if (mode === "signUp" && selectedRole === "pais") {
-                    // 1. Create/Get Responsavel record
+                    // Normaliza email pra lowercase — Supabase Auth já faz isso
+                    // internamente, então salvamos do mesmo jeito pra evitar
+                    // divergência case-sensitive nos lookups futuros.
+                    const normalizedEmail = email.trim().toLowerCase();
+                    // 1. Create/Get Responsavel record (case-insensitive)
                     let { data: resp } = await supabase
                         .from('responsaveis')
                         .select('id')
-                        .eq('email', email)
+                        .ilike('email', normalizedEmail)
                         .maybeSingle();
 
                     let responsavelId = resp?.id;
@@ -141,7 +146,7 @@ const Login = () => {
                             .from('responsaveis')
                             .insert({
                                 nome: fullName,
-                                email: email,
+                                email: normalizedEmail,
                                 telefone: telefone,
                                 cpf: cpf,
                                 rg: rg,
@@ -189,7 +194,9 @@ const Login = () => {
                             let alunoId = globalAluno?.id;
 
                             if (!alunoId) {
-                                // Create new student with all fields
+                                // Create new student with all fields. lgpd_assinado=true
+                                // porque o responsável aceitou os termos LGPD no form
+                                // de signup (validado pelo state `lgpd` antes do submit).
                                 const { data: newAluno, error: alunoError } = await supabase
                                     .from('alunos')
                                     .insert({
@@ -198,6 +205,7 @@ const Login = () => {
                                         diagnostico: aluno.diagnostico.trim() || null,
                                         autoriza_imagem: autorizaImagem,
                                         data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
+                                        lgpd_assinado: !!lgpd,
                                     })
                                     .select('id')
                                     .single();
