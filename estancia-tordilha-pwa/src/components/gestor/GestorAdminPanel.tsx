@@ -222,6 +222,64 @@ export const GestorAdminPanel = () => {
     if (!confirm(`Tem certeza que deseja remover permanentemente o acesso de ${userName}?`)) return;
     try {
       setSubmitting(true);
+
+      // ANTES de invocar a Edge Function (que apaga auth.user + responsaveis +
+      // cascateia aluno_responsavel), precisamos arquivar alunos que ficariam
+      // ÓRFÃOS — ou seja, alunos vinculados SOMENTE a este responsável. Senão
+      // eles continuam na lista do gestor sem ninguém pra acessar pelo app.
+      // Alunos compartilhados (com pai + mãe, por exemplo) NÃO são tocados.
+      // Soft-delete (arquivado=true) preserva sessões/fichas/mural histórico.
+      let archivedCount = 0;
+      const { data: respRow, error: respLookupErr } = await supabase
+        .from('responsaveis')
+        .select('id')
+        .ilike('email', email.trim())
+        .maybeSingle();
+
+      if (respLookupErr) {
+        console.warn('Falha ao buscar responsavel pra checar alunos órfãos:', respLookupErr);
+      }
+
+      if (respRow?.id) {
+        const respId = respRow.id;
+        // Alunos vinculados a este responsável
+        const { data: vinc } = await supabase
+          .from('aluno_responsavel')
+          .select('aluno_id')
+          .eq('responsavel_id', respId);
+        const alunoIds = (vinc ?? []).map((v) => v.aluno_id);
+
+        if (alunoIds.length > 0) {
+          // Pra cada aluno, conta quantos outros responsáveis ele tem.
+          // Se = 1 (só este), vira órfão após o delete → arquivar.
+          const { data: todosVinculos } = await supabase
+            .from('aluno_responsavel')
+            .select('aluno_id, responsavel_id')
+            .in('aluno_id', alunoIds);
+
+          const countByAluno = new Map<string, number>();
+          (todosVinculos ?? []).forEach((v) => {
+            countByAluno.set(v.aluno_id, (countByAluno.get(v.aluno_id) ?? 0) + 1);
+          });
+
+          const orfaosFuturos = alunoIds.filter((id) => (countByAluno.get(id) ?? 0) <= 1);
+
+          if (orfaosFuturos.length > 0) {
+            const { error: archiveErr } = await supabase
+              .from('alunos')
+              .update({ arquivado: true })
+              .in('id', orfaosFuturos);
+            if (archiveErr) {
+              console.error('Falha ao arquivar alunos órfãos:', archiveErr);
+              throw new Error(
+                `Não foi possível arquivar ${orfaosFuturos.length} aluno(s) vinculado(s). Exclusão abortada pra não criar órfãos.`
+              );
+            }
+            archivedCount = orfaosFuturos.length;
+          }
+        }
+      }
+
       const { error } = await supabase.functions.invoke('create-user', {
         body: { action: 'delete', email },
       });
@@ -229,7 +287,12 @@ export const GestorAdminPanel = () => {
         const body = await (error as any).context?.json().catch(() => ({}));
         throw new Error(body?.error || error.message);
       }
-      toast({ title: "Responsável removido", description: "Registro excluído do sistema." });
+      toast({
+        title: "Responsável removido",
+        description: archivedCount > 0
+          ? `Registro excluído. ${archivedCount} praticante(s) sem outro responsável foram arquivado(s).`
+          : "Registro excluído do sistema.",
+      });
       await refetchResp();
     } catch (err: any) {
       toast({ variant: "destructive", title: "Falha na Exclusão", description: err.message || "Falha ao remover responsável." });

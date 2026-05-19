@@ -21,6 +21,8 @@ import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
 import { FirstAccessPasswordPrompt } from "@/components/auth/FirstAccessPasswordPrompt";
+import { AguardandoAprovacao } from "@/components/pais/AguardandoAprovacao";
+import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 
 const defaultTabs: Record<string, string> = {
   gestor: "dashboard",
@@ -58,6 +60,25 @@ const Index = () => {
   const safeRole = role || "gestor";
   const [activeTab, setActiveTab] = useState(defaultTabs[safeRole]);
   const [showQuickActions, setShowQuickActions] = useState(false);
+
+  // Gate de aprovação pra responsáveis: pais signs up → aluno entra como
+  // pendente e uma solicitação de "novo_cadastro" é criada. Enquanto o gestor
+  // não aprova, o pais não pode usar o app.
+  // Regra: pais sem NENHUM aluno com status='ativo' fica bloqueado, mesmo
+  // que tenha 0 vínculos (signup parcial onde aluno_responsavel falhou — não
+  // pode virar atalho pra burlar a aprovação).
+  // SuperUser/Master bypassam pra dev/teste.
+  const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
+  const responsavelAlunos: any[] = (vinculos ?? []).map((v: any) => v.alunos).filter(Boolean);
+  const temAlgumAtivo = responsavelAlunos.some((a) => a?.status === "ativo");
+  const todosRejeitados =
+    responsavelAlunos.length > 0 &&
+    responsavelAlunos.every((a) => a?.status === "rejeitado");
+  const bloqueadoPorAprovacao =
+    safeRole === "pais" &&
+    !isSuperUser &&
+    !isMaster &&
+    !temAlgumAtivo;
 
   useEffect(() => {
     setActiveTab(defaultTabs[safeRole]);
@@ -128,12 +149,16 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  if (loading || loadingVinculos) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Carregando perfil...</p>
       </div>
     );
+  }
+
+  if (bloqueadoPorAprovacao) {
+    return <AguardandoAprovacao rejeitado={todosRejeitados} />;
   }
 
   return (

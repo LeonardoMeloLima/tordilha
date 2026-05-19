@@ -11,6 +11,50 @@ import { ActionSheet } from "@/components/ui/ActionSheet";
 import { ImageRightsForm } from "@/components/auth/ImageRightsForm";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+// Mapa de erros conhecidos do Supabase Auth pra mensagens em pt-BR.
+// O Supabase retorna "Invalid login credentials" tanto pra senha errada quanto
+// pra conta inexistente (proteção contra enumeração de emails), então não dá
+// pra diferenciar os dois casos sem fazer um lookup separado — só traduzimos.
+const translateAuthError = (msg: string | undefined, mode: "signIn" | "signUp" | "forgotPassword"): string => {
+    if (!msg) return "Ocorreu um erro inesperado. Tente novamente.";
+    const lower = msg.toLowerCase();
+
+    if (lower.includes("invalid login credentials") || lower.includes("invalid_credentials")) {
+        return "Email ou senha incorretos. Verifique os dados ou cadastre-se se ainda não tem conta.";
+    }
+    if (lower.includes("email not confirmed")) {
+        return "Email ainda não confirmado. Procure o gestor da Estância.";
+    }
+    if (lower.includes("user already registered") || lower.includes("already been registered")) {
+        return "Este email já está cadastrado. Faça login ou recupere a senha com o gestor.";
+    }
+    if (lower.includes("password should be at least")) {
+        return "A senha deve ter no mínimo 6 caracteres.";
+    }
+    if (lower.includes("rate limit") || lower.includes("too many requests")) {
+        return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+    }
+    if (lower.includes("user not found")) {
+        return "Conta não encontrada. Cadastre-se ou confira o email digitado.";
+    }
+    if (lower.includes("signup") && lower.includes("disabled")) {
+        return "Os cadastros estão temporariamente desabilitados. Contate o gestor.";
+    }
+    if (lower.includes("network") || lower.includes("failed to fetch")) {
+        return "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+    }
+    if (lower.includes("weak password")) {
+        return "Senha muito fraca. Use letras, números e ao menos 6 caracteres.";
+    }
+
+    // Fallback: a mensagem original em inglês não é amigável, mostra um genérico
+    // mas loga o original no console pra debug.
+    console.warn("Erro de auth não-mapeado:", msg);
+    return mode === "signIn"
+        ? "Não foi possível entrar. Tente novamente ou contate o gestor."
+        : "Não foi possível concluir o cadastro. Tente novamente ou contate o gestor.";
+};
+
 const Login = () => {
     const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
     const [fullName, setFullName] = useState("");
@@ -105,7 +149,7 @@ const Login = () => {
                     setLoading(false);
                     return;
                 }
-                const { error: signUpError } = await supabase.auth.signUp({
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
@@ -122,6 +166,9 @@ const Login = () => {
                 });
 
                 const isAlreadyRegistered = signUpError?.message.includes('already been registered');
+                // Id do user recém-criado — usado pra setar solicitante_id da
+                // solicitação de novo_cadastro mais abaixo.
+                const newUserId = signUpData?.user?.id;
 
                 // If user already exists, we continue to sync their profile data
                 if (signUpError && !isAlreadyRegistered) {
@@ -198,56 +245,69 @@ const Login = () => {
                             .eq('responsavel_id', responsavelId);
                         const linkedIds = new Set((linkedAlunos ?? []).map(l => l.aluno_id));
 
+                        // ATENÇÃO: o signup SEMPRE cria um aluno novo, mesmo que já
+                        // exista outro com o mesmo nome no banco. O comportamento
+                        // anterior (lookup por nome via .maybeSingle) tinha 2 problemas:
+                        //   1. Se duas crianças diferentes (famílias diferentes) tivessem
+                        //      o mesmo nome, .maybeSingle() lançava erro e quebrava o
+                        //      signup inteiro.
+                        //   2. Se uma já existisse, o código vinculava o novo responsável
+                        //      a uma criança de OUTRA família com mesmo nome — disaster
+                        //      de privacidade/integridade de dados.
+                        // Para o caso legítimo de pai+mãe compartilhando responsabilidade
+                        // por uma criança já cadastrada, usar o fluxo "Adicionar
+                        // responsável" dentro do PaisAlunoPerfil depois do primeiro
+                        // responsável estar logado.
                         for (const aluno of alunos.filter(a => a.nome.trim() !== "")) {
-                            // Check if student exists globally by name
-                            const { data: globalAluno } = await supabase
+                            // Cria aluno sempre. lgpd_assinado=true porque o responsável
+                            // aceitou os termos LGPD no form (validado pelo state `lgpd`
+                            // antes do submit). status='pendente' explícito: o default
+                            // da coluna no banco é 'ativo', sem esse override o aluno
+                            // entraria já aprovado e fura o gate de aprovação.
+                            const { data: newAluno, error: alunoError } = await supabase
                                 .from('alunos')
+                                .insert({
+                                    nome: aluno.nome.trim(),
+                                    idade: aluno.idade ? parseInt(aluno.idade) : null,
+                                    diagnostico: aluno.diagnostico.trim() || null,
+                                    autoriza_imagem: autorizaImagem,
+                                    data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
+                                    lgpd_assinado: !!lgpd,
+                                    status: 'pendente',
+                                })
                                 .select('id')
-                                .eq('nome', aluno.nome.trim())
-                                .maybeSingle();
+                                .single();
 
-                            let alunoId = globalAluno?.id;
+                            if (alunoError || !newAluno) {
+                                console.error(`Falha ao criar aluno "${aluno.nome}":`, alunoError);
+                                syncWarnings.push(`praticante ${aluno.nome}`);
+                                continue;
+                            }
 
-                            if (!alunoId) {
-                                // Create new student with all fields. lgpd_assinado=true
-                                // porque o responsável aceitou os termos LGPD no form
-                                // de signup (validado pelo state `lgpd` antes do submit).
-                                const { data: newAluno, error: alunoError } = await supabase
-                                    .from('alunos')
+                            const alunoId = newAluno.id;
+
+                            // Cria solicitação de aprovação pro gestor — sem isso o
+                            // praticante fica pendente mas o gestor não tem nada na
+                            // fila de Pendências pra aprovar.
+                            if (newUserId) {
+                                const { error: solErr } = await supabase
+                                    .from('solicitacoes')
                                     .insert({
-                                        nome: aluno.nome.trim(),
-                                        idade: aluno.idade ? parseInt(aluno.idade) : null,
-                                        diagnostico: aluno.diagnostico.trim() || null,
-                                        autoriza_imagem: autorizaImagem,
-                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
-                                        lgpd_assinado: !!lgpd,
-                                    })
-                                    .select('id')
-                                    .single();
-
-                                if (alunoError || !newAluno) {
-                                    console.error(`Falha ao criar aluno "${aluno.nome}":`, alunoError);
-                                    syncWarnings.push(`praticante ${aluno.nome}`);
-                                } else {
-                                    alunoId = newAluno.id;
-                                }
-                            } else {
-                                // Update autoriza_imagem on existing record
-                                const { error: updateAlunoError } = await supabase
-                                    .from('alunos')
-                                    .update({
-                                        autoriza_imagem: autorizaImagem,
-                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
-                                    })
-                                    .eq('id', alunoId);
-                                if (updateAlunoError) {
-                                    console.error(`Falha ao atualizar aluno "${aluno.nome}":`, updateAlunoError);
-                                    syncWarnings.push(`praticante ${aluno.nome}`);
+                                        tipo: 'novo_cadastro',
+                                        aluno_id: alunoId,
+                                        solicitante_id: newUserId,
+                                        payload: {},
+                                    });
+                                if (solErr) {
+                                    console.error(`Falha ao criar solicitação pro aluno "${aluno.nome}":`, solErr);
+                                    syncWarnings.push(`solicitação de ${aluno.nome}`);
                                 }
                             }
 
-                            // Link only if not already linked
-                            if (alunoId && !linkedIds.has(alunoId)) {
+                            // Vincula o aluno ao responsável (linkedIds proteção contra
+                            // duplicata de vínculo, embora aluno acabou de ser criado
+                            // e não pode estar linkado ainda — mantido como defesa).
+                            if (!linkedIds.has(alunoId)) {
                                 const { error: linkError } = await supabase
                                     .from('aluno_responsavel')
                                     .insert({
@@ -292,7 +352,7 @@ const Login = () => {
             toast({
                 variant: "destructive",
                 title: mode === "signIn" ? "Erro no login" : "Erro no cadastro",
-                description: error.message || "Ocorreu um erro inesperado.",
+                description: translateAuthError(error?.message, mode),
             });
         } finally {
             setLoading(false);
