@@ -80,3 +80,73 @@ Se algo der MUITO errado e precisarmos voltar ao 2026-05-18:
    ALTER TABLE public.evolucao_sessoes DROP CONSTRAINT IF EXISTS evolucao_sessoes_sessao_id_unique;
    ```
 3. **Dados**: restore via Point-in-Time Recovery do Supabase (se ativado no plano) pro snapshot de 2026-05-18.
+
+---
+
+## Redesign visual — estimativa de escopo (2026-05-19)
+
+Referência: imagem de app de operadora telefônica enviada pelo Leonardo (gradiente azul→verde, cards com border-radius alto, donut/line charts, ícones em squares arredondados).
+
+**Pré-condições favoráveis no projeto:**
+- `recharts` já instalado → não precisa nova lib de chart
+- `tailwind.config.ts` existe → tokens centralizáveis
+- ~25 componentes shadcn em `components/ui/` já estruturados
+- 28 telas distribuídas entre 3 roles (gestor/professor/pais)
+
+**Pré-condições desfavoráveis:**
+- Cores hardcoded `#4E593F` em centenas de lugares (não 100% tokenizado)
+- `SwipeableCard`/`BottomNav`/`ActionSheet` têm event listeners e lógica complexa — refactor estrutural caro
+- Reference não é da mesma vertical (operadora vs equoterapia) — estrutura precisa adaptação
+
+### Estimativa em sprints
+
+| Sprint | Escopo | Horas |
+|---|---|---|
+| **0. Foundation** | Tokenizar paleta no `tailwind.config.ts`, branch dedicada, rota `/dev/design-preview`, backup tag | 8–12h |
+| **1. Componentes base** | Card, Button, Badge, Input, Avatar, ActionSheet (cosmético, sem mexer lógica), ConfirmModal | 16–24h |
+| **2. Header + Nav** | ProfileHeader (3 roles, badges role-aware), BottomNav (preservar FAB + event listeners), AguardandoAprovacao | 12–16h |
+| **3. Dashboard do Gestor** | Métricas, banner de pendências, próximas sessões | 8–12h |
+| **4. Listas** | GestorAlunos, GestorCavalos, GestorAdminPanel, SwipeableCard cosmético, filtros/busca | 16–20h |
+| **5. Agenda** | Gestor + Pais + Professor (3 visões), cards de sessão, modal de criação, recorrências | 12–18h |
+| **6. Pendências/Solicitações** | GestorPendencias, ProfessorPendencias, PaisSolicitacoes, modais aprovar/rejeitar | 10–14h |
+| **7. Perfil do Pais** | PaisAlunoPerfil, PaisMural, PaisCavalos | 8–12h |
+| **8. Estatísticas + Charts** | Donut (taxa presença), line (evolução), histórico — usar recharts | 12–18h |
+| **9. Auth/Login** | Login, signup multistep do responsável, ResetPassword, FirstAccessPasswordPrompt | 6–8h |
+| **10. Estados + A11y** | Loading/empty/error em todas as telas, WCAG contraste, keyboard nav | 8–12h |
+| **11. QA + bug bash** | Cross-role, cross-device, performance (lighthouse), buffer de bugs | 8–16h |
+
+**Total bruto:** 124–182h
+**+ buffer 30% pra iteração de design + bugs imprevistos:** **160–235h**
+
+### Conversão pra calendário
+
+| Dedicação | Estimativa |
+|---|---|
+| Full-time (8h/dia útil) | **20–30 dias úteis** ≈ 4–6 semanas |
+| Half-time (4h/dia) | **40–60 dias** ≈ 8–12 semanas |
+| Side project (2h/dia) | **80–120 dias** ≈ 16–24 semanas (4–6 meses) |
+
+### Estratégia anti-bug
+
+1. **Tokenização primeiro (Sprint 0)** — antes de qualquer JSX, mexer só no `tailwind.config.ts`. Mexer 1 arquivo em vez de 200.
+2. **Branch dedicada de redesign** — separada do fluxo normal de features.
+3. **Refactor por screen completa** — uma tela 100% redesignada + testada antes da próxima.
+4. **Rota `/dev/design-preview`** — mostra cada componente em todas as variantes (loading, empty, error, swipe ativo). Catar regressões antes do merge.
+5. **Test plan por screen** — checklist: login → role → ação principal → estado de erro → mobile/desktop.
+6. **`SwipeableCard`, `BottomNav` e `ActionSheet` por último** — são os 3 mais arriscados.
+7. **Visual regression test (opcional)** — Percy/Chromatic se quiser pagar; senão screenshots manuais.
+
+### Decisões pendentes antes de começar
+
+- [ ] **Manter identidade verde-oliva do equoterapia ou adotar azul-verde da referência?** Equoterapia tem semântica natural/grama; gradiente azul é mais "tech". Pode prejudicar branding.
+- [ ] **Dark mode?** Reference é light-only. Implementar dark mode dobra esforço de algumas sprints.
+- [ ] **Mobile-first ou responsive desktop?** Hoje é PWA mobile-first; gestor usa em desktop. Reference é mobile.
+- [ ] **Charts no Dashboard ou só em Estatísticas?** Reference traz chart bem destacado no home. Hoje só em Estatísticas.
+
+### Riscos específicos a monitorar
+
+- 🔴 Mudar `BottomNav` quebra `fab-click` listeners em 5+ componentes
+- 🔴 Refatorar `SwipeableCard` esbarra no fix recém-mergeado do botão hover desktop
+- 🟡 Contraste de texto branco sobre gradiente pode falhar WCAG AA
+- 🟡 `ProfileHeader` com lógica de role/badge/notificações complexa — alto risco de regressão
+- 🟢 Charts em `Estatisticas` — recharts já instalado, troca de styling é direta
