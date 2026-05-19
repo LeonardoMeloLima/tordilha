@@ -4,12 +4,56 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check } from "lucide-react";
+import { LogIn, Mail, Lock, User, Briefcase, Users, UserCircle, Phone, Cake, Check, Eye, EyeOff } from "lucide-react";
 import logoMarrom from "@/assets/logo-marrom.png";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { ImageRightsForm } from "@/components/auth/ImageRightsForm";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Mapa de erros conhecidos do Supabase Auth pra mensagens em pt-BR.
+// O Supabase retorna "Invalid login credentials" tanto pra senha errada quanto
+// pra conta inexistente (proteção contra enumeração de emails), então não dá
+// pra diferenciar os dois casos sem fazer um lookup separado — só traduzimos.
+const translateAuthError = (msg: string | undefined, mode: "signIn" | "signUp" | "forgotPassword"): string => {
+    if (!msg) return "Ocorreu um erro inesperado. Tente novamente.";
+    const lower = msg.toLowerCase();
+
+    if (lower.includes("invalid login credentials") || lower.includes("invalid_credentials")) {
+        return "Email ou senha incorretos. Verifique os dados ou cadastre-se se ainda não tem conta.";
+    }
+    if (lower.includes("email not confirmed")) {
+        return "Email ainda não confirmado. Procure o gestor da Estância.";
+    }
+    if (lower.includes("user already registered") || lower.includes("already been registered")) {
+        return "Este email já está cadastrado. Faça login ou recupere a senha com o gestor.";
+    }
+    if (lower.includes("password should be at least")) {
+        return "A senha deve ter no mínimo 6 caracteres.";
+    }
+    if (lower.includes("rate limit") || lower.includes("too many requests")) {
+        return "Muitas tentativas em pouco tempo. Aguarde alguns minutos e tente novamente.";
+    }
+    if (lower.includes("user not found")) {
+        return "Conta não encontrada. Cadastre-se ou confira o email digitado.";
+    }
+    if (lower.includes("signup") && lower.includes("disabled")) {
+        return "Os cadastros estão temporariamente desabilitados. Contate o gestor.";
+    }
+    if (lower.includes("network") || lower.includes("failed to fetch")) {
+        return "Sem conexão com o servidor. Verifique sua internet e tente novamente.";
+    }
+    if (lower.includes("weak password")) {
+        return "Senha muito fraca. Use letras, números e ao menos 6 caracteres.";
+    }
+
+    // Fallback: a mensagem original em inglês não é amigável, mostra um genérico
+    // mas loga o original no console pra debug.
+    console.warn("Erro de auth não-mapeado:", msg);
+    return mode === "signIn"
+        ? "Não foi possível entrar. Tente novamente ou contate o gestor."
+        : "Não foi possível concluir o cadastro. Tente novamente ou contate o gestor.";
+};
 
 const Login = () => {
     const [mode, setMode] = useState<"signIn" | "signUp" | "forgotPassword">("signIn");
@@ -31,6 +75,8 @@ const Login = () => {
     const [showImageRights, setShowImageRights] = useState(false);
     const [imageRightsConfirmed, setImageRightsConfirmed] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const { toast } = useToast();
     const navigate = useNavigate();
 
@@ -50,9 +96,14 @@ const Login = () => {
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (loading) return; // guard contra double-submit (Enter rápido / clique duplo)
         setLoading(true);
 
         try {
+            /* Desativado em 2026-05-11 — fluxo de recuperação migrado pro gestor (resetar no painel Admin).
+               Pra religar: descomentar este bloco, restaurar o link "Recuperar" no JSX, e descomentar
+               a rota /reset-password em App.tsx + body de ResetPassword.tsx.
+
             if (mode === "forgotPassword") {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
                     redirectTo: `${window.location.origin}/reset-password`,
@@ -64,7 +115,8 @@ const Login = () => {
                 });
                 setMode("signIn");
                 return;
-            } else if (mode === "signIn") {
+            } else */
+            if (mode === "signIn") {
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password,
@@ -97,11 +149,11 @@ const Login = () => {
                     setLoading(false);
                     return;
                 }
-                const { error: signUpError } = await supabase.auth.signUp({
+                const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
                     email,
                     password,
                     options: {
-                        emailRedirectTo: window.location.origin,
+                        // emailRedirectTo: window.location.origin, // Desativado em 2026-05-11 — não há mais email de confirmação
                         data: {
                             nome_completo: fullName,
                             role: selectedRole,
@@ -114,17 +166,30 @@ const Login = () => {
                 });
 
                 const isAlreadyRegistered = signUpError?.message.includes('already been registered');
+                // Id do user recém-criado — usado pra setar solicitante_id da
+                // solicitação de novo_cadastro mais abaixo.
+                const newUserId = signUpData?.user?.id;
 
                 // If user already exists, we continue to sync their profile data
                 if (signUpError && !isAlreadyRegistered) {
                     throw signUpError;
                 }
+                // Acumula falhas não-fatais de sincronização de dados pra avisar
+                // o usuário no fim, em vez de engolir silenciosamente. O auth
+                // já foi criado nesse ponto, então não dá pra fazer rollback —
+                // mas o usuário precisa saber se algo ficou pra trás.
+                const syncWarnings: string[] = [];
+
                 if (mode === "signUp" && selectedRole === "pais") {
-                    // 1. Create/Get Responsavel record
+                    // Normaliza email pra lowercase — Supabase Auth já faz isso
+                    // internamente, então salvamos do mesmo jeito pra evitar
+                    // divergência case-sensitive nos lookups futuros.
+                    const normalizedEmail = email.trim().toLowerCase();
+                    // 1. Create/Get Responsavel record (case-insensitive)
                     let { data: resp } = await supabase
                         .from('responsaveis')
                         .select('id')
-                        .eq('email', email)
+                        .ilike('email', normalizedEmail)
                         .maybeSingle();
 
                     let responsavelId = resp?.id;
@@ -134,7 +199,7 @@ const Login = () => {
                             .from('responsaveis')
                             .insert({
                                 nome: fullName,
-                                email: email,
+                                email: normalizedEmail,
                                 telefone: telefone,
                                 cpf: cpf,
                                 rg: rg,
@@ -145,10 +210,15 @@ const Login = () => {
                             .select('id')
                             .single();
 
-                        if (!createError) responsavelId = newResp.id;
+                        if (createError || !newResp) {
+                            console.error('Falha ao criar responsavel:', createError);
+                            syncWarnings.push('responsável');
+                        } else {
+                            responsavelId = newResp.id;
+                        }
                     } else {
                         // Update existing record with any new info
-                        await supabase
+                        const { error: updateRespError } = await supabase
                             .from('responsaveis')
                             .update({
                                 nome: fullName,
@@ -160,6 +230,10 @@ const Login = () => {
                                 estado: estado
                             })
                             .eq('id', responsavelId);
+                        if (updateRespError) {
+                            console.error('Falha ao atualizar responsavel:', updateRespError);
+                            syncWarnings.push('responsável');
+                        }
                     }
 
                     // 2. Create Students and Link them (With De-duplication check)
@@ -171,64 +245,103 @@ const Login = () => {
                             .eq('responsavel_id', responsavelId);
                         const linkedIds = new Set((linkedAlunos ?? []).map(l => l.aluno_id));
 
+                        // ATENÇÃO: o signup SEMPRE cria um aluno novo, mesmo que já
+                        // exista outro com o mesmo nome no banco. O comportamento
+                        // anterior (lookup por nome via .maybeSingle) tinha 2 problemas:
+                        //   1. Se duas crianças diferentes (famílias diferentes) tivessem
+                        //      o mesmo nome, .maybeSingle() lançava erro e quebrava o
+                        //      signup inteiro.
+                        //   2. Se uma já existisse, o código vinculava o novo responsável
+                        //      a uma criança de OUTRA família com mesmo nome — disaster
+                        //      de privacidade/integridade de dados.
+                        // Para o caso legítimo de pai+mãe compartilhando responsabilidade
+                        // por uma criança já cadastrada, usar o fluxo "Adicionar
+                        // responsável" dentro do PaisAlunoPerfil depois do primeiro
+                        // responsável estar logado.
                         for (const aluno of alunos.filter(a => a.nome.trim() !== "")) {
-                            // Check if student exists globally by name
-                            const { data: globalAluno } = await supabase
+                            // Cria aluno sempre. lgpd_assinado=true porque o responsável
+                            // aceitou os termos LGPD no form (validado pelo state `lgpd`
+                            // antes do submit). status='pendente' explícito: o default
+                            // da coluna no banco é 'ativo', sem esse override o aluno
+                            // entraria já aprovado e fura o gate de aprovação.
+                            const { data: newAluno, error: alunoError } = await supabase
                                 .from('alunos')
+                                .insert({
+                                    nome: aluno.nome.trim(),
+                                    idade: aluno.idade ? parseInt(aluno.idade) : null,
+                                    diagnostico: aluno.diagnostico.trim() || null,
+                                    autoriza_imagem: autorizaImagem,
+                                    data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
+                                    lgpd_assinado: !!lgpd,
+                                    status: 'pendente',
+                                })
                                 .select('id')
-                                .eq('nome', aluno.nome.trim())
-                                .maybeSingle();
+                                .single();
 
-                            let alunoId = globalAluno?.id;
-
-                            if (!alunoId) {
-                                // Create new student with all fields
-                                const { data: newAluno, error: alunoError } = await supabase
-                                    .from('alunos')
-                                    .insert({
-                                        nome: aluno.nome.trim(),
-                                        idade: aluno.idade ? parseInt(aluno.idade) : null,
-                                        diagnostico: aluno.diagnostico.trim() || null,
-                                        autoriza_imagem: autorizaImagem,
-                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
-                                    })
-                                    .select('id')
-                                    .single();
-
-                                if (!alunoError && newAluno) {
-                                    alunoId = newAluno.id;
-                                }
-                            } else {
-                                // Update autoriza_imagem on existing record
-                                await supabase
-                                    .from('alunos')
-                                    .update({
-                                        autoriza_imagem: autorizaImagem,
-                                        data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
-                                    })
-                                    .eq('id', alunoId);
+                            if (alunoError || !newAluno) {
+                                console.error(`Falha ao criar aluno "${aluno.nome}":`, alunoError);
+                                syncWarnings.push(`praticante ${aluno.nome}`);
+                                continue;
                             }
 
-                            // Link only if not already linked
-                            if (alunoId && !linkedIds.has(alunoId)) {
-                                await supabase
+                            const alunoId = newAluno.id;
+
+                            // Cria solicitação de aprovação pro gestor — sem isso o
+                            // praticante fica pendente mas o gestor não tem nada na
+                            // fila de Pendências pra aprovar.
+                            if (newUserId) {
+                                const { error: solErr } = await supabase
+                                    .from('solicitacoes')
+                                    .insert({
+                                        tipo: 'novo_cadastro',
+                                        aluno_id: alunoId,
+                                        solicitante_id: newUserId,
+                                        payload: {},
+                                    });
+                                if (solErr) {
+                                    console.error(`Falha ao criar solicitação pro aluno "${aluno.nome}":`, solErr);
+                                    syncWarnings.push(`solicitação de ${aluno.nome}`);
+                                }
+                            }
+
+                            // Vincula o aluno ao responsável (linkedIds proteção contra
+                            // duplicata de vínculo, embora aluno acabou de ser criado
+                            // e não pode estar linkado ainda — mantido como defesa).
+                            if (!linkedIds.has(alunoId)) {
+                                const { error: linkError } = await supabase
                                     .from('aluno_responsavel')
                                     .insert({
                                         aluno_id: alunoId,
                                         responsavel_id: responsavelId,
                                         parentesco: 'Responsável'
                                     });
+                                if (linkError) {
+                                    console.error(`Falha ao vincular aluno "${aluno.nome}":`, linkError);
+                                    syncWarnings.push(`vínculo de ${aluno.nome}`);
+                                }
                             }
                         }
+                    } else {
+                        // Sem responsavelId não conseguimos criar/vincular alunos —
+                        // o usuário precisa contatar o gestor pra completar manualmente.
+                        syncWarnings.push('praticantes (sem responsável vinculado)');
                     }
                 }
 
-                toast({
-                    title: isAlreadyRegistered ? "Dados atualizados!" : "Conta criada com sucesso!",
-                    description: isAlreadyRegistered 
-                        ? "Seus dados foram sincronizados. Você já pode fazer login."
-                        : "Agora você já pode fazer o seu login.",
-                });
+                if (syncWarnings.length > 0) {
+                    toast({
+                        variant: "destructive",
+                        title: "Conta criada, mas alguns dados não foram sincronizados",
+                        description: `Falha em: ${syncWarnings.join(', ')}. Faça login e contate o gestor para completar o cadastro.`,
+                    });
+                } else {
+                    toast({
+                        title: isAlreadyRegistered ? "Dados atualizados!" : "Conta criada com sucesso!",
+                        description: isAlreadyRegistered
+                            ? "Seus dados foram sincronizados. Você já pode fazer login."
+                            : "Agora você já pode fazer o seu login.",
+                    });
+                }
                 setMode("signIn");
                 setEmail("");
                 setPassword("");
@@ -238,8 +351,8 @@ const Login = () => {
             console.error("Auth error:", error);
             toast({
                 variant: "destructive",
-                title: mode === "forgotPassword" ? "Erro ao recuperar senha" : mode === "signIn" ? "Erro no login" : "Erro no cadastro",
-                description: error.message || "Ocorreu um erro inesperado.",
+                title: mode === "signIn" ? "Erro no login" : "Erro no cadastro",
+                description: translateAuthError(error?.message, mode),
             });
         } finally {
             setLoading(false);
@@ -255,9 +368,7 @@ const Login = () => {
                     </div>
                     <h1 className="text-3xl font-bold text-slate-800 tracking-tight">Estância Tordilha</h1>
                     <p className="text-slate-500 font-medium">
-                        {mode === "signIn" ? "Faça login para acessar o sistema" :
-                            mode === "signUp" ? "Crie sua conta para começar" :
-                                "Recupere o acesso à sua conta"}
+                        {mode === "signIn" ? "Faça login para acessar o sistema" : "Crie sua conta para começar"}
                     </p>
                 </div>
 
@@ -297,7 +408,7 @@ const Login = () => {
                                         className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all ${selectedRole === "professor" ? "border-[#4E593F] bg-[#4E593F]/10 text-[#4E593F]" : "border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200"}`}
                                     >
                                         <UserCircle size={24} strokeWidth={1.5} className="mb-2" />
-                                        <span className="text-xs font-bold">Professor</span>
+                                        <span className="text-xs font-bold">Terapeuta</span>
                                     </button>
                                     <button
                                         type="button"
@@ -320,7 +431,7 @@ const Login = () => {
                                 <>
                                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                                         <div className="flex items-center justify-between ml-1">
-                                            <label className="text-sm font-bold text-slate-700">Aluno(s) Sob sua Responsabilidade</label>
+                                            <label className="text-sm font-bold text-slate-700">Praticante(s) Sob sua Responsabilidade</label>
                                             <button
                                                 type="button"
                                                 onClick={addAluno}
@@ -335,7 +446,7 @@ const Login = () => {
                                                 <div key={index} className="space-y-3 p-4 bg-slate-50/50 rounded-2xl border border-slate-100 animate-in zoom-in-95 duration-200">
                                                     <div className="flex items-center justify-between">
                                                         <span className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                                            Aluno {index + 1}
+                                                            Praticante {index + 1}
                                                         </span>
                                                         {alunos.length > 1 && (
                                                             <button
@@ -354,7 +465,7 @@ const Login = () => {
                                                             </div>
                                                             <Input
                                                                 type="text"
-                                                                placeholder="Nome do Aluno"
+                                                                placeholder="Nome do Praticante"
                                                                 value={aluno.nome}
                                                                 onChange={(e) => updateAlunoField(index, "nome", e.target.value)}
                                                                 className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium"
@@ -370,10 +481,10 @@ const Login = () => {
                                                                         </div>
                                                                         <Input
                                                                             type="number"
-                                                                            placeholder="Idade do Aluno"
+                                                                            placeholder="Idade do Praticante"
                                                                             value={aluno.idade}
                                                                             onChange={(e) => updateAlunoField(index, "idade", e.target.value)}
-                                                                            onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do aluno precisa ser preenchida.')}
+                                                                            onInvalid={(e: any) => e.target.setCustomValidity('A IDADE do praticante precisa ser preenchida.')}
                                                                             onInput={(e: any) => e.target.setCustomValidity('')}
                                                                             className="h-14 pl-11 rounded-2xl bg-white border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                                             required={index === 0}
@@ -381,7 +492,7 @@ const Login = () => {
                                                                     </div>
                                                                 </TooltipTrigger>
                                                                 <TooltipContent side="top" className="bg-slate-800 text-white border-none shadow-lg">
-                                                                    <p className="text-xs font-semibold">Esta informação é usada para adequar as atividades ao nível de desenvolvimento do aluno.</p>
+                                                                    <p className="text-xs font-semibold">Esta informação é usada para adequar as atividades ao nível de desenvolvimento do praticante.</p>
                                                                 </TooltipContent>
                                                             </Tooltip>
                                                         </div>
@@ -522,24 +633,30 @@ const Login = () => {
                         </div>
                     </div>
 
-                    {mode !== "forgotPassword" && (
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium text-slate-700 ml-1">Senha</label>
-                            <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                                    <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
-                                </div>
-                                <Input
-                                    type="password"
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    className="h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
-                                    required
-                                />
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-slate-700 ml-1">Senha</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                             </div>
+                            <Input
+                                type={showPassword ? "text" : "password"}
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white"
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((v) => !v)}
+                                aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+                                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+                            >
+                                {showPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                            </button>
                         </div>
-                    )}
+                    </div>
 
                     {mode === "signUp" && (
                         <div className="space-y-2">
@@ -549,13 +666,21 @@ const Login = () => {
                                     <Lock size={20} strokeWidth={1.5} className="text-slate-400" />
                                 </div>
                                 <Input
-                                    type="password"
+                                    type={showConfirmPassword ? "text" : "password"}
                                     placeholder="••••••••"
                                     value={confirmPassword}
                                     onChange={(e) => setConfirmPassword(e.target.value)}
-                                    className={`h-14 pl-11 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
+                                    className={`h-14 pl-11 pr-12 rounded-2xl bg-slate-50 border-slate-200 shadow-sm focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] text-slate-800 transition-all font-medium focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300 ring-red-100 focus:ring-red-500 focus:border-red-500' : ''}`}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword((v) => !v)}
+                                    aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={20} strokeWidth={1.5} /> : <Eye size={20} strokeWidth={1.5} />}
+                                </button>
                             </div>
                         </div>
                     )}
@@ -567,7 +692,7 @@ const Login = () => {
                     >
                         {loading ? "Processando..." : (
                             <span className="flex items-center gap-2">
-                                {mode === "signIn" ? "Entrar" : mode === "signUp" ? "Criar Conta" : "Enviar Email"} <LogIn size={20} strokeWidth={2} className="text-white" />
+                                {mode === "signIn" ? "Entrar" : "Criar Conta"} <LogIn size={20} strokeWidth={2} className="text-white" />
                             </span>
                         )}
                     </Button>
@@ -609,12 +734,15 @@ const Login = () => {
                     {mode === "signIn" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Esqueceu sua senha?{" "}
-                            <button type="button" onClick={() => setMode("forgotPassword")} className="text-slate-700 font-bold hover:text-[#4E593F] transition-colors">
-                                Recuperar
-                            </button>
+                            <span className="text-slate-700 font-bold">
+                                Procure o gestor da Estância.
+                            </span>
                         </p>
                     )}
 
+                    {/* Desativado em 2026-05-11 — modo forgotPassword removido. Pra religar:
+                        substituir o <span> acima por um <button onClick={() => setMode("forgotPassword")}>Recuperar</button>
+                        e descomentar este bloco.
                     {mode === "forgotPassword" && (
                         <p className="text-sm text-slate-500 font-medium pt-2">
                             Lembrou a senha?{" "}
@@ -622,7 +750,7 @@ const Login = () => {
                                 Voltar ao Login
                             </button>
                         </p>
-                    )}
+                    )} */}
                 </div>
             </div>
         </div>

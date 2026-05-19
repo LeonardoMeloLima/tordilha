@@ -36,11 +36,11 @@ interface ProfileHeaderProps {
 
 const roleBadges: Record<Role, { label: string; className: string }> = {
     professor: {
-        label: "Professor",
+        label: "Terapeuta",
         className: "bg-[#4E593F]/10 text-[#4E593F]",
     },
     pais: {
-        label: "Responsável/Aluno",
+        label: "Responsável/Praticante",
         className: "bg-[#8B4513]/10 text-[#8B4513]",
     },
     gestor: {
@@ -141,8 +141,9 @@ export function ProfileHeader({ userName, avatarUrl, role, isSuperUser, isMaster
                 description: "Seu avatar foi atualizado com sucesso.",
             });
 
-            setTimeout(() => window.location.reload(), 1500);
-
+            // O hook useRoleSession está inscrito em onAuthStateChange e recebe
+            // o evento USER_UPDATED disparado pelo supabase.auth.updateUser
+            // acima, propagando o novo avatar_url sem precisar de reload.
         } catch (error: any) {
             toast({
                 variant: "destructive",

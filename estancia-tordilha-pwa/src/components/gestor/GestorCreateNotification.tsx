@@ -15,7 +15,7 @@ type TargetRole = "geral" | "professor" | "pais" | "especifico";
 
 export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotificationProps) {
     const { createAviso } = useAvisos();
-    const { data: responsaveis } = useResponsaveis();
+    const { responsaveis } = useResponsaveis();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
 
@@ -35,7 +35,7 @@ export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotifi
     ];
 
     const targets = [
-        { id: "professor", label: "Professores", icon: GraduationCap },
+        { id: "professor", label: "Terapeutas", icon: GraduationCap },
         { id: "pais", label: "Responsáveis", icon: Users },
         { id: "especifico", label: "Específico", icon: UserCheck },
         { id: "geral", label: "Geral", icon: Globe },
@@ -92,7 +92,7 @@ export function GestorCreateNotification({ isOpen, onClose }: GestorCreateNotifi
             isOpen={isOpen}
             onClose={onClose}
             title="Novo Comunicado"
-            subtitle="Crie um comunicado para sua equipe ou alunos"
+            subtitle="Crie um comunicado para sua equipe ou praticantes"
         >
             <form onSubmit={handleSubmit} className="space-y-6 pb-8">
                 {/* Categorias */}

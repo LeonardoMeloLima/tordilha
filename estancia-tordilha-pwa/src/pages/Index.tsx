@@ -10,14 +10,19 @@ import { ProfessorAgenda } from "@/components/professor/ProfessorAgenda";
 import { ProfessorAlunos } from "@/components/professor/ProfessorAlunos";
 import { ProfessorEvolucao } from "@/components/professor/ProfessorEvolucao";
 import { ProfessorCavalos } from "@/components/professor/ProfessorCavalos";
+import { ProfessorPendencias } from "@/components/professor/ProfessorPendencias";
 import { PaisMural } from "@/components/pais/PaisMural";
 import { PaisAgenda } from "@/components/pais/PaisAgenda";
 import { PaisAlunoPerfil } from "@/components/pais/PaisAlunoPerfil";
 import { PaisCavalos } from "@/components/pais/PaisCavalos";
+import { GestorPendencias } from "@/components/gestor/GestorPendencias";
+import { PaisSolicitacoes } from "@/components/pais/PaisSolicitacoes";
 import { CalendarPlus, HeartPulse, ShieldCheck, UserCog } from "lucide-react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { GestorAdminPanel } from "@/components/gestor/GestorAdminPanel";
-import { ProfessorPasswordPrompt } from "@/components/professor/ProfessorPasswordPrompt";
+import { FirstAccessPasswordPrompt } from "@/components/auth/FirstAccessPasswordPrompt";
+import { AguardandoAprovacao } from "@/components/pais/AguardandoAprovacao";
+import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 
 const defaultTabs: Record<string, string> = {
   gestor: "dashboard",
@@ -31,6 +36,7 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     alunos: <GestorAlunos />,
     cavalos: <GestorCavalos />,
     agenda: <GestorAgenda />,
+    pendencias: <GestorPendencias />,
     admin: <GestorAdminPanel />,
   },
   professor: {
@@ -38,12 +44,14 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
     alunos: <ProfessorAlunos />,
     evolucao: <ProfessorEvolucao />,
     cavalos: <ProfessorCavalos />,
+    pendencias: <ProfessorPendencias />,
   },
   pais: {
     mural: <PaisMural />,
     agenda: <PaisAgenda />,
     aluno: <PaisAlunoPerfil />,
     cavalos: <PaisCavalos />,
+    solicitacoes: <PaisSolicitacoes />,
   },
 };
 
@@ -52,6 +60,25 @@ const Index = () => {
   const safeRole = role || "gestor";
   const [activeTab, setActiveTab] = useState(defaultTabs[safeRole]);
   const [showQuickActions, setShowQuickActions] = useState(false);
+
+  // Gate de aprovação pra responsáveis: pais signs up → aluno entra como
+  // pendente e uma solicitação de "novo_cadastro" é criada. Enquanto o gestor
+  // não aprova, o pais não pode usar o app.
+  // Regra: pais sem NENHUM aluno com status='ativo' fica bloqueado, mesmo
+  // que tenha 0 vínculos (signup parcial onde aluno_responsavel falhou — não
+  // pode virar atalho pra burlar a aprovação).
+  // SuperUser/Master bypassam pra dev/teste.
+  const { data: vinculos, isLoading: loadingVinculos } = useResponsavelAlunos();
+  const responsavelAlunos: any[] = (vinculos ?? []).map((v: any) => v.alunos).filter(Boolean);
+  const temAlgumAtivo = responsavelAlunos.some((a) => a?.status === "ativo");
+  const todosRejeitados =
+    responsavelAlunos.length > 0 &&
+    responsavelAlunos.every((a) => a?.status === "rejeitado");
+  const bloqueadoPorAprovacao =
+    safeRole === "pais" &&
+    !isSuperUser &&
+    !isMaster &&
+    !temAlgumAtivo;
 
   useEffect(() => {
     setActiveTab(defaultTabs[safeRole]);
@@ -122,12 +149,16 @@ const Index = () => {
     }
   };
 
-  if (loading) {
+  if (loading || loadingVinculos) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-muted-foreground">Carregando perfil...</p>
       </div>
     );
+  }
+
+  if (bloqueadoPorAprovacao) {
+    return <AguardandoAprovacao rejeitado={todosRejeitados} />;
   }
 
   return (
@@ -146,7 +177,7 @@ const Index = () => {
 
       <main className="px-5 pt-2 pb-8">
         {screens[safeRole]?.[activeTab]}
-        <ProfessorPasswordPrompt />
+        <FirstAccessPasswordPrompt />
       </main>
 
       {/* Global Quick Actions (Gestor only) - Replicating User Print exactly */}
@@ -180,7 +211,7 @@ const Index = () => {
                 <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shadow-sm shrink-0">
                   <UserCog size={20} className="text-blue-600" strokeWidth={1.5} />
                 </div>
-                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Professor</span>
+                <span className="font-bold text-base text-slate-900 tracking-tight">Novo Terapeuta</span>
               </button>
 
               <button

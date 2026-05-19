@@ -1,5 +1,6 @@
 import { Award, Heart, MessageCircle, Send, Trash2, Lock, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import { useMural } from "@/hooks/useMural";
 import { MuralPostModal } from "./MuralPostModal";
 import { supabase } from "@/lib/supabase";
@@ -269,7 +270,7 @@ const MuralCommentsModal = ({ isOpen, onClose, post }: { isOpen: boolean, onClos
             </div>
           )}
           <div className="flex-1">
-            <p className="text-sm font-bold text-slate-900 leading-tight">Postado {post.data === new Date().toISOString().split('T')[0] ? 'hoje' : 'recentemente'}</p>
+            <p className="text-sm font-bold text-slate-900 leading-tight">Postado {post.data === format(new Date(), 'yyyy-MM-dd') ? 'hoje' : 'recentemente'}</p>
             <p className="text-xs text-slate-500 font-medium line-clamp-2 mt-1">{post.descricao}</p>
           </div>
         </div>

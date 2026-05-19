@@ -14,19 +14,24 @@ export function useRoleSession() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // 1. Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
+        // 1. Get initial session — await handleUserMetadata antes de liberar
+        //    loading=false. Antes o setLoading(false) disparava em paralelo
+        //    com a query de profile/role, então o Index renderizava com
+        //    role=null (que via safeRole="gestor") antes da role real chegar
+        //    — quebrava o gate de aprovação do pais.
+        supabase.auth.getSession().then(async ({ data: { session } }) => {
             setSession(session);
-            handleUserMetadata(session);
+            await handleUserMetadata(session);
             setLoading(false);
         });
 
-        // 2. Listen for auth changes
+        // 2. Listen for auth changes — também await pra garantir consistência
+        //    em refresh/token-rotation.
         const {
             data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
+        } = supabase.auth.onAuthStateChange(async (_event, session) => {
             setSession(session);
-            handleUserMetadata(session);
+            await handleUserMetadata(session);
             setLoading(false);
         });
 
@@ -39,19 +44,32 @@ export function useRoleSession() {
             const emailPart = session.user.email ? session.user.email.split('@')[0].split('.')[0] : "";
             const fallbackName = emailPart ? emailPart.charAt(0).toUpperCase() + emailPart.slice(1) : "Usuário";
 
-            const userRole = userMeta.role;
+            // Fonte canonical de role: a tabela `user_roles` (populada pelo
+            // trigger handle_new_user). user_metadata.role pode ficar stale
+            // ou sumir transientemente em refresh de token.
+            const [profileRes, roleRes] = await Promise.all([
+                supabase
+                    .from('profiles')
+                    .select('full_name, avatar_url')
+                    .eq('id', session.user.id)
+                    .maybeSingle(),
+                supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', session.user.id)
+                    .maybeSingle(),
+            ]);
 
-            // Fetch from profiles table — handle_new_user trigger always populates it correctly
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('full_name, avatar_url')
-                .eq('id', session.user.id)
-                .maybeSingle();
+            const profile = profileRes.data;
+            const canonicalRole = (roleRes.data?.role as Role | undefined)
+                ?? (userMeta.role as Role | undefined);
 
             const fullName = profile?.full_name || userMeta.nome_completo || userMeta.full_name || fallbackName;
             const avatar = profile?.avatar_url || userMeta.avatar_url || null;
 
-            setRealRole((userRole as Role) || "gestor"); // fallback to gestor
+            // Preserva o role anterior se o lookup falhar (RLS, network),
+            // evitando flicker pro fallback "gestor".
+            setRealRole((prev) => canonicalRole ?? prev ?? "gestor");
             setUserName(fullName || "");
             setAvatarUrl(avatar);
         } else {

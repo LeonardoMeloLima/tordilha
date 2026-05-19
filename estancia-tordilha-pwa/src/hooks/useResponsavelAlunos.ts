@@ -8,10 +8,13 @@ export function useResponsavelAlunos() {
             const { data: { session } } = await supabase.auth.getSession();
             if (!session?.user?.email) return [];
 
+            // ilike garante match case-insensitive — emails do Supabase auth
+            // são lowercase, mas registros antigos em `responsaveis` podem
+            // ter capitalização diferente (ex: "Tmperez@hotmail.com").
             const { data, error } = await supabase
                 .from('aluno_responsavel')
-                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado, idade, diagnostico), responsaveis!inner(email)')
-                .eq('responsaveis.email', session.user.email);
+                .select('aluno_id, alunos (id, nome, avatar_url, lgpd_assinado, idade, diagnostico, status), responsaveis!inner(email)')
+                .ilike('responsaveis.email', session.user.email);
 
             if (error) throw error;
             return data || [];

@@ -81,30 +81,34 @@ export type Database = {
       }
       alunos: {
         Row: {
-          arquivado: boolean
-          ativo: boolean
+          arquivado: boolean | null
+          ativo: boolean | null
           atualizado_em: string | null
+          autoriza_imagem: boolean | null
           avatar_url: string | null
           contato_emergencia: string | null
           criado_em: string | null
-          diagnostico: string | null
+          data_autorizacao_imagem: string | null
           data_nascimento: string | null
+          diagnostico: string | null
           id: string
           idade: number | null
           lgpd_assinado: boolean | null
           nome: string
           patrocinador: string | null
           professor_id: string | null
-          autoriza_imagem: boolean | null
-          data_autorizacao_imagem: string | null
+          status: string
         }
         Insert: {
-          arquivado?: boolean
-          ativo?: boolean
+          arquivado?: boolean | null
+          ativo?: boolean | null
           atualizado_em?: string | null
+          autoriza_imagem?: boolean | null
           avatar_url?: string | null
           contato_emergencia?: string | null
           criado_em?: string | null
+          data_autorizacao_imagem?: string | null
+          data_nascimento?: string | null
           diagnostico?: string | null
           id?: string
           idade?: number | null
@@ -112,16 +116,18 @@ export type Database = {
           nome: string
           patrocinador?: string | null
           professor_id?: string | null
-          autoriza_imagem?: boolean | null
-          data_autorizacao_imagem?: string | null
+          status?: string
         }
         Update: {
-          arquivado?: boolean
-          ativo?: boolean
+          arquivado?: boolean | null
+          ativo?: boolean | null
           atualizado_em?: string | null
+          autoriza_imagem?: boolean | null
           avatar_url?: string | null
           contato_emergencia?: string | null
           criado_em?: string | null
+          data_autorizacao_imagem?: string | null
+          data_nascimento?: string | null
           diagnostico?: string | null
           id?: string
           idade?: number | null
@@ -129,8 +135,7 @@ export type Database = {
           nome?: string
           patrocinador?: string | null
           professor_id?: string | null
-          autoriza_imagem?: boolean | null
-          data_autorizacao_imagem?: string | null
+          status?: string
         }
         Relationships: [
           {
@@ -149,6 +154,8 @@ export type Database = {
           data: string
           id: string
           mensagem: string
+          target_role: string | null
+          target_user_id: string | null
           tipo: string
           titulo: string
         }
@@ -158,6 +165,8 @@ export type Database = {
           data?: string
           id?: string
           mensagem: string
+          target_role?: string | null
+          target_user_id?: string | null
           tipo: string
           titulo: string
         }
@@ -167,6 +176,8 @@ export type Database = {
           data?: string
           id?: string
           mensagem?: string
+          target_role?: string | null
+          target_user_id?: string | null
           tipo?: string
           titulo?: string
         }
@@ -174,73 +185,73 @@ export type Database = {
       }
       cavalos: {
         Row: {
+          altura: number | null
+          ano_nascimento: number | null
           atualizado_em: string | null
+          avaliacao_comportamento: Json | null
+          avaliacao_marcha: Json | null
+          avaliacao_veterinaria: Json | null
+          castrado: boolean | null
           comentario: string | null
           cor: string | null
           criado_em: string | null
+          data_avaliacao: string | null
           foto_url: string | null
           humor: string | null
           id: string
-          nome: string
-          raca: string | null
-          status: string | null
-          ano_nascimento: number | null
-          sexo: string | null
-          castrado: boolean | null
-          altura: number | null
-          peso: number | null
-          pelagem: string | null
           movimento_3d_predominante: string | null
-          avaliacao_marcha: Json | null
-          avaliacao_comportamento: Json | null
-          avaliacao_veterinaria: Json | null
-          data_avaliacao: string | null
+          nome: string
+          pelagem: string | null
+          peso: number | null
+          raca: string | null
+          sexo: string | null
+          status: string | null
         }
         Insert: {
+          altura?: number | null
+          ano_nascimento?: number | null
           atualizado_em?: string | null
+          avaliacao_comportamento?: Json | null
+          avaliacao_marcha?: Json | null
+          avaliacao_veterinaria?: Json | null
+          castrado?: boolean | null
           comentario?: string | null
           cor?: string | null
           criado_em?: string | null
+          data_avaliacao?: string | null
           foto_url?: string | null
           humor?: string | null
           id?: string
-          nome: string
-          raca?: string | null
-          status?: string | null
-          ano_nascimento?: number | null
-          sexo?: string | null
-          castrado?: boolean | null
-          altura?: number | null
-          peso?: number | null
-          pelagem?: string | null
           movimento_3d_predominante?: string | null
-          avaliacao_marcha?: Json | null
-          avaliacao_comportamento?: Json | null
-          avaliacao_veterinaria?: Json | null
-          data_avaliacao?: string | null
+          nome: string
+          pelagem?: string | null
+          peso?: number | null
+          raca?: string | null
+          sexo?: string | null
+          status?: string | null
         }
         Update: {
+          altura?: number | null
+          ano_nascimento?: number | null
           atualizado_em?: string | null
+          avaliacao_comportamento?: Json | null
+          avaliacao_marcha?: Json | null
+          avaliacao_veterinaria?: Json | null
+          castrado?: boolean | null
           comentario?: string | null
           cor?: string | null
           criado_em?: string | null
+          data_avaliacao?: string | null
           foto_url?: string | null
           humor?: string | null
           id?: string
-          nome?: string
-          raca?: string | null
-          status?: string | null
-          ano_nascimento?: number | null
-          sexo?: string | null
-          castrado?: boolean | null
-          altura?: number | null
-          peso?: number | null
-          pelagem?: string | null
           movimento_3d_predominante?: string | null
-          avaliacao_marcha?: Json | null
-          avaliacao_comportamento?: Json | null
-          avaliacao_veterinaria?: Json | null
-          data_avaliacao?: string | null
+          nome?: string
+          pelagem?: string | null
+          peso?: number | null
+          raca?: string | null
+          sexo?: string | null
+          status?: string | null
         }
         Relationships: []
       }
@@ -306,27 +317,114 @@ export type Database = {
           },
         ]
       }
+      feedbacks: {
+        Row: {
+          categoria: string
+          created_at: string
+          id: string
+          lida: boolean
+          mensagem: string
+          responsavel_id: string
+          responsavel_nome: string
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem: string
+          responsavel_id: string
+          responsavel_nome: string
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          id?: string
+          lida?: boolean
+          mensagem?: string
+          responsavel_id?: string
+          responsavel_nome?: string
+        }
+        Relationships: []
+      }
+      fichas_atendimento: {
+        Row: {
+          aluno_id: string | null
+          atualizado_em: string | null
+          cavalo_id: string | null
+          criado_em: string | null
+          encilhamento: string | null
+          equipe: string | null
+          id: string
+          objetivo_t1: string | null
+          objetivo_t2: string | null
+          objetivo_t3: string | null
+          objetivo_t4: string | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          atualizado_em?: string | null
+          cavalo_id?: string | null
+          criado_em?: string | null
+          encilhamento?: string | null
+          equipe?: string | null
+          id?: string
+          objetivo_t1?: string | null
+          objetivo_t2?: string | null
+          objetivo_t3?: string | null
+          objetivo_t4?: string | null
+        }
+        Update: {
+          aluno_id?: string | null
+          atualizado_em?: string | null
+          cavalo_id?: string | null
+          criado_em?: string | null
+          encilhamento?: string | null
+          equipe?: string | null
+          id?: string
+          objetivo_t1?: string | null
+          objetivo_t2?: string | null
+          objetivo_t3?: string | null
+          objetivo_t4?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fichas_atendimento_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: true
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fichas_atendimento_cavalo_id_fkey"
+            columns: ["cavalo_id"]
+            isOneToOne: false
+            referencedRelation: "cavalos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mural_comentarios: {
         Row: {
           conteudo: string
           criado_em: string | null
           id: string
           post_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           conteudo: string
           criado_em?: string | null
           id?: string
           post_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           conteudo?: string
           criado_em?: string | null
           id?: string
           post_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -336,13 +434,6 @@ export type Database = {
             referencedRelation: "mural_posts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "mural_comentarios_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       mural_likes: {
@@ -350,19 +441,19 @@ export type Database = {
           criado_em: string | null
           id: string
           post_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           criado_em?: string | null
           id?: string
           post_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           criado_em?: string | null
           id?: string
           post_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -372,13 +463,6 @@ export type Database = {
             referencedRelation: "mural_posts"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "mural_likes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
         ]
       }
       mural_posts: {
@@ -435,7 +519,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sessoes"
             referencedColumns: ["id"]
-          }
+          },
         ]
       }
       notificacoes: {
@@ -445,6 +529,7 @@ export type Database = {
           lida: boolean | null
           link: string | null
           mensagem: string
+          target_role: string | null
           tipo: string | null
           titulo: string
           user_id: string
@@ -455,6 +540,7 @@ export type Database = {
           lida?: boolean | null
           link?: string | null
           mensagem: string
+          target_role?: string | null
           tipo?: string | null
           titulo: string
           user_id: string
@@ -465,131 +551,274 @@ export type Database = {
           lida?: boolean | null
           link?: string | null
           mensagem?: string
+          target_role?: string | null
           tipo?: string | null
           titulo?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "notificacoes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
+          aluno_diagnosticos: string | null
+          aluno_idades: string | null
+          aluno_nomes: string | null
           avatar_url: string | null
+          email: string | null
           full_name: string | null
           id: string
-          updated_at: string | null
-          aluno_nomes: string | null
-          patrocinador: string | null
-          email: string | null
+          lgpd_assinado: boolean | null
           needs_password_reset: boolean | null
+          nome_completo_responsavel: string | null
+          patrocinador: string | null
+          role: string | null
+          telefone: string | null
+          updated_at: string | null
         }
         Insert: {
+          aluno_diagnosticos?: string | null
+          aluno_idades?: string | null
+          aluno_nomes?: string | null
           avatar_url?: string | null
+          email?: string | null
           full_name?: string | null
           id: string
-          updated_at?: string | null
-          aluno_nomes?: string | null
-          patrocinador?: string | null
-          email?: string | null
+          lgpd_assinado?: boolean | null
           needs_password_reset?: boolean | null
+          nome_completo_responsavel?: string | null
+          patrocinador?: string | null
+          role?: string | null
+          telefone?: string | null
+          updated_at?: string | null
         }
         Update: {
+          aluno_diagnosticos?: string | null
+          aluno_idades?: string | null
+          aluno_nomes?: string | null
           avatar_url?: string | null
+          email?: string | null
           full_name?: string | null
           id?: string
-          updated_at?: string | null
-          aluno_nomes?: string | null
-          patrocinador?: string | null
-          email?: string | null
+          lgpd_assinado?: boolean | null
           needs_password_reset?: boolean | null
+          nome_completo_responsavel?: string | null
+          patrocinador?: string | null
+          role?: string | null
+          telefone?: string | null
+          updated_at?: string | null
         }
         Relationships: []
+      }
+      propostas_horario: {
+        Row: {
+          aluno_id: string
+          cavalo_id: string | null
+          criado_em: string | null
+          dia_semana: number
+          expires_at: string
+          horario: string
+          id: string
+          status: string | null
+          terapeuta_id: string
+        }
+        Insert: {
+          aluno_id: string
+          cavalo_id?: string | null
+          criado_em?: string | null
+          dia_semana: number
+          expires_at?: string
+          horario: string
+          id?: string
+          status?: string | null
+          terapeuta_id: string
+        }
+        Update: {
+          aluno_id?: string
+          cavalo_id?: string | null
+          criado_em?: string | null
+          dia_semana?: number
+          expires_at?: string
+          horario?: string
+          id?: string
+          status?: string | null
+          terapeuta_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_horario_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_horario_cavalo_id_fkey"
+            columns: ["cavalo_id"]
+            isOneToOne: false
+            referencedRelation: "cavalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_horario_terapeuta_id_fkey"
+            columns: ["terapeuta_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       responsaveis: {
         Row: {
           atualizado_em: string | null
+          cidade: string | null
           cpf: string | null
           criado_em: string | null
           email: string | null
+          endereco: string | null
+          estado: string | null
           id: string
           nome: string
-          telefone: string | null
           rg: string | null
-          endereco: string | null
-          cidade: string | null
-          estado: string | null
           status: string
+          telefone: string | null
         }
         Insert: {
           atualizado_em?: string | null
+          cidade?: string | null
           cpf?: string | null
           criado_em?: string | null
           email?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
           nome: string
-          telefone?: string | null
           rg?: string | null
-          endereco?: string | null
-          cidade?: string | null
-          estado?: string | null
           status?: string
+          telefone?: string | null
         }
         Update: {
           atualizado_em?: string | null
+          cidade?: string | null
           cpf?: string | null
           criado_em?: string | null
           email?: string | null
+          endereco?: string | null
+          estado?: string | null
           id?: string
           nome?: string
-          telefone?: string | null
           rg?: string | null
-          endereco?: string | null
-          cidade?: string | null
-          estado?: string | null
           status?: string
+          telefone?: string | null
         }
         Relationships: []
       }
-      sessoes_recorrentes: {
+      sessoes: {
         Row: {
-          id: string
           aluno_id: string | null
-          cavalo_id: string | null
-          professor_id: string | null
-          dia_semana: number
-          horario: string
-          ativo: boolean
-          criado_em: string | null
           atualizado_em: string | null
+          cavalo_id: string | null
+          criado_em: string | null
+          data_hora: string
+          id: string
+          notas: string | null
+          professor_id: string | null
+          recorrente_id: string | null
+          status: string | null
+          tipo: string | null
+          visitante_nome: string | null
         }
         Insert: {
-          id?: string
           aluno_id?: string | null
-          cavalo_id?: string | null
-          professor_id?: string | null
-          dia_semana: number
-          horario: string
-          ativo?: boolean
-          criado_em?: string | null
           atualizado_em?: string | null
+          cavalo_id?: string | null
+          criado_em?: string | null
+          data_hora: string
+          id?: string
+          notas?: string | null
+          professor_id?: string | null
+          recorrente_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          visitante_nome?: string | null
         }
         Update: {
-          id?: string
           aluno_id?: string | null
+          atualizado_em?: string | null
           cavalo_id?: string | null
+          criado_em?: string | null
+          data_hora?: string
+          id?: string
+          notas?: string | null
           professor_id?: string | null
+          recorrente_id?: string | null
+          status?: string | null
+          tipo?: string | null
+          visitante_nome?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessoes_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessoes_cavalo_id_fkey"
+            columns: ["cavalo_id"]
+            isOneToOne: false
+            referencedRelation: "cavalos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessoes_professor_id_fkey"
+            columns: ["professor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessoes_recorrente_id_fkey"
+            columns: ["recorrente_id"]
+            isOneToOne: false
+            referencedRelation: "sessoes_recorrentes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sessoes_recorrentes: {
+        Row: {
+          aluno_id: string | null
+          ativo: boolean | null
+          atualizado_em: string | null
+          cavalo_id: string | null
+          criado_em: string | null
+          dia_semana: number
+          horario: string
+          id: string
+          professor_id: string | null
+        }
+        Insert: {
+          aluno_id?: string | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cavalo_id?: string | null
+          criado_em?: string | null
+          dia_semana: number
+          horario: string
+          id?: string
+          professor_id?: string | null
+        }
+        Update: {
+          aluno_id?: string | null
+          ativo?: boolean | null
+          atualizado_em?: string | null
+          cavalo_id?: string | null
+          criado_em?: string | null
           dia_semana?: number
           horario?: string
-          ativo?: boolean
-          criado_em?: string | null
-          atualizado_em?: string | null
+          id?: string
+          professor_id?: string | null
         }
         Relationships: [
           {
@@ -615,63 +844,55 @@ export type Database = {
           },
         ]
       }
-      sessoes: {
+      solicitacoes: {
         Row: {
-          aluno_id: string | null
-          atualizado_em: string | null
-          cavalo_id: string | null
-          criado_em: string | null
-          data_hora: string
+          aluno_id: string
+          alvo_id: string | null
+          atualizado_em: string
+          criado_em: string
+          decidido_em: string | null
+          decidido_por: string | null
           id: string
-          notas: string | null
-          professor_id: string | null
-          recorrente_id: string | null
-          status: string | null
+          motivo_rejeicao: string | null
+          payload: Json
+          solicitante_id: string
+          status: string
+          tipo: string
         }
         Insert: {
-          aluno_id?: string | null
-          atualizado_em?: string | null
-          cavalo_id?: string | null
-          criado_em?: string | null
-          data_hora: string
+          aluno_id: string
+          alvo_id?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
           id?: string
-          notas?: string | null
-          professor_id?: string | null
-          recorrente_id?: string | null
-          status?: string | null
+          motivo_rejeicao?: string | null
+          payload?: Json
+          solicitante_id: string
+          status?: string
+          tipo: string
         }
         Update: {
-          aluno_id?: string | null
-          atualizado_em?: string | null
-          cavalo_id?: string | null
-          criado_em?: string | null
-          data_hora?: string
+          aluno_id?: string
+          alvo_id?: string | null
+          atualizado_em?: string
+          criado_em?: string
+          decidido_em?: string | null
+          decidido_por?: string | null
           id?: string
-          notas?: string | null
-          professor_id?: string | null
-          recorrente_id?: string | null
-          status?: string | null
+          motivo_rejeicao?: string | null
+          payload?: Json
+          solicitante_id?: string
+          status?: string
+          tipo?: string
         }
         Relationships: [
           {
-            foreignKeyName: "sessoes_aluno_id_fkey"
+            foreignKeyName: "solicitacoes_aluno_id_fkey"
             columns: ["aluno_id"]
             isOneToOne: false
             referencedRelation: "alunos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessoes_cavalo_id_fkey"
-            columns: ["cavalo_id"]
-            isOneToOne: false
-            referencedRelation: "cavalos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sessoes_professor_id_fkey"
-            columns: ["professor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -702,6 +923,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enviar_comunicado: {
+        Args: {
+          p_mensagem: string
+          p_target_role: string
+          p_target_user_id?: string
+          p_tipo: string
+          p_titulo: string
+        }
+        Returns: undefined
+      }
       get_evolucao_clinica_recente: {
         Args: never
         Returns: {
@@ -711,7 +942,7 @@ export type Database = {
           media_agitacao: number
           media_cognitivo: number
           media_emocional: number
-          media_fisico: number | null
+          media_fisico: number
           media_interacao: number
           media_pedagogico: number
           media_social: number
@@ -729,6 +960,18 @@ export type Database = {
           total_sessoes: number
         }[]
       }
+      rpc_atualizar_recorrencia: {
+        Args: {
+          p_dia_semana: number
+          p_horario: string
+          p_recorrencia_id: string
+        }
+        Returns: Json
+      }
+      rpc_decidir_solicitacao: {
+        Args: { p_decisao: string; p_motivo?: string; p_solicitacao_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -745,116 +988,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-  : never = never,
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-  ? R
-  : never
+    ? R
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])
-  ? (DefaultSchema["Tables"] &
-    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-      Row: infer R
-    }
-  ? R
-  : never
-  : never
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
+      Insert: infer I
+    }
+    ? I
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Insert: infer I
-  }
-  ? I
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-  | keyof DefaultSchema["Tables"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-    Update: infer U
-  }
-  ? U
-  : never
+      Update: infer U
+    }
+    ? U
+    : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-    Update: infer U
-  }
-  ? U
-  : never
-  : never
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-  | keyof DefaultSchema["Enums"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-  : never
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-  | keyof DefaultSchema["CompositeTypes"]
-  | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-  : never = never,
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-  : never
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
 
 export const Constants = {
   public: {

@@ -78,7 +78,7 @@ export function useAlunosResponsaveis(alunoId: string | null) {
       cidade?: string;
       estado?: string;
     }) => {
-      if (!alunoId) throw new Error("ID do aluno não informado");
+      if (!alunoId) throw new Error("ID do praticante não informado");
 
       // 1. Get or create responsible
       let { data: resp } = await supabase
@@ -143,7 +143,7 @@ export function useAlunosResponsaveis(alunoId: string | null) {
 
   const unlinkResponsavel = useMutation({
     mutationFn: async (responsavelId: string) => {
-      if (!alunoId) throw new Error("ID do aluno não informado");
+      if (!alunoId) throw new Error("ID do praticante não informado");
 
       const { error } = await supabase
         .from("aluno_responsavel")

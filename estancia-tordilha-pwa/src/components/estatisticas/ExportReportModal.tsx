@@ -163,7 +163,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                 toast.success("Relatório de impacto social gerado com sucesso!");
             } else if (selectedType === "evolution") {
                 if (!selectedStudentId) {
-                    toast.error("Por favor, selecione um aluno.");
+                    toast.error("Por favor, selecione um praticante.");
                     return;
                 }
 
@@ -192,7 +192,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                 if (error) throw error;
 
                 if (!sessions || sessions.length === 0) {
-                    toast.info("Nenhuma sessão encontrada para este aluno.");
+                    toast.info("Nenhuma sessão encontrada para este praticante.");
                     return;
                 }
 
@@ -215,7 +215,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     });
 
                 if (data.length === 0) {
-                    toast.info("Nenhuma evolução registrada para este aluno.");
+                    toast.info("Nenhuma evolução registrada para este praticante.");
                     return;
                 }
 
@@ -248,13 +248,13 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
         {
             id: "productivity",
             title: "Produtividade da Equipe",
-            description: "Sessões e alunos únicos por terapeuta",
+            description: "Sessões e praticantes únicos por terapeuta",
             icon: <Users className="text-[#4E593F]" size={24} />,
         },
         {
             id: "evolution",
             title: "Evolução Clínica Individual",
-            description: "Relatório detalhado por aluno",
+            description: "Relatório detalhado por praticante",
             icon: <TrendingUp className="text-[#4E593F]" size={24} />,
         },
     ];
@@ -305,7 +305,7 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
                     <div className="space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                                Buscar Aluno
+                                Buscar Praticante
                             </label>
                             <div className="relative">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
@@ -321,11 +321,11 @@ export function ExportReportModal({ isOpen, onClose }: ExportReportModalProps) {
 
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                                Selecionar Aluno
+                                Selecionar Praticante
                             </label>
                             <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
                                 <SelectTrigger className="h-14 rounded-2xl border-2 border-slate-100 bg-white font-bold text-[#1A1D1E] focus:border-[#4E593F] focus:ring-0">
-                                    <SelectValue placeholder="Escolha um aluno..." />
+                                    <SelectValue placeholder="Escolha um praticante..." />
                                 </SelectTrigger>
                                 <SelectContent className="rounded-2xl border-none shadow-xl max-h-[300px]">
                                     {filteredAlunos.length > 0 ? (

@@ -1,4 +1,4 @@
-import { UsersRound, CalendarDays, TrendingUp, HeartPulse } from "lucide-react";
+import { UsersRound, CalendarDays, TrendingUp, HeartPulse, ClipboardCheck, ChevronRight } from "lucide-react";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { useSessoes } from "@/hooks/useSessoes";
@@ -7,6 +7,7 @@ import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTaxaPresencaStats } from "@/hooks/useTaxaPresencaStats";
+import { useSolicitacoesPendentesCount } from "@/hooks/useSolicitacoes";
 import { TaxaPresencaModal } from "@/components/gestor/TaxaPresencaModal";
 import { CavalosUsoModal } from "@/components/gestor/CavalosUsoModal";
 
@@ -16,12 +17,13 @@ export const GestorDashboard = () => {
   const { sessoes, isLoading: loadingSessoes } = useSessoes();
   const navigate = useNavigate();
   const { data: taxaPresencaStats, isLoading: loadingTaxaPresenca } = useTaxaPresencaStats();
+  const { data: pendentesCount = 0 } = useSolicitacoesPendentesCount();
   const [taxaModalOpen, setTaxaModalOpen] = useState(false);
   const [cavalosModalOpen, setCavalosModalOpen] = useState(false);
 
   const metrics = useMemo(() => [
     {
-      label: 'Alunos Ativos',
+      label: 'Praticantes Ativos',
       value: loadingAlunos ? '...' : alunos.length.toString(),
       icon: UsersRound,
       color: 'bg-[#fdf4ff]', // fuchsia-50
@@ -71,6 +73,32 @@ export const GestorDashboard = () => {
 
   return (
     <div className="space-y-8 animate-fade-in pb-24">
+      {/* Banner de solicitações pendentes — atalho pra tab Pendências.
+          Aparece só quando há solicitações pra decidir. Cor de alerta âmbar
+          pra puxar a atenção do gestor sem ser agressivo (vermelho). */}
+      {pendentesCount > 0 && (
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent('change-tab', { detail: { tab: 'pendencias' } }))}
+          className="w-full flex items-center gap-4 p-5 rounded-[28px] bg-gradient-to-br from-amber-50 to-amber-100 border-2 border-amber-200 active:scale-[0.98] transition-all shadow-sm"
+        >
+          <div className="w-14 h-14 rounded-2xl bg-amber-500 flex items-center justify-center shadow-md shrink-0">
+            <ClipboardCheck size={26} className="text-white" strokeWidth={2.5} />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-base font-black text-amber-900 tracking-tight leading-tight">
+              {pendentesCount === 1
+                ? "1 solicitação aguardando aprovação"
+                : `${pendentesCount} solicitações aguardando aprovação`}
+            </p>
+            <p className="text-[11px] font-bold text-amber-700/80 uppercase tracking-widest mt-1">
+              Toque para revisar e aprovar
+            </p>
+          </div>
+          <ChevronRight size={22} className="text-amber-700 shrink-0" />
+        </button>
+      )}
+
       {/* Resumo e Link para Estatísticas */}
       <div>
         <div className="flex items-center justify-between mb-6 px-1 mt-2">
@@ -144,7 +172,7 @@ export const GestorDashboard = () => {
                     type="user"
                   />
                   <div className="flex-1">
-                    <h3 className="text-base font-extrabold text-[#1A1D1E] tracking-tight">{s.aluno?.nome || "Aluno"}</h3>
+                    <h3 className="text-base font-extrabold text-[#1A1D1E] tracking-tight">{s.aluno?.nome || "Praticante"}</h3>
                     <p className="text-sm text-slate-500 font-medium mt-0.5">c/ {s.cavalo?.nome || "Sem cavalo"}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">

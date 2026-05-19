@@ -48,10 +48,10 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
 
     const alunos = useMemo(() => {
         if (vinculos && vinculos.length > 0) {
-            return vinculos.map(v => ({ id: v.aluno_id, nome: v.alunos?.nome }));
+            return vinculos.map(v => ({ id: v.aluno_id, nome: v.alunos?.nome, status: (v.alunos as any)?.status }));
         }
         if (isSuperUser) {
-            return allAlunos.map(a => ({ id: a.id, nome: a.nome }));
+            return allAlunos.map(a => ({ id: a.id, nome: a.nome, status: (a as any).status }));
         }
         return [];
     }, [vinculos, allAlunos, isSuperUser]);
@@ -180,32 +180,50 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 <div className="space-y-4">
                     <label className="flex items-center gap-2 text-sm font-bold text-slate-400 uppercase tracking-widest ml-1">
                         <User size={16} />
-                        Escolha o Aluno
+                        Escolha o Praticante
                     </label>
                     <div className="grid grid-cols-1 gap-3">
                         {loadingAlunos ? (
                             <div className="flex justify-center py-4">
                                 <Loader2 className="animate-spin text-slate-300" />
                             </div>
-                        ) : alunos.map(aluno => (
-                            <button
-                                key={aluno.id}
-                                type="button"
-                                onClick={() => setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
-                                className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${selectedAluno === aluno.id
-                                    ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
-                                    : "bg-slate-50 border-transparent hover:border-slate-200"}`}
-                            >
-                                <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
-                                    {aluno.nome}
-                                </span>
-                                {selectedAluno === aluno.id && (
-                                    <div className="w-6 h-6 rounded-full bg-[#4E593F] flex items-center justify-center">
-                                        <Check size={14} className="text-white" strokeWidth={3} />
+                        ) : alunos.map(aluno => {
+                            const isAtivo = aluno.status === "ativo";
+                            const labelStatus = aluno.status === "pendente"
+                                ? "Aguardando aprovação do gestor"
+                                : aluno.status === "rejeitado"
+                                ? "Cadastro rejeitado"
+                                : null;
+                            return (
+                                <button
+                                    key={aluno.id}
+                                    type="button"
+                                    disabled={!isAtivo}
+                                    onClick={() => isAtivo && setSelectedAluno(prev => prev === aluno.id ? "" : (aluno.id || ""))}
+                                    className={`flex items-center justify-between p-5 rounded-[24px] transition-all border-2 ${
+                                        !isAtivo
+                                            ? "bg-slate-50/60 border-transparent opacity-60 cursor-not-allowed"
+                                            : selectedAluno === aluno.id
+                                            ? "bg-[#4E593F]/5 border-[#4E593F] shadow-sm"
+                                            : "bg-slate-50 border-transparent hover:border-slate-200"
+                                    }`}
+                                >
+                                    <div className="text-left">
+                                        <span className={`font-bold text-base ${selectedAluno === aluno.id ? "text-[#4E593F]" : "text-slate-700"}`}>
+                                            {aluno.nome}
+                                        </span>
+                                        {labelStatus && (
+                                            <p className="text-xs text-slate-500 mt-0.5">{labelStatus}</p>
+                                        )}
                                     </div>
-                                )}
-                            </button>
-                        ))}
+                                    {selectedAluno === aluno.id && (
+                                        <div className="w-6 h-6 rounded-full bg-[#4E593F] flex items-center justify-center">
+                                            <Check size={14} className="text-white" strokeWidth={3} />
+                                        </div>
+                                    )}
+                                </button>
+                            );
+                        })}
                     </div>
                 </div>
 

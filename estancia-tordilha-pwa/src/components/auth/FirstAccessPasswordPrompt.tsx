@@ -3,13 +3,15 @@ import { ActionSheet } from "@/components/ui/ActionSheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
-import { Lock, Check, AlertCircle } from "lucide-react";
+import { Lock, Check, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
-export const ProfessorPasswordPrompt = () => {
+export const FirstAccessPasswordPrompt = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
@@ -93,13 +95,21 @@ export const ProfessorPasswordPrompt = () => {
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input
-              type="password"
+              type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white"
+              className="pl-10 pr-11 h-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white"
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+            >
+              {showPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+            </button>
           </div>
         </div>
 
@@ -108,13 +118,21 @@ export const ProfessorPasswordPrompt = () => {
           <div className="relative">
             <Check className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input
-              type="password"
+              type={showConfirmPassword ? "text" : "password"}
               placeholder="••••••••"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className={`pl-10 h-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300' : ''}`}
+              className={`pl-10 pr-11 h-12 rounded-2xl bg-slate-50 border-transparent focus:bg-white ${confirmPassword && password !== confirmPassword ? 'border-red-300' : ''}`}
               required
             />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword((v) => !v)}
+              aria-label={showConfirmPassword ? "Ocultar senha" : "Mostrar senha"}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#4E593F] transition-colors"
+            >
+              {showConfirmPassword ? <EyeOff size={18} strokeWidth={1.5} /> : <Eye size={18} strokeWidth={1.5} />}
+            </button>
           </div>
         </div>
 

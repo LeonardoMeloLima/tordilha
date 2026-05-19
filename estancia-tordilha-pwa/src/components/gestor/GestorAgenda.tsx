@@ -2,10 +2,18 @@ import { useState, useEffect, useMemo } from "react";
 import { Clock, Check, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
 import { ActionSheet } from "../ui/ActionSheet";
 import { useToast } from "@/components/ui/use-toast";
+import { toast as sonnerToast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
+import { Button } from "@/components/ui/button";
+import { ModalSugerirHorario } from "@/components/shared/ModalSugerirHorario";
+import { ModalImpactoMudanca } from "@/components/shared/ModalImpactoMudanca";
+import { PendenteBadge } from "@/components/shared/PendenteBadge";
+import { usePendentesByAlvo } from "@/hooks/useSolicitacoes";
+import { supabase } from "@/lib/supabase";
 import {
   format, addDays, parseISO, isSameDay, isBefore,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
@@ -24,10 +32,21 @@ const HORARIOS_BASE = [
 
 export const GestorAgenda = () => {
   const { toast } = useToast();
-  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao } = useSessoes();
+  const queryClient = useQueryClient();
+  const { sessoes, isLoading: loadingSessoes, createSessao, deleteSessao, updateSessao } = useSessoes();
   const { recorrentes, createRecorrente, deleteRecorrente } = useSessoesRecorrentes();
   const { alunos, isLoading: loadingAlunos } = useAlunos();
   const { cavalos, isLoading: loadingCavalos } = useCavalos();
+  const { byAlvo: pendentesByAlvo } = usePendentesByAlvo();
+
+  // Remarcar sessão pontual (Task 20)
+  const [remarcandoSessao, setRemarcandoSessao] = useState<any | null>(null);
+  // Editar recorrência (Task 19)
+  const [editandoRecorrencia, setEditandoRecorrencia] = useState<any | null>(null);
+  const [impactandoRecorrencia, setImpactandoRecorrencia] = useState<{
+    recorrencia: any;
+    novo: { dia_semana: number; horario: string };
+  } | null>(null);
 
   const [view, setView] = useState<CalendarView>("semana");
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -135,7 +154,7 @@ export const GestorAgenda = () => {
 
   const handleSave = async () => {
     if (!newSession.alunoId) {
-      toast({ variant: "destructive", title: "Erro", description: "Selecione um aluno." });
+      toast({ variant: "destructive", title: "Erro", description: "Selecione um praticante." });
       return;
     }
 
@@ -230,7 +249,7 @@ export const GestorAgenda = () => {
                   <AvatarWithFallback src={s.aluno?.avatar_url} className="w-10 h-10 rounded-xl" type="user" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Aluno não encontrado"}</p>
+                  <p className="text-sm font-bold text-foreground">{s.aluno?.nome || "Praticante não encontrado"}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className="w-4 h-4 rounded-full bg-slate-100 flex items-center justify-center">
                       <div className="w-1.5 h-1.5 rounded-full bg-[#4E593F]" />
@@ -242,11 +261,22 @@ export const GestorAgenda = () => {
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                     <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {format(parseISO(s.data_hora), "HH:mm")}
                   </div>
+                  <PendenteBadge solicitacao={pendentesByAlvo.get(s.id)} />
+                  {!isVirtual && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px] px-2"
+                      onClick={(e) => { e.stopPropagation(); setRemarcandoSessao(s); }}
+                    >
+                      Remarcar
+                    </Button>
+                  )}
                 </div>
               </div>
             );
@@ -425,7 +455,7 @@ export const GestorAgenda = () => {
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex flex-col items-end gap-1">
                   <div className="flex items-center gap-1.5 text-sm font-extrabold text-foreground">
                     <Clock size={14} className="text-[#4E593F]" strokeWidth={2.5} />
                     {r.horario.slice(0, 5)}
@@ -433,6 +463,15 @@ export const GestorAgenda = () => {
                   <span className="text-[10px] font-black uppercase tracking-tighter text-[#4E593F]">
                     {DIAS_SEMANA.find(d => d.value === r.dia_semana)?.label} · semanal
                   </span>
+                  <PendenteBadge solicitacao={pendentesByAlvo.get(r.id)} />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[10px] px-2"
+                    onClick={(e) => { e.stopPropagation(); setEditandoRecorrencia(r); }}
+                  >
+                    Editar
+                  </Button>
                 </div>
               </div>
             </SwipeableCard>
@@ -485,14 +524,14 @@ export const GestorAgenda = () => {
 
           {/* Aluno */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ml-1">Aluno</label>
+            <label className="text-sm font-medium text-slate-700 ml-1">Praticante</label>
             <select
               value={newSession.alunoId}
               onChange={(e) => setNewSession({ ...newSession, alunoId: e.target.value })}
               className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-base font-medium focus:ring-2 focus:ring-[#4E593F] focus:border-[#4E593F] outline-none transition-all shadow-sm focus:bg-white disabled:opacity-50"
               disabled={loadingAlunos}
             >
-              <option value="">{loadingAlunos ? "Carregando..." : "Selecionar aluno..."}</option>
+              <option value="">{loadingAlunos ? "Carregando..." : "Selecionar praticante..."}</option>
               {alunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
             </select>
           </div>
@@ -561,6 +600,84 @@ export const GestorAgenda = () => {
           </div>
         </div>
       </ActionSheet>
+
+      {/* Modal: remarcar sessão pontual (Task 20 — gestor pula validação 24h) */}
+      {remarcandoSessao && (
+        <ModalSugerirHorario
+          open={!!remarcandoSessao}
+          onClose={() => setRemarcandoSessao(null)}
+          modo="sessao"
+          pularValidacao24h={true}
+          atual={{ data_hora: remarcandoSessao.data_hora }}
+          onSubmit={async (data) => {
+            try {
+              await updateSessao.mutateAsync({
+                id: remarcandoSessao.id,
+                data_hora: new Date(data.data_hora).toISOString(),
+              });
+              sonnerToast.success("Sessão remarcada.");
+              setRemarcandoSessao(null);
+            } catch (err: any) {
+              sonnerToast.error(err?.message || "Erro ao remarcar sessão.");
+            }
+          }}
+        />
+      )}
+
+      {/* Modal: editar recorrência (Task 19 — passo 1: sugerir novo horário) */}
+      {editandoRecorrencia && (
+        <ModalSugerirHorario
+          open={!!editandoRecorrencia}
+          onClose={() => setEditandoRecorrencia(null)}
+          modo="recorrencia"
+          pularValidacao24h={true}
+          atual={{
+            dia_semana: editandoRecorrencia.dia_semana,
+            horario: editandoRecorrencia.horario.slice(0, 5),
+          }}
+          onSubmit={async (data) => {
+            setImpactandoRecorrencia({
+              recorrencia: editandoRecorrencia,
+              novo: { dia_semana: data.dia_semana, horario: data.horario },
+            });
+            setEditandoRecorrencia(null);
+          }}
+        />
+      )}
+
+      {/* Modal: confirmar impacto (Task 19 — passo 2: aplicar via RPC) */}
+      {impactandoRecorrencia && (
+        <ModalImpactoMudanca
+          open={!!impactandoRecorrencia}
+          onClose={() => setImpactandoRecorrencia(null)}
+          recorrencia_id={impactandoRecorrencia.recorrencia.id}
+          aluno_nome={impactandoRecorrencia.recorrencia.aluno?.nome || "Praticante"}
+          atual={{
+            dia_semana: impactandoRecorrencia.recorrencia.dia_semana,
+            horario: impactandoRecorrencia.recorrencia.horario.slice(0, 5),
+          }}
+          novo={impactandoRecorrencia.novo}
+          onConfirm={async () => {
+            try {
+              const { error } = await supabase.rpc("rpc_atualizar_recorrencia", {
+                p_recorrencia_id: impactandoRecorrencia.recorrencia.id,
+                p_dia_semana: impactandoRecorrencia.novo.dia_semana,
+                p_horario: impactandoRecorrencia.novo.horario,
+              });
+              if (error) throw error;
+              await Promise.all([
+                queryClient.invalidateQueries({ queryKey: ["sessoes_recorrentes"] }),
+                queryClient.invalidateQueries({ queryKey: ["sessoes"] }),
+                queryClient.invalidateQueries({ queryKey: ["solicitacoes"] }),
+              ]);
+              sonnerToast.success("Recorrência atualizada.");
+              setImpactandoRecorrencia(null);
+            } catch (err: any) {
+              sonnerToast.error(err?.message || "Erro ao atualizar recorrência.");
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
