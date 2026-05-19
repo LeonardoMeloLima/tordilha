@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useProfessores } from "@/hooks/useProfessores";
 import { useResponsaveis } from "@/hooks/useResponsaveis";
+import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { Mail, User, ChevronRight, Search, Loader2, ShieldCheck, Trash2, Key } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,10 @@ import { TempPasswordSuccessModal } from "./TempPasswordSuccessModal";
 export const GestorAdminPanel = () => {
   const { professores, isLoading, refetch } = useProfessores();
   const { responsaveis, isLoading: isLoadingResp, refetch: refetchResp } = useResponsaveis();
+  // Email do gestor logado — usado pra esconder ele mesmo da lista (não dá pra
+  // auto-deletar ou auto-resetar a própria conta). Substitui o filtro
+  // hardcoded antigo (leonardo.informatica@gmail.com) por algo dinâmico.
+  const { email: currentUserEmail } = useRoleSession();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeType, setActiveType] = useState<"professor" | "gestor" | "pais">("professor");
   const [showForm, setShowForm] = useState(false);
@@ -47,7 +52,10 @@ export const GestorAdminPanel = () => {
     ? []
     : professores.filter(p =>
         p.role === activeType &&
-        p.email?.toLowerCase() !== "leonardo.informatica@gmail.com" &&
+        // Esconde o próprio gestor logado — não pode se auto-deletar nem
+        // se auto-resetar (e o trigger no banco também bloqueia o último
+        // gestor como defesa profunda).
+        p.email?.toLowerCase() !== currentUserEmail?.toLowerCase() &&
         (
           p.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           p.email?.toLowerCase().includes(searchTerm.toLowerCase())

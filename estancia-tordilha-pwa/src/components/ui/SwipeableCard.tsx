@@ -85,20 +85,20 @@ export function SwipeableCard({
     return (
         <div
             ref={containerRef}
-            className="relative overflow-hidden rounded-3xl bg-[#4E593F]"
+            className="group relative overflow-hidden rounded-3xl bg-[#4E593F]"
             style={{ touchAction: "pan-y" }}
         >
             {/* ── Background Layer (Red Area revealed during swipe) ── */}
             <div
                 className="absolute inset-0 flex items-center justify-end pr-5 transition-opacity duration-150"
-                style={{ 
+                style={{
                     backgroundColor: "#EF4444",
-                    opacity: Math.max(0, Math.min(1, (Math.abs(offsetX) / threshold) * 0.8)) 
+                    opacity: Math.max(0, Math.min(1, (Math.abs(offsetX) / threshold) * 0.8))
                 }}
             >
-                <div 
+                <div
                     className="flex flex-col items-center gap-1 text-white transition-transform duration-200"
-                    style={{ 
+                    style={{
                         transform: `scale(${Math.max(0.5, Math.min(1, Math.abs(offsetX) / threshold))})`,
                         opacity: Math.abs(offsetX) > 20 ? 1 : 0
                     }}
@@ -133,6 +133,24 @@ export function SwipeableCard({
             >
                 {typeof children === "function" ? children({ isOpen }) : children}
             </div>
+
+            {/* ── Desktop-only hover delete button ──
+                 Swipe não funciona no desktop (gesto puramente touch). O botão
+                 aparece só em devices que suportam hover real (mouse/trackpad),
+                 nunca em touch (pra não conflitar com o swipe e não ficar preso
+                 visível após tap em iOS).
+                 pointer-events-none por default → não bloqueia cliques no card. */}
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                }}
+                aria-label={deleteLabel}
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-9 h-9 rounded-full bg-rose-500 text-white shadow-lg flex items-center justify-center opacity-0 pointer-events-none transition-all duration-150 active:scale-90 hover:bg-rose-600 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto"
+            >
+                <Trash2 size={16} strokeWidth={2.5} />
+            </button>
         </div>
     );
 }
