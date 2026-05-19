@@ -39,11 +39,21 @@ async function enriquecerSolicitantes(rows: SolicitacaoRow[]): Promise<Solicitac
   if (rows.length === 0) return rows;
   const ids = Array.from(new Set(rows.map((r) => r.solicitante_id)));
 
-  // Busca roles (user_roles) e nomes (profiles) em paralelo
+  // Busca roles (user_roles) e nomes (profiles) em paralelo.
+  // Falhas (ex: RLS bloqueando, network) são logadas e seguem com map vazio —
+  // a UI ainda renderiza, só perde o nome/role do solicitante. Antes o erro
+  // era engolido silenciosamente sem qualquer pista no console.
   const [rolesRes, profilesRes] = await Promise.all([
     supabase.from("user_roles").select("user_id, role").in("user_id", ids),
     supabase.from("profiles").select("id, full_name").in("id", ids),
   ]);
+
+  if (rolesRes.error) {
+    console.error("enriquecerSolicitantes: falha ao buscar user_roles:", rolesRes.error);
+  }
+  if (profilesRes.error) {
+    console.error("enriquecerSolicitantes: falha ao buscar profiles:", profilesRes.error);
+  }
 
   const roleMap = new Map<string, SolicitanteRole>();
   (rolesRes.data ?? []).forEach((r) => roleMap.set(r.user_id, r.role as SolicitanteRole));

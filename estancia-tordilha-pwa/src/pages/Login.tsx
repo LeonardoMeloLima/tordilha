@@ -127,6 +127,12 @@ const Login = () => {
                 if (signUpError && !isAlreadyRegistered) {
                     throw signUpError;
                 }
+                // Acumula falhas não-fatais de sincronização de dados pra avisar
+                // o usuário no fim, em vez de engolir silenciosamente. O auth
+                // já foi criado nesse ponto, então não dá pra fazer rollback —
+                // mas o usuário precisa saber se algo ficou pra trás.
+                const syncWarnings: string[] = [];
+
                 if (mode === "signUp" && selectedRole === "pais") {
                     // Normaliza email pra lowercase — Supabase Auth já faz isso
                     // internamente, então salvamos do mesmo jeito pra evitar
@@ -157,10 +163,15 @@ const Login = () => {
                             .select('id')
                             .single();
 
-                        if (!createError) responsavelId = newResp.id;
+                        if (createError || !newResp) {
+                            console.error('Falha ao criar responsavel:', createError);
+                            syncWarnings.push('responsável');
+                        } else {
+                            responsavelId = newResp.id;
+                        }
                     } else {
                         // Update existing record with any new info
-                        await supabase
+                        const { error: updateRespError } = await supabase
                             .from('responsaveis')
                             .update({
                                 nome: fullName,
@@ -172,6 +183,10 @@ const Login = () => {
                                 estado: estado
                             })
                             .eq('id', responsavelId);
+                        if (updateRespError) {
+                            console.error('Falha ao atualizar responsavel:', updateRespError);
+                            syncWarnings.push('responsável');
+                        }
                     }
 
                     // 2. Create Students and Link them (With De-duplication check)
@@ -210,40 +225,63 @@ const Login = () => {
                                     .select('id')
                                     .single();
 
-                                if (!alunoError && newAluno) {
+                                if (alunoError || !newAluno) {
+                                    console.error(`Falha ao criar aluno "${aluno.nome}":`, alunoError);
+                                    syncWarnings.push(`praticante ${aluno.nome}`);
+                                } else {
                                     alunoId = newAluno.id;
                                 }
                             } else {
                                 // Update autoriza_imagem on existing record
-                                await supabase
+                                const { error: updateAlunoError } = await supabase
                                     .from('alunos')
                                     .update({
                                         autoriza_imagem: autorizaImagem,
                                         data_autorizacao_imagem: autorizaImagem ? new Date().toISOString() : null,
                                     })
                                     .eq('id', alunoId);
+                                if (updateAlunoError) {
+                                    console.error(`Falha ao atualizar aluno "${aluno.nome}":`, updateAlunoError);
+                                    syncWarnings.push(`praticante ${aluno.nome}`);
+                                }
                             }
 
                             // Link only if not already linked
                             if (alunoId && !linkedIds.has(alunoId)) {
-                                await supabase
+                                const { error: linkError } = await supabase
                                     .from('aluno_responsavel')
                                     .insert({
                                         aluno_id: alunoId,
                                         responsavel_id: responsavelId,
                                         parentesco: 'Responsável'
                                     });
+                                if (linkError) {
+                                    console.error(`Falha ao vincular aluno "${aluno.nome}":`, linkError);
+                                    syncWarnings.push(`vínculo de ${aluno.nome}`);
+                                }
                             }
                         }
+                    } else {
+                        // Sem responsavelId não conseguimos criar/vincular alunos —
+                        // o usuário precisa contatar o gestor pra completar manualmente.
+                        syncWarnings.push('praticantes (sem responsável vinculado)');
                     }
                 }
 
-                toast({
-                    title: isAlreadyRegistered ? "Dados atualizados!" : "Conta criada com sucesso!",
-                    description: isAlreadyRegistered 
-                        ? "Seus dados foram sincronizados. Você já pode fazer login."
-                        : "Agora você já pode fazer o seu login.",
-                });
+                if (syncWarnings.length > 0) {
+                    toast({
+                        variant: "destructive",
+                        title: "Conta criada, mas alguns dados não foram sincronizados",
+                        description: `Falha em: ${syncWarnings.join(', ')}. Faça login e contate o gestor para completar o cadastro.`,
+                    });
+                } else {
+                    toast({
+                        title: isAlreadyRegistered ? "Dados atualizados!" : "Conta criada com sucesso!",
+                        description: isAlreadyRegistered
+                            ? "Seus dados foram sincronizados. Você já pode fazer login."
+                            : "Agora você já pode fazer o seu login.",
+                    });
+                }
                 setMode("signIn");
                 setEmail("");
                 setPassword("");

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
 import { useAlunos } from "@/hooks/useAlunos";
 import { 
@@ -78,10 +78,19 @@ export const PaisAlunoPerfil = () => {
     autoriza_imagem: false
   });
 
-  const alunos = vinculos?.map((v: any) => v.alunos).filter(Boolean) || [];
-  
-  const currentAluno = alunos.find((a: any) => a.id === selectedAlunoId) || (alunos.length > 0 ? alunos[0] : null);
+  const alunos = useMemo(
+    () => vinculos?.map((v: any) => v.alunos).filter(Boolean) || [],
+    [vinculos]
+  );
 
+  const currentAluno = useMemo(
+    () =>
+      alunos.find((a: any) => a.id === selectedAlunoId) ||
+      (alunos.length > 0 ? alunos[0] : null),
+    [alunos, selectedAlunoId]
+  );
+
+  // Seleção inicial + sincronização do form de edição com o aluno corrente.
   useEffect(() => {
     if (alunos.length > 0 && !selectedAlunoId) {
       setSelectedAlunoId(alunos[0].id);
@@ -93,6 +102,11 @@ export const PaisAlunoPerfil = () => {
         diagnostico: currentAluno.diagnostico || ""
       });
     }
+  }, [alunos, selectedAlunoId, currentAluno]);
+
+  // Listeners globais: FAB do bottom-nav + invalidação após consentimento.
+  // Separado do efeito acima pra não re-registrar a cada mudança de aluno.
+  useEffect(() => {
     const handleFABClick = () => {
       setIsRegisterModalOpen(true);
     };
@@ -107,7 +121,7 @@ export const PaisAlunoPerfil = () => {
       window.removeEventListener('fab-click-local', handleFABClick);
       window.removeEventListener('consent-updated', handleConsentUpdated);
     };
-  }, [alunos, selectedAlunoId, currentAluno]);
+  }, [refetchVinculos]);
 
   const handleUpload = async (fileOrBlob: File | Blob, extension = "jpg") => {
     if (!currentAluno) return;
@@ -285,18 +299,39 @@ export const PaisAlunoPerfil = () => {
       if (solErr) {
         // Rollback manual: sem solicitação não há como o gestor aprovar,
         // o aluno ficaria órfão como pendente. Apaga pra forçar reenvio limpo.
-        await supabase.from("aluno_responsavel")
+        // Se o rollback também falhar (RLS, constraint), surfa o erro pra UI
+        // em vez de engolir silenciosamente.
+        const { error: unlinkErr } = await supabase.from("aluno_responsavel")
           .delete()
           .eq("aluno_id", aluno.id)
           .eq("responsavel_id", respId);
-        await supabase.from("alunos").delete().eq("id", aluno.id);
+        const { error: delAlunoErr } = await supabase.from("alunos").delete().eq("id", aluno.id);
+
         console.error("Falha ao criar solicitação, cadastro revertido:", solErr);
+        if (unlinkErr || delAlunoErr) {
+          console.error("Rollback parcial — aluno pode estar órfão:", { unlinkErr, delAlunoErr });
+          throw new Error(
+            "Cadastro não foi concluído e a limpeza automática falhou. Contate o gestor antes de tentar novamente."
+          );
+        }
         throw new Error("Não foi possível enviar o cadastro. Tente novamente.");
       }
 
+      // Reseta o form, fecha modal e atualiza a lista via refetch.
+      // Antes era um window.location.reload() que mascarava falhas e zerava
+      // qualquer toast/erro visível pro usuário.
+      setRegisterForm({
+        nome: "",
+        idade: "",
+        diagnostico: "",
+        contato_emergencia: "",
+        patrocinador: "",
+        parentesco: "Pai",
+        autoriza_imagem: false,
+      });
       setIsRegisterModalOpen(false);
+      await refetchVinculos();
       sonnerToast.success("Cadastro enviado! Aguardando aprovação do gestor.");
-      window.location.reload(); // Hard refresh to update everything
     } catch (err: any) {
       toast({ variant: "destructive", title: "Erro ao cadastrar", description: err.message });
     } finally {
@@ -320,31 +355,132 @@ export const PaisAlunoPerfil = () => {
 
   if (alunos.length === 0) {
     return (
-      <div className="py-20 text-center px-10 animate-fade-in">
-        <div className="w-24 h-24 bg-primary/5 rounded-[40px] flex items-center justify-center mx-auto mb-8 border-2 border-primary/10 relative">
-          <Users className="w-10 h-10 text-primary" />
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-4 border-white">
-            <Plus size={14} className="text-white" strokeWidth={3} />
+      <>
+        <div className="py-20 text-center px-10 animate-fade-in">
+          <div className="w-24 h-24 bg-primary/5 rounded-[40px] flex items-center justify-center mx-auto mb-8 border-2 border-primary/10 relative">
+            <Users className="w-10 h-10 text-primary" />
+            <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-4 border-white">
+              <Plus size={14} className="text-white" strokeWidth={3} />
+            </div>
           </div>
-        </div>
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Comece aqui</h2>
-        <p className="text-slate-500 font-medium mt-3 leading-relaxed max-w-[280px] mx-auto text-sm">
-          Você ainda não possui praticantes vinculados. Cadastre seu primeiro dependente para começar o acompanhamento.
-        </p>
-        
-        <button
-          onClick={() => {
-            setRegisterForm({ ...registerForm, nome: "", idade: "", diagnostico: "", contato_emergencia: "", patrocinador: "" });
-            setIsRegisterModalOpen(true);
-          }}
-          className="mt-10 w-full max-w-[280px] h-14 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
-        >
-          <UserPlus size={18} />
-          Cadastrar Praticante
-        </button>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Comece aqui</h2>
+          <p className="text-slate-500 font-medium mt-3 leading-relaxed max-w-[280px] mx-auto text-sm">
+            Você ainda não possui praticantes vinculados. Cadastre seu primeiro dependente para começar o acompanhamento.
+          </p>
 
-        {/* Reuse the Registration ActionSheet here too if needed, but it's defined below */}
-      </div>
+          <button
+            onClick={() => {
+              setRegisterForm({ ...registerForm, nome: "", idade: "", diagnostico: "", contato_emergencia: "", patrocinador: "" });
+              setIsRegisterModalOpen(true);
+            }}
+            className="mt-10 w-full max-w-[280px] h-14 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-all flex items-center justify-center gap-3"
+          >
+            <UserPlus size={18} />
+            Cadastrar Praticante
+          </button>
+        </div>
+
+        <ActionSheet
+          isOpen={isRegisterModalOpen}
+          onClose={() => setIsRegisterModalOpen(false)}
+          title="Cadastrar Praticante"
+          subtitle="Preencha os dados do praticante"
+          footer={
+            <button
+              onClick={handleRegisterStudent}
+              disabled={isRegistering}
+              className="w-full h-14 bg-primary text-white rounded-full font-black text-lg shadow-lg active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isRegistering ? "Enviando..." : "Finalizar Cadastro"}
+            </button>
+          }
+        >
+          <div className="space-y-5 py-4 scrollbar-hide max-h-[60vh] overflow-y-auto px-1">
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Nome Completo</p>
+              <input
+                placeholder="Ex: Leonardo Melo"
+                value={registerForm.nome}
+                onChange={(e) => setRegisterForm({ ...registerForm, nome: e.target.value })}
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Idade</p>
+                <input
+                  type="number"
+                  placeholder="Ex: 12"
+                  value={registerForm.idade}
+                  onChange={(e) => setRegisterForm({ ...registerForm, idade: e.target.value })}
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Parentesco</p>
+                <select
+                  value={registerForm.parentesco}
+                  onChange={(e) => setRegisterForm({ ...registerForm, parentesco: e.target.value })}
+                  className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                >
+                  <option>Pai</option>
+                  <option>Mãe</option>
+                  <option>Tutor</option>
+                  <option>Avô/Avó</option>
+                  <option>Outros</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Contato de Emergência</p>
+              <div className="relative">
+                <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  placeholder="(00) 00000-0000"
+                  value={registerForm.contato_emergencia}
+                  onChange={(e) => setRegisterForm({ ...registerForm, contato_emergencia: e.target.value })}
+                  className="w-full h-14 pl-12 pr-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Diagnóstico Principal</p>
+              <textarea
+                placeholder="Descreva o diagnóstico..."
+                value={registerForm.diagnostico}
+                onChange={(e) => setRegisterForm({ ...registerForm, diagnostico: e.target.value })}
+                className="w-full h-24 p-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none resize-none"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest ml-1">Patrocinador (Opcional)</p>
+              <input
+                placeholder="Nome da empresa ou pessoa"
+                value={registerForm.patrocinador}
+                onChange={(e) => setRegisterForm({ ...registerForm, patrocinador: e.target.value })}
+                className="w-full h-14 px-4 rounded-2xl bg-slate-50 border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-primary outline-none"
+              />
+            </div>
+
+            <label className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 transition-all shadow-sm cursor-pointer active:scale-[0.98] hover:border-primary/30">
+              <input
+                type="checkbox"
+                checked={registerForm.autoriza_imagem}
+                onChange={(e) => setRegisterForm({ ...registerForm, autoriza_imagem: e.target.checked })}
+                className="w-5 h-5 rounded border-slate-300 text-primary focus:ring-primary accent-primary"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-800 leading-none">Autorizar Uso de Imagem</p>
+                <p className="text-[10px] text-slate-400 font-medium mt-1 uppercase tracking-tight">Para finalidade de divulgação das atividades</p>
+              </div>
+            </label>
+          </div>
+        </ActionSheet>
+      </>
     );
   }
 

@@ -93,7 +93,9 @@ export const GestorAdminPanel = () => {
       setNewUserName("");
       setNewUserEmail("");
       setShowForm(false);
-      setTimeout(() => refetch?.(), 1000);
+      // Aguarda eventual consistência do Supabase Auth antes de refetchar.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await refetch?.();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -129,14 +131,13 @@ export const GestorAdminPanel = () => {
         description: "O registro foi excluído com sucesso do sistema.",
       });
 
-      // Atualizar os dados localmente
+      // Atualiza imediatamente e, após ~1.2s, refaz pra cobrir a eventual
+      // consistência do Supabase Auth admin API (o user pode ainda aparecer
+      // na primeira query). Sequencial em vez de setTimeout fire-and-forget
+      // pra manter o botão desabilitado até a UI estar realmente em dia.
       await refetch?.();
-      
-      // Delay extra para garantir consistência visual no Supabase
-      setTimeout(() => {
-        refetch?.();
-      }, 1200);
-
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      await refetch?.();
     } catch (err: any) {
       console.error("Erro ao excluir:", err);
       toast({
