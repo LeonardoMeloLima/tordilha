@@ -84,8 +84,12 @@ export function useRoleSession() {
     };
 
     const isSuperUser = session?.user?.email === "leonardo.informatica@gmail.com";
-    const isMaster = session?.user?.email === "tais@gestor.com" || isSuperUser;
     const activeRole = (isSuperUser && devRole) ? devRole : realRole;
+    // Todo gestor é master (acesso ao painel Admin, gerenciamento de contas,
+    // bypass do gate de aprovação). Antes era hardcoded por email — agora
+    // deriva do realRole pra não precisar tocar em código quando trocar de
+    // gestor. SuperUser sempre é master.
+    const isMaster = realRole === "gestor" || isSuperUser;
 
     return { 
         session, 
