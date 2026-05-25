@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { Smartphone, Share, PlusSquare, AlertTriangle, ChevronRight, MoreVertical, Download } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 const OPEN_DELAY_MS = 1500;
 
@@ -138,6 +139,7 @@ function AndroidSection({
 }
 
 export function InstallPWAModal() {
+    const { session, loading } = useAuthSession();
     const { platform, canShowModal, hasNativePrompt, triggerNativeInstall, dismissForever, dismissForSession } =
         usePWAInstall();
     const [open, setOpen] = useState(false);
@@ -152,6 +154,7 @@ export function InstallPWAModal() {
         return () => clearTimeout(t);
     }, [canShowModal]);
 
+    if (loading || !session) return null;
     if (!canShowModal) return null;
 
     const handleDismissSession = () => {
@@ -189,7 +192,6 @@ export function InstallPWAModal() {
                     </p>
                 </div>
 
-                {/* Conteúdo por plataforma vem nas próximas tasks */}
                 {platform === "ios" && <IOSSteps />}
                 {platform === "android" && (
                     <AndroidSection
