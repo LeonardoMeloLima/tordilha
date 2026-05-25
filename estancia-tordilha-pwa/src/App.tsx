@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RoleProvider } from "@/contexts/RoleContext";
 import { ProtectedRoute } from "@/components/layout/ProtectedRoute";
+import { InstallPWAModal } from "@/components/shared/InstallPWAModal";
 
 const Index = lazy(() => import("./pages/Index"));
 const Estatisticas = lazy(() => import("./pages/Estatisticas"));
@@ -31,6 +32,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Carregando...</div>}>
+            <InstallPWAModal />
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/reset-password" element={<ResetPassword />} />
