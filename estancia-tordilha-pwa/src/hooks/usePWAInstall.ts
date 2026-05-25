@@ -32,22 +32,25 @@ function detectStandalone(): boolean {
     return iosStandalone || displayModeStandalone;
 }
 
+function readFlag(storage: Storage | undefined, key: string): boolean {
+    return typeof storage !== "undefined" && storage.getItem(key) === "true";
+}
+
 export function usePWAInstall(): PWAInstallState {
     const [platform] = useState<PWAPlatform>(detectPlatform);
     const [isStandalone, setIsStandalone] = useState<boolean>(detectStandalone);
+    const [dismissedForever, setDismissedForever] = useState<boolean>(() =>
+        readFlag(typeof localStorage !== "undefined" ? localStorage : undefined, DISMISS_FOREVER_KEY),
+    );
+    const [dismissedSession, setDismissedSession] = useState<boolean>(() =>
+        readFlag(typeof sessionStorage !== "undefined" ? sessionStorage : undefined, DISMISS_SESSION_KEY),
+    );
 
     useEffect(() => {
         const handleFocus = () => setIsStandalone(detectStandalone());
         window.addEventListener("focus", handleFocus);
         return () => window.removeEventListener("focus", handleFocus);
     }, []);
-
-    const dismissedForever =
-        typeof localStorage !== "undefined" &&
-        localStorage.getItem(DISMISS_FOREVER_KEY) === "true";
-    const dismissedSession =
-        typeof sessionStorage !== "undefined" &&
-        sessionStorage.getItem(DISMISS_SESSION_KEY) === "true";
 
     const canShowModal =
         platform !== "desktop" && !isStandalone && !dismissedForever && !dismissedSession;
@@ -60,9 +63,11 @@ export function usePWAInstall(): PWAInstallState {
         triggerNativeInstall: async () => {},
         dismissForever: () => {
             localStorage.setItem(DISMISS_FOREVER_KEY, "true");
+            setDismissedForever(true);
         },
         dismissForSession: () => {
             sessionStorage.setItem(DISMISS_SESSION_KEY, "true");
+            setDismissedSession(true);
         },
     };
 }
