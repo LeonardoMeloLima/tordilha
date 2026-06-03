@@ -45,7 +45,7 @@ export function useCoberturas() {
         p_aluno_id: args.alunoId,
         p_substituto_id: args.substitutoId,
         p_tipo: args.tipo,
-        p_previsao_volta: args.previsaoVolta ?? null,
+        p_previsao_volta: args.previsaoVolta ?? undefined,
       });
       if (error) throw error;
       return data as string;
