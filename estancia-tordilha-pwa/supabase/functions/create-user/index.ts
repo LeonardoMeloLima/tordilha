@@ -43,12 +43,16 @@ Deno.serve(async (req: Request) => {
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       );
     }
+    // IMPORTANTE: validar o JWT do chamador passando o token explicitamente.
+    // getUser() sem argumento procura sessão no storage (vazio no servidor) e
+    // falharia ("Sessão inválida") mesmo pra gestor legítimo.
+    const token = authHeader.replace(/^Bearer\s+/i, '');
     const authClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data: { user: caller }, error: callerErr } = await authClient.auth.getUser();
+    const { data: { user: caller }, error: callerErr } = await authClient.auth.getUser(token);
     if (callerErr || !caller) {
       return new Response(
         JSON.stringify({ error: 'Sessão inválida' }),
@@ -60,7 +64,9 @@ Deno.serve(async (req: Request) => {
       .select('role')
       .eq('user_id', caller.id)
       .maybeSingle();
-    if (!callerRole || !['gestor', 'admin'].includes(callerRole.role)) {
+    const isGestor = !!callerRole && ['gestor', 'admin'].includes(callerRole.role);
+    const isSuper = (caller.email ?? '').toLowerCase() === PROTECTED_EMAIL.toLowerCase();
+    if (!isGestor && !isSuper) {
       return new Response(
         JSON.stringify({ error: 'Apenas o gestor pode gerenciar usuários' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
