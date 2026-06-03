@@ -32,6 +32,41 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // ============ AUTORIZAÇÃO: quem chama precisa ser gestor/admin ============
+    // Antes, esta função usava service-role sem checar o chamador — qualquer
+    // usuário logado podia criar gestores / resetar senhas. Mesmo padrão do
+    // decidir-solicitacao: valida o JWT do chamador e confere o papel.
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Não autenticado' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+    const authClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_ANON_KEY')!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+    const { data: { user: caller }, error: callerErr } = await authClient.auth.getUser();
+    if (callerErr || !caller) {
+      return new Response(
+        JSON.stringify({ error: 'Sessão inválida' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      );
+    }
+    const { data: callerRole } = await authClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', caller.id)
+      .maybeSingle();
+    if (!callerRole || !['gestor', 'admin'].includes(callerRole.role)) {
+      return new Response(
+        JSON.stringify({ error: 'Apenas o gestor pode gerenciar usuários' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      );
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!

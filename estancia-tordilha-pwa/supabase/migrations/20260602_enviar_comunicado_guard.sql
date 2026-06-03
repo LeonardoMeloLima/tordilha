@@ -1,0 +1,5 @@
+-- Adiciona guard de gestor na função enviar_comunicado (era SECURITY DEFINER sem
+-- checagem -> qualquer autenticado disparava avisos/notificações a todos).
+-- A definição completa da função foi recriada com o IF NOT EXISTS(...gestor...) no topo;
+-- ver histórico. Também: REVOKE de public/anon, GRANT a authenticated.
+-- (Conteúdo aplicado em produção via Management API em 2026-06-02.)
