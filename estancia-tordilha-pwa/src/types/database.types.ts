@@ -255,6 +255,70 @@ export type Database = {
         }
         Relationships: []
       }
+      coberturas: {
+        Row: {
+          aluno_id: string
+          ativo: boolean
+          criada_em: string
+          criada_por: string | null
+          encerrada_em: string | null
+          encerrada_por: string | null
+          id: string
+          previsao_volta: string | null
+          substituto_id: string
+          tipo: string
+          titular_id: string
+        }
+        Insert: {
+          aluno_id: string
+          ativo?: boolean
+          criada_em?: string
+          criada_por?: string | null
+          encerrada_em?: string | null
+          encerrada_por?: string | null
+          id?: string
+          previsao_volta?: string | null
+          substituto_id: string
+          tipo?: string
+          titular_id: string
+        }
+        Update: {
+          aluno_id?: string
+          ativo?: boolean
+          criada_em?: string
+          criada_por?: string | null
+          encerrada_em?: string | null
+          encerrada_por?: string | null
+          id?: string
+          previsao_volta?: string | null
+          substituto_id?: string
+          tipo?: string
+          titular_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coberturas_aluno_id_fkey"
+            columns: ["aluno_id"]
+            isOneToOne: false
+            referencedRelation: "alunos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coberturas_substituto_id_fkey"
+            columns: ["substituto_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coberturas_titular_id_fkey"
+            columns: ["titular_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evolucao_sessoes: {
         Row: {
           agitacao: number | null
@@ -311,7 +375,7 @@ export type Database = {
           {
             foreignKeyName: "evolucao_sessoes_sessao_id_fkey"
             columns: ["sessao_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "sessoes"
             referencedColumns: ["id"]
           },
@@ -972,6 +1036,19 @@ export type Database = {
         Args: { p_decisao: string; p_motivo?: string; p_solicitacao_id: string }
         Returns: Json
       }
+      rpc_encerrar_cobertura: {
+        Args: { p_cobertura_id: string }
+        Returns: undefined
+      }
+      rpc_iniciar_cobertura: {
+        Args: {
+          p_aluno_id: string
+          p_previsao_volta?: string
+          p_substituto_id: string
+          p_tipo?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1104,3 +1181,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

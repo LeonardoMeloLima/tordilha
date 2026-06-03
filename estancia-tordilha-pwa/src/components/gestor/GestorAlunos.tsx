@@ -11,10 +11,16 @@ import { useProfessores } from "@/hooks/useProfessores";
 import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { generateImageRightsPDF } from "@/services/pdfService";
 import { Badge } from "@/components/ui/badge";
+import { useCoberturas } from "@/hooks/useCoberturas";
+import { Repeat } from "lucide-react";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
   const { professores } = useProfessores();
+  const { coberturas, iniciarCobertura, encerrarCobertura } = useCoberturas();
+  const [cobForm, setCobForm] = useState<{ substituto_id: string; tipo: "cobertura" | "transferencia"; previsao_volta: string }>(
+    { substituto_id: "", tipo: "cobertura", previsao_volta: "" }
+  );
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
@@ -196,6 +202,44 @@ export const GestorAlunos = () => {
     }
   };
 
+
+  const coberturaAtivaDoAluno = selectedAluno
+    ? coberturas.find((c) => c.aluno_id === selectedAluno.id)
+    : undefined;
+
+  const handleIniciarCobertura = async () => {
+    if (!selectedAluno) return;
+    if (!selectedAluno.professor_id) {
+      toast({ variant: "destructive", title: "Sem titular", description: "Defina o terapeuta responsável antes de cobrir." });
+      return;
+    }
+    if (!cobForm.substituto_id) {
+      toast({ variant: "destructive", title: "Escolha o substituto", description: "Selecione quem vai cobrir." });
+      return;
+    }
+    try {
+      await iniciarCobertura.mutateAsync({
+        alunoId: selectedAluno.id,
+        substitutoId: cobForm.substituto_id,
+        tipo: cobForm.tipo,
+        previsaoVolta: cobForm.previsao_volta || null,
+      });
+      setCobForm({ substituto_id: "", tipo: "cobertura", previsao_volta: "" });
+      toast({ title: "Pronto", description: cobForm.tipo === "transferencia" ? "Praticante transferido." : "Cobertura iniciada." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    }
+  };
+
+  const handleEncerrarCobertura = async () => {
+    if (!coberturaAtivaDoAluno) return;
+    try {
+      await encerrarCobertura.mutateAsync(coberturaAtivaDoAluno.id);
+      toast({ title: "Encerrada", description: "Praticante voltou ao terapeuta titular." });
+    } catch (e: any) {
+      toast({ variant: "destructive", title: "Erro", description: e.message });
+    }
+  };
 
   return (
     <div className="space-y-5 animate-fade-in">
@@ -436,6 +480,77 @@ export const GestorAlunos = () => {
               </select>
             )}
           </div>
+
+          {/* Cobertura / Substituição — só na edição de um praticante existente */}
+          {selectedAluno && (
+            <div className="pt-6 border-t border-slate-100 space-y-3">
+              <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Repeat size={16} className="text-primary" />
+                Cobertura / Substituição
+              </label>
+
+              {coberturaAtivaDoAluno ? (
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 space-y-3">
+                  <p className="text-sm font-semibold text-amber-800">
+                    Em cobertura por{" "}
+                    {professores.find((p) => p.id === coberturaAtivaDoAluno.substituto_id)?.full_name || "substituto"}
+                    {coberturaAtivaDoAluno.previsao_volta
+                      ? ` · previsão de volta ${new Date(coberturaAtivaDoAluno.previsao_volta).toLocaleDateString("pt-BR")}`
+                      : ""}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleEncerrarCobertura}
+                    disabled={encerrarCobertura.isPending}
+                    className="w-full h-11 bg-amber-600 text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {encerrarCobertura.isPending ? "Encerrando..." : "Encerrar cobertura (voltar ao titular)"}
+                  </button>
+                </div>
+              ) : (
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <select
+                    value={cobForm.substituto_id}
+                    onChange={(e) => setCobForm({ ...cobForm, substituto_id: e.target.value })}
+                    className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm font-medium"
+                  >
+                    <option value="">— Quem vai cobrir? —</option>
+                    {professores
+                      .filter((p) => p.id !== selectedAluno.professor_id)
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>{p.full_name || "Terapeuta sem nome"}</option>
+                      ))}
+                  </select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <select
+                      value={cobForm.tipo}
+                      onChange={(e) => setCobForm({ ...cobForm, tipo: e.target.value as "cobertura" | "transferencia" })}
+                      className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm font-medium"
+                    >
+                      <option value="cobertura">Cobertura (temporária)</option>
+                      <option value="transferencia">Transferência (definitiva)</option>
+                    </select>
+                    <input
+                      type="date"
+                      value={cobForm.previsao_volta}
+                      onChange={(e) => setCobForm({ ...cobForm, previsao_volta: e.target.value })}
+                      disabled={cobForm.tipo === "transferencia"}
+                      className="w-full h-12 px-4 rounded-xl bg-white border border-slate-200 text-sm font-medium disabled:opacity-40"
+                      title="Previsão de volta (opcional)"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleIniciarCobertura}
+                    disabled={iniciarCobertura.isPending}
+                    className="w-full h-11 bg-primary text-white rounded-2xl font-bold text-xs uppercase tracking-widest active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    {iniciarCobertura.isPending ? "Aplicando..." : "Atribuir"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3 opacity-60 pointer-events-none">
             <div className="flex items-center gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 shadow-sm">
