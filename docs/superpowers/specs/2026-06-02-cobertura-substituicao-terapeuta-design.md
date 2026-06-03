@@ -108,7 +108,7 @@ Mesma criação, com `tipo = 'transferencia'`:
 
 ## Plano de testes (pontos críticos)
 
-1. `tem_acesso_praticante`: titular vê; substituto ativo vê; substituto encerrado **não** vê; terceiro não vê.
+1. Resolução de caseload (no cliente): titular vê; substituto com cobertura ativa vê; substituto após encerrar **não** vê; terceiro não vê.
 2. Índice único: bloqueia duas coberturas ativas no mesmo praticante.
 3. Início move sessões futuras A→B; passadas ficam.
 4. Encerrar devolve futuras B→A; mantém as já ocorridas na B.
