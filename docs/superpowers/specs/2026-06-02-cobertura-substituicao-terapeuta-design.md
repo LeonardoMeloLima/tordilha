@@ -16,11 +16,23 @@ Quando uma Terapeuta sai de férias (ou se afasta), outra precisa assumir o aten
 5. **Prontuário:** B lê o histórico clínico **completo** enquanto a cobertura está ativa, mas **não edita** os registros antigos da A; cria as evoluções dela próprias.
 6. **Fim da cobertura temporária:** **manual** — o gestor encerra quando A voltar. Sem data automática, sem cron. `previsao_volta` é apenas informativa.
 
-## Abordagem escolhida (C — Híbrida)
+## Realidade do RLS (descoberta durante o planejamento)
 
-O dono real (`alunos.professor_id`) **nunca muda** numa cobertura temporária. Uma tabela de cobertura registra quem está cobrindo, e a complexidade de acesso fica concentrada em **um único lugar** (uma função SQL + uma view/RPC) em vez de espalhada pelo código.
+O spec original assumiu que o acesso era controlado por RLS por terapeuta. **Não é.** No banco real:
 
-Benefícios: titular preservado (auditoria/LGPD limpa), acesso da substituta some na hora ao encerrar (`ativo = false`, sem cron), e o custo de RLS/queries é pago uma vez numa função central, fácil de testar isolada.
+- `alunos`: leitura **aberta** a qualquer autenticado (`SELECT USING (true)`); gestor tem `FOR ALL`. Não há policy de escrita por professor — só o gestor gerencia alunos.
+- `sessoes`: leitura **aberta** a qualquer autenticado; gestor `FOR ALL`; pais com insert/delete escopados por e-mail.
+- O recorte "meus praticantes" é feito **na UI** (`alunos.filter(a => a.professor_id === userId)`), não no banco.
+- O único ponto onde um terapeuta de fato **escreve** dado clínico é a evolução (`evolucao_sessoes`), que é amarrada à **sessão**.
+
+## Abordagem escolhida (C — ajustada à realidade)
+
+O dono real (`alunos.professor_id`) **nunca muda** numa cobertura temporária. Uma tabela de cobertura registra quem está cobrindo. O acesso da substituta é resolvido assim:
+
+1. **Ver praticante e agenda:** mudança no **filtro da UI** — "meus praticantes" passa a ser "sou titular **OU** tenho cobertura ativa". Como a leitura no banco já é aberta, não há reescrita de RLS de leitura.
+2. **Registrar evolução:** as sessões futuras do período passam a ter `sessoes.professor_id = B` (ver "Comportamento das sessões"). Como a evolução é presa à sessão, a substituta já consegue registrá-la pela sessão repassada. Só ajustamos a policy de `evolucao_sessoes` **se** ela hoje bloquear (ver Tarefa 0 do plano).
+
+Benefícios: titular preservado (auditoria/LGPD limpa), acesso da substituta some na hora ao encerrar (`ativo = false`, sem cron), e o trabalho fica concentrado em tabela + RPCs + filtro de UI, sem reescrever RLS amplo.
 
 ## Modelo de dados
 
@@ -42,24 +54,18 @@ Benefícios: titular preservado (auditoria/LGPD limpa), acesso da substituta som
 
 **Restrição:** índice único parcial garantindo no máximo **uma cobertura ativa por praticante** (`UNIQUE (aluno_id) WHERE ativo = true`).
 
-## Resolução de acesso (ponto único)
+## Resolução de acesso
 
-### Função `tem_acesso_praticante(aluno_id uuid) returns boolean`
+### Merge no cliente via tabela `coberturas`
 
-Retorna verdadeiro se:
-- `alunos.professor_id = auth.uid()` (titular), **ou**
-- existe `coberturas` com `aluno_id` correspondente, `ativo = true` e `substituto_id = auth.uid()`.
+Como a leitura de `alunos` e `coberturas` é aberta a autenticados, a resolução "titular OU cobertura ativa" é feita **no cliente** (sem view, YAGNI): um hook lê as coberturas ativas e o componente une com `alunos`.
 
-`SECURITY DEFINER`, marcada `STABLE`. As políticas RLS de `alunos`, `sessoes` e `evolucao_sessoes` passam a chamar essa função (mantendo as regras existentes de gestor).
-
-### View/RPC `meus_praticantes`
-
-Retorna os praticantes onde o usuário é titular **ou** tem cobertura ativa. O app usa isso no lugar de filtrar `professor_id` na mão.
+O filtro de caseload no app deixa de ser `alunos.filter(a => a.professor_id === userId)` e passa a ser "sou titular (`professor_id === userId`) **OU** existe cobertura ativa com `substituto_id === userId` para aquele aluno". O mesmo dado alimenta os selos "Cobertura de [A]" (lado substituto) e "Em cobertura por [B]" (lado titular).
 
 ### Prontuário / LGPD
 
-- **SELECT** de `evolucao_sessoes`/`sessoes`: permitido por `tem_acesso_praticante` → B lê o histórico completo enquanto a cobertura está ativa.
-- **UPDATE** de `evolucao_sessoes`: checa **autoria** (não só acesso) → B não altera registros da A; só os próprios.
+- **Leitura** do histórico (`evolucao_sessoes`, `sessoes`): já liberada no banco; a substituta enxerga o histórico completo do praticante enquanto a cobertura está ativa (gate é a UI, que passa a listar o praticante coberto).
+- **Escrita** de evolução: a substituta registra evolução nas sessões do período (que têm `professor_id = B`). Ela **não edita** registros antigos da A — o UPDATE de `evolucao_sessoes` deve checar autoria/sessão própria, não só acesso (Tarefa 0 confirma a policy atual).
 
 ## Comportamento das sessões
 
