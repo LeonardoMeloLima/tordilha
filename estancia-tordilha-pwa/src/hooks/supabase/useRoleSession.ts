@@ -67,9 +67,11 @@ export function useRoleSession() {
             const fullName = profile?.full_name || userMeta.nome_completo || userMeta.full_name || fallbackName;
             const avatar = profile?.avatar_url || userMeta.avatar_url || null;
 
-            // Preserva o role anterior se o lookup falhar (RLS, network),
-            // evitando flicker pro fallback "gestor".
-            setRealRole((prev) => canonicalRole ?? prev ?? "gestor");
+            // Preserva o role anterior se o lookup falhar (RLS, network).
+            // Fallback final = "pais" (menor privilégio): um usuário sem papel
+            // definido NÃO deve cair como gestor (fail-open). Gestor/professor
+            // legítimos têm linha em user_roles, então nunca caem aqui.
+            setRealRole((prev) => canonicalRole ?? prev ?? "pais");
             setUserName(fullName || "");
             setAvatarUrl(avatar);
         } else {

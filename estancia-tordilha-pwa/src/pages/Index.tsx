@@ -57,7 +57,7 @@ const screens: Record<string, Record<string, React.ReactNode>> = {
 
 const Index = () => {
   const { role, userName, avatarUrl, loading, isSuperUser, isMaster, setDevRole } = useRoleSession();
-  const safeRole = role || "gestor";
+  const safeRole = role || "pais";
   const [activeTab, setActiveTab] = useState(defaultTabs[safeRole]);
   const [showQuickActions, setShowQuickActions] = useState(false);
 

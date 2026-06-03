@@ -31,6 +31,7 @@ export function useCoberturas() {
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["coberturas"] });
     queryClient.invalidateQueries({ queryKey: ["sessoes"] });
+    queryClient.invalidateQueries({ queryKey: ["sessoes_recorrentes"] });
     queryClient.invalidateQueries({ queryKey: ["alunos"] });
   };
 

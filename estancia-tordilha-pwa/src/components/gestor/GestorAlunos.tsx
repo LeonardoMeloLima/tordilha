@@ -495,7 +495,7 @@ export const GestorAlunos = () => {
                     Em cobertura por{" "}
                     {professores.find((p) => p.id === coberturaAtivaDoAluno.substituto_id)?.full_name || "substituto"}
                     {coberturaAtivaDoAluno.previsao_volta
-                      ? ` · previsão de volta ${new Date(coberturaAtivaDoAluno.previsao_volta).toLocaleDateString("pt-BR")}`
+                      ? ` · previsão de volta ${new Date(coberturaAtivaDoAluno.previsao_volta + "T00:00:00").toLocaleDateString("pt-BR")}`
                       : ""}
                   </p>
                   <button
