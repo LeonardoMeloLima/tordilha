@@ -5,6 +5,8 @@ import { useAlunos } from "@/hooks/useAlunos";
 import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { Search, Brain, Shield, ShieldOff } from "lucide-react";
 import { FichaAtendimentoModal } from "./FichaAtendimentoModal";
+import { useCoberturas } from "@/hooks/useCoberturas";
+import { useProfessores } from "@/hooks/useProfessores";
 
 export const ProfessorAlunos = () => {
   const { alunos, isLoading } = useAlunos();
@@ -15,11 +17,37 @@ export const ProfessorAlunos = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [visibleCount, setVisibleCount] = useState(10);
 
-  // Só os praticantes atribuídos a este terapeuta (alunos.professor_id === userId)
+  const { coberturas } = useCoberturas();
+  const { professores } = useProfessores();
+
+  const nomeProf = (id?: string | null) =>
+    professores.find((p) => p.id === id)?.full_name || "outro terapeuta";
+
+  // IDs que estou cobrindo agora (sou o substituto)
+  const coberturasComoSubstituto = useMemo(
+    () => coberturas.filter((c) => c.substituto_id === userId),
+    [coberturas, userId]
+  );
+  const alunoIdsCobertos = useMemo(
+    () => new Set(coberturasComoSubstituto.map((c) => c.aluno_id)),
+    [coberturasComoSubstituto]
+  );
+  // Praticantes meus que estão sendo cobertos por outra pessoa (sou titular)
+  const coberturaDoMeuAluno = useMemo(() => {
+    const map = new Map<string, string>(); // aluno_id -> substituto_id
+    coberturas.forEach((c) => {
+      if (c.titular_id === userId) map.set(c.aluno_id, c.substituto_id);
+    });
+    return map;
+  }, [coberturas, userId]);
+
+  // "Meus praticantes" = sou titular OU tenho cobertura ativa sobre o aluno
   const meusAlunos = useMemo(() => {
     if (!userId) return [];
-    return alunos.filter((a: any) => a.professor_id === userId);
-  }, [alunos, userId]);
+    return alunos.filter(
+      (a: any) => a.professor_id === userId || alunoIdsCobertos.has(a.id)
+    );
+  }, [alunos, userId, alunoIdsCobertos]);
 
   const filteredAlunos = meusAlunos.filter(a =>
     a.nome.toLowerCase().includes(searchTerm.toLowerCase())
@@ -85,6 +113,18 @@ export const ProfessorAlunos = () => {
                     {a.diagnostico || "Avaliação"} · {a.idade ? `${a.idade} anos` : "Idade não informada"}
                   </p>
                 </div>
+                {alunoIdsCobertos.has(a.id) && (
+                  <span className="px-2 py-1 text-[10px] font-extrabold rounded-full bg-amber-100 text-amber-700 border border-amber-200 shrink-0">
+                    COBERTURA DE {nomeProf(
+                      coberturasComoSubstituto.find((c) => c.aluno_id === a.id)?.titular_id
+                    ).toUpperCase()}
+                  </span>
+                )}
+                {coberturaDoMeuAluno.has(a.id) && (
+                  <span className="px-2 py-1 text-[10px] font-extrabold rounded-full bg-slate-100 text-slate-500 border border-slate-200 shrink-0">
+                    EM COBERTURA POR {nomeProf(coberturaDoMeuAluno.get(a.id)).toUpperCase()}
+                  </span>
+                )}
                 {/* Status + LGPD indicators */}
                 <div className="flex items-center gap-2 shrink-0">
                   {a.lgpd_assinado
