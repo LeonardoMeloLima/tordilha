@@ -12,7 +12,8 @@ import { useAlunosResponsaveis } from "@/hooks/useAlunosResponsaveis";
 import { generateImageRightsPDF } from "@/services/pdfService";
 import { Badge } from "@/components/ui/badge";
 import { useCoberturas } from "@/hooks/useCoberturas";
-import { Repeat } from "lucide-react";
+import { useFichaAtendimento } from "@/hooks/useFichaAtendimento";
+import { Repeat, Target } from "lucide-react";
 
 export const GestorAlunos = () => {
   const { alunos, isLoading, error, createAluno, updateAluno, deleteAluno } = useAlunos();
@@ -45,6 +46,8 @@ export const GestorAlunos = () => {
     responsaveis,
     linkResponsavel,
   } = useAlunosResponsaveis(selectedAluno?.id || null);
+
+  const { ficha: fichaAtendimento } = useFichaAtendimento(selectedAluno?.id || null);
 
   const [showAddResp, setShowAddResp] = useState(false);
   const [editingResp, setEditingResp] = useState<any>(null);
@@ -548,6 +551,37 @@ export const GestorAlunos = () => {
                     {iniciarCobertura.isPending ? "Aplicando..." : "Atribuir"}
                   </button>
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* Objetivos Terapêuticos — somente leitura */}
+          {selectedAluno && (
+            <div className="pt-6 border-t border-slate-100 space-y-3">
+              <label className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                <Target size={16} className="text-primary" />
+                Objetivos Terapêuticos
+              </label>
+              {fichaAtendimento && (fichaAtendimento.objetivo_t1 || fichaAtendimento.objetivo_t2 || fichaAtendimento.objetivo_t3 || fichaAtendimento.objetivo_t4) ? (
+                <div className="space-y-2">
+                  {[
+                    { label: "T1", value: fichaAtendimento.objetivo_t1 },
+                    { label: "T2", value: fichaAtendimento.objetivo_t2 },
+                    { label: "T3", value: fichaAtendimento.objetivo_t3 },
+                    { label: "T4", value: fichaAtendimento.objetivo_t4 },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+                      <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-1 rounded-lg self-start shrink-0">{label}</span>
+                      <p className="text-sm text-slate-700 font-medium leading-relaxed">
+                        {value || <span className="text-slate-300 italic">—</span>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground text-center py-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  Nenhum objetivo registrado pelo terapeuta.
+                </p>
               )}
             </div>
           )}
