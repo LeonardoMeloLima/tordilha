@@ -108,7 +108,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     horario: selectedTime + ":00",
                     ativo: true,
                 });
-                toast({ title: "Sucesso!", description: "Aula recorrente solicitada com sucesso." });
+                toast({ title: "Sucesso!", description: "Atendimento recorrente solicitado com sucesso." });
             } else {
                 const [hours, minutes] = selectedTime.split(':').map(Number);
                 const dateObj = parseISO(selectedDate);
@@ -153,7 +153,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                 >
                     {loading || createRecorrente.isPending ? (
                         <Loader2 className="w-6 h-6 animate-spin" />
-                    ) : isRecorrente ? "Criar Aula Recorrente" : "Confirmar Agendamento"}
+                    ) : isRecorrente ? "Criar Atendimento Recorrente" : "Confirmar Agendamento"}
                 </button>
             }
         >
@@ -167,7 +167,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
                     <div className="flex items-center gap-2">
                         <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
                         <div>
-                            <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Aula Recorrente</p>
+                            <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Atendimento Recorrente</p>
                             <p className="text-[11px] text-slate-400">Ex: toda terça às 10h</p>
                         </div>
                     </div>

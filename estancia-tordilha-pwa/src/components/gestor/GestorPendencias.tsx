@@ -10,6 +10,8 @@ import {
   aprovadorEsperado,
 } from "@/hooks/useSolicitacoes";
 import { useDecidirSolicitacao } from "@/hooks/useDecidirSolicitacao";
+import { useProfessores } from "@/hooks/useProfessores";
+import { useAlunos } from "@/hooks/useAlunos";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,7 @@ const TIPO_LABEL: Record<SolicitacaoTipo, string> = {
   novo_cadastro: "Novo cadastro",
   mudanca_recorrencia: "Mudança de horário",
   remarcacao_sessao: "Remarcação avulsa",
-  nova_recorrencia: "Nova aula recorrente",
+  nova_recorrencia: "Novo atendimento recorrente",
 };
 
 const TIPO_COLOR: Record<SolicitacaoTipo, string> = {
@@ -42,9 +44,14 @@ export function GestorPendencias() {
 
   const { data: solicitacoes, isLoading } = useSolicitacoes({ status, tipo: tipoFilter });
   const decidir = useDecidirSolicitacao();
+  const { professores } = useProfessores();
+  const { updateAluno } = useAlunos();
 
   const [rejeitando, setRejeitando] = useState<string | null>(null);
   const [impactando, setImpactando] = useState<SolicitacaoRow | null>(null);
+  // Terapeuta escolhido na hora de aprovar, por solicitação (aluno_id → professor_id).
+  // Opcional: se vazio, aprova sem vincular e o gestor define depois em Praticantes.
+  const [terapeutaSel, setTerapeutaSel] = useState<Record<string, string>>({});
 
   // Banner: solicitações pendentes paradas (sem decisão > 3 dias)
   const paradas = (solicitacoes ?? []).filter(isSolicitacaoParada);
@@ -54,16 +61,39 @@ export function GestorPendencias() {
       setImpactando(s);
       return;
     }
-    await aprovarDireto(s.id);
+    await aprovarDireto(s);
   };
 
-  const aprovarDireto = async (id: string) => {
+  const aprovarDireto = async (s: SolicitacaoRow) => {
     try {
-      const result = await decidir.mutateAsync({ solicitacao_id: id, decisao: "aprovar" });
+      const result = await decidir.mutateAsync({ solicitacao_id: s.id, decisao: "aprovar" });
+
+      // Vínculo opcional do terapeuta responsável escolhido na própria tela de aprovação.
+      // Só para novo cadastro: o aluno passou a 'ativo' agora; se o gestor selecionou um
+      // terapeuta, grava professor_id no mesmo fluxo (evita ter que pesquisar o aluno depois).
+      const profId = terapeutaSel[s.id];
+      let vinculoMsg = "";
+      if (s.tipo === "novo_cadastro" && profId) {
+        try {
+          await updateAluno.mutateAsync({ id: s.aluno_id, professor_id: profId });
+          const nome = professores.find((p) => p.id === profId)?.full_name ?? "terapeuta";
+          vinculoMsg = ` • Terapeuta: ${nome}`;
+        } catch (e) {
+          // Aprovação já ocorreu; avisa que só o vínculo falhou (pode refazer em Praticantes).
+          const msg = e instanceof Error ? e.message : "erro";
+          toast.warning(`Aprovado, mas falha ao vincular terapeuta: ${msg}`);
+        }
+      }
+
       const extra = result.sessoes_atualizadas
         ? ` (${result.sessoes_atualizadas} sessão(ões) movida(s))`
         : "";
-      toast.success(`Solicitação aprovada${extra}`);
+      toast.success(`Solicitação aprovada${extra}${vinculoMsg}`);
+      setTerapeutaSel((prev) => {
+        const next = { ...prev };
+        delete next[s.id];
+        return next;
+      });
     } catch (e: any) {
       toast.error(`Erro: ${e.message ?? "falha ao aprovar"}`);
     }
@@ -141,7 +171,36 @@ export function GestorPendencias() {
                 )}
                 {s.status === "pendente" && (
                   podeDecidir ? (
-                    <div className="flex gap-2 pt-2">
+                    <div className="pt-2 space-y-2">
+                      {s.tipo === "novo_cadastro" && (
+                        <div className="space-y-1">
+                          <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            Terapeuta responsável <span className="opacity-60">(opcional)</span>
+                          </label>
+                          {professores.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">
+                              Nenhum terapeuta cadastrado ainda.
+                            </p>
+                          ) : (
+                            <select
+                              value={terapeutaSel[s.id] ?? ""}
+                              onChange={(e) =>
+                                setTerapeutaSel((prev) => ({ ...prev, [s.id]: e.target.value }))
+                              }
+                              disabled={decidir.isPending}
+                              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+                            >
+                              <option value="">— Vincular depois —</option>
+                              {professores.map((p) => (
+                                <option key={p.id} value={p.id}>
+                                  {p.full_name || "Terapeuta sem nome"}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleAprovar(s)} disabled={decidir.isPending}>
                         Aprovar
                       </Button>
@@ -153,6 +212,7 @@ export function GestorPendencias() {
                       >
                         Rejeitar
                       </Button>
+                      </div>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground italic pt-1">
@@ -178,7 +238,7 @@ export function GestorPendencias() {
         <ModalImpactoMudanca
           open
           onClose={() => setImpactando(null)}
-          onConfirm={async () => { await aprovarDireto(impactando.id); }}
+          onConfirm={async () => { await aprovarDireto(impactando); }}
           recorrencia_id={impactando.alvo_id ?? ""}
           aluno_nome={impactando.aluno?.nome ?? "—"}
           atual={{

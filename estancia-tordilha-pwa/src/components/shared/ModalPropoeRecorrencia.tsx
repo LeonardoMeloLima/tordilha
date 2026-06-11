@@ -79,7 +79,7 @@ export function ModalPropoeRecorrencia({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Propor nova aula recorrente</DialogTitle>
+          <DialogTitle>Propor novo atendimento recorrente</DialogTitle>
         </DialogHeader>
         <form onSubmit={submit} className="space-y-4">
           <div>

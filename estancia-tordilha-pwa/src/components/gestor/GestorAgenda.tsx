@@ -167,7 +167,7 @@ export const GestorAgenda = () => {
           horario: newSession.hora + ":00",
           ativo: true,
         });
-        toast({ title: "Sucesso", description: "Aula recorrente criada!" });
+        toast({ title: "Sucesso", description: "Atendimento recorrente criado!" });
       } else {
         if (!newSession.cavaloId) {
           toast({ variant: "destructive", title: "Erro", description: "Selecione um cavalo." });
@@ -486,7 +486,7 @@ export const GestorAgenda = () => {
         isOpen={showForm}
         onClose={() => { setShowForm(false); setIsRecorrente(false); }}
         title="Agendar Sessão"
-        subtitle={isRecorrente ? "Configurar aula recorrente" : `Para o dia ${selectedDay.split('-').reverse().join('/')}`}
+        subtitle={isRecorrente ? "Configurar atendimento recorrente" : `Para o dia ${selectedDay.split('-').reverse().join('/')}`}
         footer={
           <button
             type="button"
@@ -513,7 +513,7 @@ export const GestorAgenda = () => {
             <div className="flex items-center gap-2">
               <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
               <div>
-                <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Aula Recorrente</p>
+                <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>Atendimento Recorrente</p>
                 <p className="text-[11px] text-slate-400">Ex: toda terça às 10h</p>
               </div>
             </div>

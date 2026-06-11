@@ -422,7 +422,7 @@ export const PaisAgenda = () => {
             disabled={alunoOptionsPropoe.length === 0}
           >
             <Repeat size={14} className="mr-2" />
-            Propor nova aula recorrente
+            Propor novo atendimento recorrente
           </Button>
 
           {recorrentes.length === 0 ? (

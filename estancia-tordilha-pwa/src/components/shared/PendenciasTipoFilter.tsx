@@ -16,7 +16,7 @@ const OPCOES: { value: PendenciasTipoFilterValue; label: string }[] = [
   { value: "novo_cadastro", label: "Novo cadastro" },
   { value: "mudanca_recorrencia", label: "Mudança de horário" },
   { value: "remarcacao_sessao", label: "Remarcação avulsa" },
-  { value: "nova_recorrencia", label: "Nova aula recorrente" },
+  { value: "nova_recorrencia", label: "Novo atendimento recorrente" },
 ];
 
 interface Props {

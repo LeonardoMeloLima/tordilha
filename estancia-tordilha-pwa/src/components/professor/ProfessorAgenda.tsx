@@ -117,7 +117,7 @@ export const ProfessorAgenda = () => {
             cavalo_id: newSession.cavaloId,
           },
         });
-        sonnerToast.success("Proposta enviada ao responsável. Após aprovação, a aula recorrente será criada.");
+        sonnerToast.success("Proposta enviada ao responsável. Após aprovação, o atendimento recorrente será criado.");
       } else {
         // Sessão pontual: criada direto (terapeuta tem autoridade clínica).
         const [hours, minutes] = newSession.hora.split(':').map(Number);
@@ -210,7 +210,7 @@ export const ProfessorAgenda = () => {
             disabled={meusAlunos.length === 0}
           >
             <Repeat size={14} className="mr-2" />
-            Propor nova aula recorrente pro praticante
+            Propor novo atendimento recorrente pro praticante
           </Button>
 
           {recorrentes.length === 0 ? (
@@ -341,7 +341,7 @@ export const ProfessorAgenda = () => {
       <ActionSheet
         isOpen={showForm}
         onClose={() => { setShowForm(false); setIsRecorrente(false); }}
-        title={isRecorrente ? "Propor aula recorrente" : "Nova Sessão"}
+        title={isRecorrente ? "Propor atendimento recorrente" : "Nova Sessão"}
         subtitle={isRecorrente
           ? "Será enviada pra aprovação do responsável"
           : `Para ${format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}`}
@@ -359,7 +359,7 @@ export const ProfessorAgenda = () => {
               <Repeat size={18} className={isRecorrente ? "text-[#4E593F]" : "text-slate-400"} />
               <div className="text-left">
                 <p className={`text-sm font-bold ${isRecorrente ? "text-[#4E593F]" : "text-slate-700"}`}>
-                  Aula Recorrente
+                  Atendimento Recorrente
                 </p>
                 <p className="text-[11px] text-slate-500">
                   {isRecorrente ? "Toda semana, pendente de aprovação" : "Ex: toda terça às 10h"}

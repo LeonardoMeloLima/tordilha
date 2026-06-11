@@ -30,7 +30,7 @@ const TIPO_LABEL: Record<SolicitacaoTipo, string> = {
   novo_cadastro: "Novo cadastro",
   mudanca_recorrencia: "Mudança de horário",
   remarcacao_sessao: "Remarcação avulsa",
-  nova_recorrencia: "Nova aula recorrente",
+  nova_recorrencia: "Novo atendimento recorrente",
 };
 
 const TIPO_COLOR: Record<SolicitacaoTipo, string> = {
