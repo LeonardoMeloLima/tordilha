@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import type { Database } from "@/types/database.types";
 
 import { useEffect } from "react";
@@ -8,6 +9,11 @@ type SessaoUpdate = Database["public"]["Tables"]["sessoes"]["Update"];
 
 export function useSessoes(professorId?: string, alunoIds?: string[]) {
     const queryClient = useQueryClient();
+    // Gate na sessão: a RLS de sessoes só permite leitura autenticada. Sem isso,
+    // a query pode rodar como anon na janela de rotação de token e a RLS devolve
+    // 200 [] (sucesso vazio), zerando agendas/dashboard sem erro. Defesa em
+    // profundidade junto do refresh de token no visibilitychange (src/lib/supabase.ts).
+    const { session } = useAuthSession();
 
     // Invalidate sessions across all components/roles when anything changes in the DB
     useEffect(() => {
@@ -28,7 +34,8 @@ export function useSessoes(professorId?: string, alunoIds?: string[]) {
     }, [queryClient]);
 
     const sessoesQuery = useQuery({
-        queryKey: ["sessoes", professorId, alunoIds],
+        queryKey: ["sessoes", session?.user?.id, professorId, alunoIds],
+        enabled: !!session?.user?.id,
         queryFn: async () => {
             let query = supabase
                 .from("sessoes")
