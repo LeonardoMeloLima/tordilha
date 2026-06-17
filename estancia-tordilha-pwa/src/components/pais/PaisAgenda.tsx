@@ -3,7 +3,8 @@ import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Repeat } fr
 import { format, addDays, parseISO, isToday, isSameMonth,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isMesmoDiaSP, diaSP } from "@/lib/dates";
+import { diaSP } from "@/lib/dates";
+import { mergeDiaSessoes } from "@/lib/recorrentes";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
@@ -126,30 +127,10 @@ export const PaisAgenda = () => {
 
   const getDow = (date: Date) => getDay(date);
 
-  // Expand recurring sessions as virtual entries for a given date
-  const expandRecorrentesForDay = (date: Date) => {
-    const dow = getDow(date);
-    return recorrentes
-      .filter(r => r.dia_semana === dow)
-      .map(r => ({
-        id: `rec-${r.id}`,
-        data_hora: `${format(date, "yyyy-MM-dd")}T${r.horario}`,
-        status: "recorrente",
-        aluno: (r as any).aluno,
-        cavalo: (r as any).cavalo,
-        recorrente_id: r.id,
-        _isRecorrente: true,
-      }));
-  };
-
-  // Sessions for selected day (real + recurring)
+  // Sessions for selected day (real + recurring) — lógica centralizada em
+  // @/lib/recorrentes (antes duplicada aqui e em GestorAgenda).
   const daySessoes = useMemo(() => {
-    const date = parseISO(selectedDay);
-    const real = sessoes.filter(s => isMesmoDiaSP(s.data_hora, date));
-    const virtual = expandRecorrentesForDay(date).filter(
-      vr => !real.some(r => (r as any).recorrente_id === vr.recorrente_id)
-    );
-    return [...real, ...virtual].sort((a, b) => a.data_hora.localeCompare(b.data_hora));
+    return mergeDiaSessoes(sessoes, recorrentes, parseISO(selectedDay));
   }, [sessoes, recorrentes, selectedDay]);
 
   // Days with sessions or recurring (dot indicators)

@@ -20,7 +20,8 @@ import {
   addMonths, subMonths, isToday, isSameMonth
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isMesmoDiaSP, diaSP } from "@/lib/dates";
+import { diaSP } from "@/lib/dates";
+import { mergeDiaSessoes } from "@/lib/recorrentes";
 import { SwipeableCard } from "../ui/SwipeableCard";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 
@@ -88,32 +89,11 @@ export const GestorAgenda = () => {
   // day-of-week (0=sun) → monday-based index used by DIAS_SEMANA
   const getDiaSemana = (date: Date) => getDay(date); // 0=dom,1=seg...6=sab
 
-  // Recurring sessions expanded as virtual session objects for a given date
-  const expandRecorrentesForDay = (date: Date) => {
-    const dow = getDiaSemana(date);
-    return recorrentes
-      .filter(r => r.dia_semana === dow)
-      .map(r => ({
-        id: `rec-${r.id}`,
-        data_hora: `${format(date, "yyyy-MM-dd")}T${r.horario}`,
-        status: "recorrente",
-        aluno: (r as any).aluno,
-        cavalo: (r as any).cavalo,
-        recorrente_id: r.id,
-        _isRecorrente: true,
-      }));
-  };
-
-  // Sessions for the selected day (real + recurring)
+  // Sessions for the selected day (real + recurring) — lógica centralizada em
+  // @/lib/recorrentes (antes duplicada aqui, em PaisAgenda e ausente na
+  // ProfessorAgenda).
   const daySessoes = useMemo(() => {
-    const selectedDate = parseISO(selectedDay);
-    const real = sessoes.filter((s) => isMesmoDiaSP(s.data_hora, selectedDate));
-    const virtual = expandRecorrentesForDay(selectedDate).filter(
-      vr => !real.some(r => (r as any).recorrente_id === vr.recorrente_id)
-    );
-    return [...real, ...virtual].sort((a, b) =>
-      a.data_hora.localeCompare(b.data_hora)
-    );
+    return mergeDiaSessoes(sessoes, recorrentes, parseISO(selectedDay));
   }, [sessoes, recorrentes, selectedDay]);
 
   // Days that have sessions OR recurring sessions (for dot indicators)
