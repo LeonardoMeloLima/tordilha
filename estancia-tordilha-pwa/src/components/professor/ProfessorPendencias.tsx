@@ -121,8 +121,17 @@ export function ProfessorPendencias() {
           )}
           {(solicitacoes ?? []).map(s => {
             const parada = isSolicitacaoParada(s);
-            // Terapeuta decide TUDO menos novo_cadastro (que é só do gestor).
-            const podeDecidir = s.tipo !== "novo_cadastro";
+            // Aprovação bilateral cruzada (regra do RPC rpc_decidir_solicitacao):
+            // quem PROPÕE não aprova — a contraparte aprova. Para o terapeuta,
+            // isso significa que ele só decide solicitações criadas pela FAMÍLIA
+            // (solicitante_role === "pais"). As que ele mesmo propôs
+            // (solicitante_role === "professor") são aprovadas pelo responsável,
+            // e novo_cadastro é do gestor. Antes a UI mostrava "Aprovar" em
+            // todas (menos novo_cadastro), então o terapeuta clicava na própria
+            // proposta e o RPC devolvia FORBIDDEN ("nada acontece"). Agora cai
+            // no ramo "Aguardando aprovação do(a) responsável".
+            const podeDecidir =
+              s.tipo !== "novo_cadastro" && s.solicitante_role === "pais";
             return (
               <Card key={s.id} className={`p-4 space-y-2 ${parada ? "border-red-300" : ""}`}>
                 <div className="flex items-center justify-between gap-2">
