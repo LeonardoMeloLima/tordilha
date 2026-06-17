@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import type { Database } from "@/types/database.types";
 
 type AlunoInsert = Database["public"]["Tables"]["alunos"]["Insert"];
@@ -7,9 +8,16 @@ type AlunoUpdate = Database["public"]["Tables"]["alunos"]["Update"];
 
 export function useAlunos() {
     const queryClient = useQueryClient();
+    // Gate na sessão: a RLS de `alunos` só permite leitura autenticada. Se a
+    // query rodar durante a janela em que o token está expirado/anon (ex.: app
+    // voltando do background), a RLS devolve 200 [] (sucesso vazio) e a lista
+    // some sem erro. enabled atrelado à sessão impede o fetch como anon — a
+    // query fica pending até a sessão estar válida, em vez de resolver vazio.
+    const { session } = useAuthSession();
 
     const alunosQuery = useQuery({
-        queryKey: ["alunos"],
+        queryKey: ["alunos", session?.user?.id],
+        enabled: !!session?.user?.id,
         queryFn: async () => {
             const { data, error } = await supabase
                 .from("alunos")
