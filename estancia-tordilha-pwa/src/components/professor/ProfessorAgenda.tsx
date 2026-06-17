@@ -10,7 +10,7 @@ import { ActionSheet } from "@/components/ui/ActionSheet";
 import { Button } from "@/components/ui/button";
 import { format, addDays, parseISO, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { isMesmoDiaSP } from "@/lib/dates";
+import { mergeDiaSessoes } from "@/lib/recorrentes";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { usePendentesByAlvo } from "@/hooks/useSolicitacoes";
 import { useCriarSolicitacao } from "@/hooks/useCriarSolicitacao";
@@ -71,14 +71,15 @@ export const ProfessorAgenda = () => {
   const criarSol = useCriarSolicitacao();
 
   const daySessoes = useMemo(() => {
-    return sessoes
-      .filter((s) => {
-        const isSelectedDay = isMesmoDiaSP(s.data_hora, selectedDay);
-        const isNotConcluida = s.status !== "concluida";
-        return isSelectedDay && isNotConcluida;
-      })
-      .sort((a, b) => a.data_hora.localeCompare(b.data_hora));
-  }, [sessoes, selectedDay]);
+    // Combina sessões reais + recorrências expandidas (mesma lógica de
+    // Gestor/Pais, agora centralizada). Antes a agenda do terapeuta só lia
+    // `sessoes` reais — e como recorrências não viram sessão concreta no banco,
+    // o terapeuta não via NADA mesmo após a família aprovar. Mantém o filtro
+    // de "concluida" que já existia aqui (sessões virtuais têm status
+    // "recorrente", então passam).
+    return mergeDiaSessoes(sessoes, recorrentes, parseISO(selectedDay))
+      .filter((s) => s.status !== "concluida");
+  }, [sessoes, recorrentes, selectedDay]);
 
   // Horários já ocupados no dia selecionado (pra desabilitar slots na grade do form)
   const occupiedTimes = useMemo(() => {
