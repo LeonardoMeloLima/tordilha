@@ -150,3 +150,36 @@ Referência: imagem de app de operadora telefônica enviada pelo Leonardo (gradi
 - 🟡 Contraste de texto branco sobre gradiente pode falhar WCAG AA
 - 🟡 `ProfileHeader` com lógica de role/badge/notificações complexa — alto risco de regressão
 - 🟢 Charts em `Estatisticas` — recharts já instalado, troca de styling é direta
+
+---
+
+## Possibilidade futura: terapeuta aprovar a própria proposta de recorrência
+
+**Status:** ideia de produto, NÃO implementada (pode ser que recorramos a ela depois). Registrada em 2026-06-16.
+
+### Contexto
+Hoje o fluxo de aprovação é **bilateral cruzado** (RPC `rpc_decidir_solicitacao`, migration `20260517_aprovacao_bilateral.sql`): quem **propõe não aprova** — a contraparte aprova.
+
+- Família (pais) propõe → **terapeuta** aprova
+- **Terapeuta (professor) propõe → responsável aprova**
+- `novo_cadastro` → gestor aprova
+
+O fix do PR #4 (commit `ed5a204`) corrigiu só a **UI**: o terapeuta deixou de ver o botão "Aprovar" falso na própria proposta (que dava `FORBIDDEN`) e passou a ver "Aguardando aprovação do responsável". **A regra de negócio NÃO mudou.**
+
+### A possibilidade (Opção 3)
+Leonardo levantou: *"a família já fez o cadastro; dá pra gente (terapeuta) aprovar aqui mesmo pra facilitar pra família?"*
+
+Ou seja: permitir que o **terapeuta aprove sozinho** as recorrências que ele mesmo propõe, sem depender do responsável confirmar. Motivação: destravar pendências paradas (ex.: a Nara tinha 14 `nova_recorrencia` paradas esperando as famílias).
+
+### Impacto / o que mexer (NÃO é só UI)
+- **Banco (RPC `rpc_decidir_solicitacao`):** hoje, se `solicitante_role = 'professor'`, o aprovador exigido é o responsável vinculado (`aluno_responsavel` + `responsaveis.email`). Para a Opção 3, esse guard teria que aceitar o próprio terapeuta (ex.: `v_user_id = alunos.professor_id`).
+- **UI (`ProfessorPendencias.tsx`):** reverter/ajustar o `podeDecidir` para voltar a mostrar "Aprovar" nas próprias propostas do terapeuta.
+
+### Trade-off (decisão de produto, não técnica)
+- **A favor:** menos fricção; terapeuta resolve sem esperar a família entrar no app.
+- **Contra:** **quebra a bilateralidade** — o proponente aprova a si mesmo. A família deixa de confirmar compromissos recorrentes (toda semana, mesmo horário) marcados em nome dela. Perde-se o "handshake" das duas partes.
+- **Meio-termo possível:** em vez de o terapeuta aprovar a si mesmo, dar ao **gestor/admin** o poder de destravar manualmente pendências paradas (preserva alguma separação de papéis).
+
+### Riscos
+- 🔴 Alterar o RPC `rpc_decidir_solicitacao` afeta TODOS os tipos de solicitação — testar bilateral pais↔terapeuta e novo_cadastro pra não abrir brecha.
+- 🟡 Confirmar com a instituição se a família PRECISA mesmo concordar com recorrências (questão clínica/contratual), antes de remover o gate.
