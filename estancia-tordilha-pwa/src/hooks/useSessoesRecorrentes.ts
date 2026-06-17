@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useAuthSession } from "@/hooks/useAuthSession";
 import type { Database } from "@/types/database.types";
 
 type SessaoRecorrente = Database["public"]["Tables"]["sessoes_recorrentes"]["Row"];
@@ -17,9 +18,16 @@ export const DIAS_SEMANA = [
 
 export function useSessoesRecorrentes(alunoIds?: string[]) {
   const queryClient = useQueryClient();
+  // Gate na sessão: a RLS de sessoes_recorrentes só permite leitura autenticada.
+  // Sem isso, a query pode rodar como anon na janela de rotação de token e a
+  // RLS devolve 200 [] (sucesso vazio), zerando a lista "Recorrências dos meus
+  // praticantes" sem erro. Defesa em profundidade junto do refresh de token no
+  // visibilitychange (ver src/lib/supabase.ts).
+  const { session } = useAuthSession();
 
   const query = useQuery({
-    queryKey: ["sessoes_recorrentes", alunoIds],
+    queryKey: ["sessoes_recorrentes", session?.user?.id, alunoIds],
+    enabled: !!session?.user?.id,
     queryFn: async () => {
       let q = supabase
         .from("sessoes_recorrentes")
