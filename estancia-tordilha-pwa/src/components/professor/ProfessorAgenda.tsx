@@ -8,8 +8,9 @@ import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { useToast } from "@/components/ui/use-toast";
 import { ActionSheet } from "@/components/ui/ActionSheet";
 import { Button } from "@/components/ui/button";
-import { format, addDays, parseISO, isSameDay, isBefore } from "date-fns";
+import { format, addDays, parseISO, isBefore } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isMesmoDiaSP } from "@/lib/dates";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { usePendentesByAlvo } from "@/hooks/useSolicitacoes";
 import { useCriarSolicitacao } from "@/hooks/useCriarSolicitacao";
@@ -72,7 +73,7 @@ export const ProfessorAgenda = () => {
   const daySessoes = useMemo(() => {
     return sessoes
       .filter((s) => {
-        const isSelectedDay = isSameDay(parseISO(s.data_hora), parseISO(selectedDay));
+        const isSelectedDay = isMesmoDiaSP(s.data_hora, selectedDay);
         const isNotConcluida = s.status !== "concluida";
         return isSelectedDay && isNotConcluida;
       })

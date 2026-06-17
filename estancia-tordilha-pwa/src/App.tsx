@@ -22,7 +22,29 @@ const GestorPendencias = lazy(() =>
   import("./components/gestor/GestorPendencias").then((m) => ({ default: m.GestorPendencias }))
 );
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Dados ficam "frescos" por 30s — evita rajadas de refetch (inclusive
+      // ao focar a aba num PWA, onde o usuário alterna apps com frequência) e
+      // reduz a chance de uma query rodar exatamente durante a rotação de token.
+      staleTime: 30_000,
+      // Mantém revalidação ao voltar o foco (comportamento atual), mas o
+      // staleTime acima impede que dispare a cada toque na tela.
+      refetchOnWindowFocus: true,
+      // Não insiste em erros de autenticação/permissão (401/403): retentar só
+      // gera loop e atrasa o tratamento real (refresh/redirect). Para erros
+      // transitórios (rede, 5xx) tenta até 2x.
+      retry: (failureCount, error: unknown) => {
+        const status =
+          (error as { status?: number; code?: number })?.status ??
+          (error as { code?: number })?.code;
+        if (status === 401 || status === 403) return false;
+        return failureCount < 2;
+      },
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>

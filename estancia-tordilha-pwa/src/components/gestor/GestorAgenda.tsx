@@ -15,11 +15,12 @@ import { PendenteBadge } from "@/components/shared/PendenteBadge";
 import { usePendentesByAlvo } from "@/hooks/useSolicitacoes";
 import { supabase } from "@/lib/supabase";
 import {
-  format, addDays, parseISO, isSameDay, isBefore,
+  format, addDays, parseISO, isBefore,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay,
   addMonths, subMonths, isToday, isSameMonth
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isMesmoDiaSP, diaSP } from "@/lib/dates";
 import { SwipeableCard } from "../ui/SwipeableCard";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 
@@ -106,7 +107,7 @@ export const GestorAgenda = () => {
   // Sessions for the selected day (real + recurring)
   const daySessoes = useMemo(() => {
     const selectedDate = parseISO(selectedDay);
-    const real = sessoes.filter((s) => isSameDay(parseISO(s.data_hora), selectedDate));
+    const real = sessoes.filter((s) => isMesmoDiaSP(s.data_hora, selectedDate));
     const virtual = expandRecorrentesForDay(selectedDate).filter(
       vr => !real.some(r => (r as any).recorrente_id === vr.recorrente_id)
     );
@@ -118,7 +119,7 @@ export const GestorAgenda = () => {
   // Days that have sessions OR recurring sessions (for dot indicators)
   const daysWithSessoes = useMemo(() => {
     const set = new Set<string>();
-    sessoes.forEach(s => set.add(format(parseISO(s.data_hora), "yyyy-MM-dd")));
+    sessoes.forEach(s => set.add(diaSP(s.data_hora)));
     // Add all days matching recurrence day-of-week within the visible month range
     if (recorrentes.length > 0) {
       const start = startOfMonth(currentMonth);

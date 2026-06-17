@@ -9,10 +9,11 @@ import { useCavalos } from "@/hooks/useCavalos";
 import { useRoleSession } from "@/hooks/supabase/useRoleSession";
 import { useToast } from "@/components/ui/use-toast";
 import {
-    format, parseISO, isSameDay, setHours, setMinutes, isBefore, isToday,
+    format, parseISO, setHours, setMinutes, isBefore, isToday,
     startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth
 } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isMesmoDiaSP, diaSP } from "@/lib/dates";
 
 interface NovoAgendamentoModalProps {
     isOpen: boolean;
@@ -70,7 +71,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
     // Days that already have sessions (dot indicators)
     const daysWithSessoes = useMemo(() => {
         const set = new Set<string>();
-        sessoes.forEach(s => set.add(format(parseISO(s.data_hora), "yyyy-MM-dd")));
+        sessoes.forEach(s => set.add(diaSP(s.data_hora)));
         return set;
     }, [sessoes]);
 
@@ -79,7 +80,7 @@ export const NovoAgendamentoModal = ({ isOpen, onClose }: NovoAgendamentoModalPr
         if (!selectedDate) return HORARIOS_BASE.map(h => ({ hora: h, ocupado: false }));
         const dateObj = parseISO(selectedDate);
         const ocupados = sessoes
-            .filter(s => isSameDay(parseISO(s.data_hora), dateObj))
+            .filter(s => isMesmoDiaSP(s.data_hora, dateObj))
             .map(s => format(parseISO(s.data_hora), "HH:mm"));
         const now = new Date();
         return HORARIOS_BASE.map(h => {

@@ -9,8 +9,8 @@ import { useCoberturas } from "@/hooks/useCoberturas";
 import { useProfessores } from "@/hooks/useProfessores";
 
 export const ProfessorAlunos = () => {
-  const { alunos, isLoading } = useAlunos();
-  const { session } = useRoleSession();
+  const { alunos, isLoading, error } = useAlunos();
+  const { session, loading: loadingSession } = useRoleSession();
   const userId = session?.user?.id;
   const [selectedAluno, setSelectedAluno] = useState<any>(null);
   const [isFichaOpen, setIsFichaOpen] = useState(false);
@@ -74,7 +74,11 @@ export const ProfessorAlunos = () => {
       </div>
 
       <div className="space-y-3">
-        {isLoading ? (
+        {/* Trata sessão/userId ainda não resolvidos como loading: enquanto o
+            userId não chegou (boot ou rotação de token), meusAlunos é [] por
+            falta de id — NÃO porque o professor não tem praticantes. Mostrar o
+            skeleton aqui evita o "Nenhum praticante encontrado" intermitente. */}
+        {isLoading || loadingSession || !userId ? (
           [1, 2, 3].map(i => (
             <div key={i} className="bg-card rounded-3xl card-shadow p-5 animate-pulse">
               <div className="flex items-center gap-4">
@@ -86,6 +90,16 @@ export const ProfessorAlunos = () => {
               </div>
             </div>
           ))
+        ) : error ? (
+          <div className="p-12 text-center bg-white rounded-[32px] border-2 border-dashed border-rose-100">
+            <p className="text-sm font-bold text-rose-400 uppercase tracking-widest">Erro ao carregar praticantes</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-3 text-xs font-bold text-[#4E593F] underline"
+            >
+              Tentar novamente
+            </button>
+          </div>
         ) : displayedAlunos.length === 0 ? (
           <div className="p-12 text-center bg-white rounded-[32px] border-2 border-dashed border-slate-100">
             <p className="text-sm font-bold text-slate-400 uppercase tracking-widest">Nenhum praticante encontrado</p>

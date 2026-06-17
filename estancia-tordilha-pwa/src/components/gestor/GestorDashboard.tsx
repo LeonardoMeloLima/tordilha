@@ -2,7 +2,8 @@ import { UsersRound, CalendarDays, TrendingUp, HeartPulse, ClipboardCheck, Chevr
 import { useAlunos } from "@/hooks/useAlunos";
 import { useCavalos } from "@/hooks/useCavalos";
 import { useSessoes } from "@/hooks/useSessoes";
-import { format, isToday, parseISO } from "date-fns";
+import { format, parseISO } from "date-fns";
+import { isHojeSP } from "@/lib/dates";
 import { AvatarWithFallback } from "@/components/ui/AvatarWithFallback";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -32,7 +33,7 @@ export const GestorDashboard = () => {
     },
     {
       label: 'Sessões Hoje',
-      value: loadingSessoes ? '...' : sessoes.filter(s => isToday(parseISO(s.data_hora))).length.toString(),
+      value: loadingSessoes ? '...' : sessoes.filter(s => isHojeSP(s.data_hora)).length.toString(),
       icon: CalendarDays,
       color: 'bg-[#f0fdf4]', // green-50
       iconBg: 'bg-[#dcfce7]', // green-100
@@ -64,7 +65,7 @@ export const GestorDashboard = () => {
 
   const upcomingSessions = useMemo(() => {
     return sessoes
-      .filter(s => isToday(parseISO(s.data_hora)))
+      .filter(s => isHojeSP(s.data_hora))
       .sort((a, b) => a.data_hora.localeCompare(b.data_hora))
       .slice(0, 5);
   }, [sessoes]);

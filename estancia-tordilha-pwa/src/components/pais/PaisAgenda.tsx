@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { Calendar as CalendarIcon, Clock, ChevronLeft, ChevronRight, Repeat } from "lucide-react";
-import { format, addDays, parseISO, isSameDay, isToday, isSameMonth,
+import { format, addDays, parseISO, isToday, isSameMonth,
   startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { isMesmoDiaSP, diaSP } from "@/lib/dates";
 import { useSessoes } from "@/hooks/useSessoes";
 import { useSessoesRecorrentes, DIAS_SEMANA } from "@/hooks/useSessoesRecorrentes";
 import { useResponsavelAlunos } from "@/hooks/useResponsavelAlunos";
@@ -144,7 +145,7 @@ export const PaisAgenda = () => {
   // Sessions for selected day (real + recurring)
   const daySessoes = useMemo(() => {
     const date = parseISO(selectedDay);
-    const real = sessoes.filter(s => isSameDay(parseISO(s.data_hora), date));
+    const real = sessoes.filter(s => isMesmoDiaSP(s.data_hora, date));
     const virtual = expandRecorrentesForDay(date).filter(
       vr => !real.some(r => (r as any).recorrente_id === vr.recorrente_id)
     );
@@ -154,7 +155,7 @@ export const PaisAgenda = () => {
   // Days with sessions or recurring (dot indicators)
   const daysWithSessoes = useMemo(() => {
     const set = new Set<string>();
-    sessoes.forEach(s => set.add(format(parseISO(s.data_hora), "yyyy-MM-dd")));
+    sessoes.forEach(s => set.add(diaSP(s.data_hora)));
     if (recorrentes.length > 0) {
       eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) }).forEach(day => {
         if (recorrentes.some(r => r.dia_semana === getDow(day))) set.add(format(day, "yyyy-MM-dd"));
