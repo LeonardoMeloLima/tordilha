@@ -153,9 +153,20 @@ Referência: imagem de app de operadora telefônica enviada pelo Leonardo (gradi
 
 ---
 
-## Possibilidade futura: terapeuta aprovar a própria proposta de recorrência
+## Terapeuta cria recorrência direto (aprovação removida — IMPLEMENTADO)
 
-**Status:** ideia de produto, NÃO implementada (pode ser que recorramos a ela depois). Registrada em 2026-06-16.
+**Status:** ✅ IMPLEMENTADO em 2026-06-17 (PR #9, commit `cda2ae9`). Era "Possibilidade futura / Opção 3"; o cliente decidiu remover a aprovação por gerar muita fricção (recorrências ficavam paradas esperando a família).
+
+**O que ficou (decisão final):**
+- Terapeuta propõe atendimento recorrente NOVO → cria `sessoes_recorrentes` direto (`ativo=true`), SEM aprovação da família.
+- MUDANÇA de recorrência existente e REMARCAÇÃO de sessão → CONTINUAM pedindo aval da família (mexe em compromisso já firmado).
+- Sentido família→terapeuta (pais propõe, terapeuta aprova) → INALTERADO. O RPC `rpc_decidir_solicitacao` e a regra bilateral seguem ativos para esses fluxos.
+- Prevenção de duplicata: índice único parcial `uniq_recorrencia_ativa (aluno_id, dia_semana, horario) WHERE ativo` + aviso na UX. Migration `20260617_unique_recorrencia_ativa.sql`.
+- Migração de dados: 8 solicitações `nova_recorrencia` pendentes da Nara foram convertidas em recorrências ativas.
+
+Histórico da decisão original (mantido para contexto):
+
+
 
 ### Contexto
 Hoje o fluxo de aprovação é **bilateral cruzado** (RPC `rpc_decidir_solicitacao`, migration `20260517_aprovacao_bilateral.sql`): quem **propõe não aprova** — a contraparte aprova.
