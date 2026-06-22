@@ -24,3 +24,10 @@ dist-ssr
 *.sw?
 .vercel
 .env*.local
+
+# Testes E2E (Playwright)
+.env.test
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
