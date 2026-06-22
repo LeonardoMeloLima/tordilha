@@ -109,6 +109,24 @@ export const ProfessorAgenda = () => {
 
     try {
       if (isRecorrente) {
+        // Guarda contra duplicata (UX): já existe recorrência ativa pro mesmo
+        // praticante nesse dia+horário? Avisa antes de tentar criar. O banco
+        // tem um índice único (uniq_recorrencia_ativa) como rede de segurança,
+        // mas avisar aqui dá uma mensagem melhor que o erro cru de constraint.
+        const jaExiste = recorrentes.some(
+          (r: any) =>
+            r.aluno_id === newSession.alunoId &&
+            r.dia_semana === diaSemana &&
+            r.horario?.slice(0, 5) === newSession.hora?.slice(0, 5)
+        );
+        if (jaExiste) {
+          toast({
+            variant: "destructive",
+            title: "Atendimento já existe",
+            description: "Esse praticante já tem um atendimento recorrente nesse dia e horário.",
+          });
+          return;
+        }
         // Atendimento recorrente NOVO: criado direto pelo terapeuta, sem
         // aprovação da família (autoridade clínica — mesma lógica da sessão
         // pontual abaixo). A aprovação bilateral foi removida para o sentido
@@ -147,7 +165,11 @@ export const ProfessorAgenda = () => {
       setIsRecorrente(false);
       setNewSession({ alunoId: "", cavaloId: "", hora: "08:00" });
     } catch (error: any) {
-      const msg = error?.message === "DUPLICATE_PENDING"
+      // 23505 = unique_violation do índice uniq_recorrencia_ativa (rede de
+      // segurança do banco contra duplicata, caso a guarda UX acima escape).
+      const msg = error?.code === "23505"
+        ? "Esse praticante já tem um atendimento recorrente nesse dia e horário."
+        : error?.message === "DUPLICATE_PENDING"
         ? "Já existe uma proposta pendente similar."
         : error?.message ?? "Erro desconhecido";
       toast({ variant: "destructive", title: "Erro", description: msg });
@@ -563,7 +585,9 @@ export const ProfessorAgenda = () => {
             });
             sonnerToast.success("Atendimento recorrente criado!");
           } catch (e: any) {
-            sonnerToast.error("Erro ao criar atendimento recorrente.");
+            sonnerToast.error(e?.code === "23505"
+              ? "Esse praticante já tem atendimento recorrente nesse dia e horário."
+              : "Erro ao criar atendimento recorrente.");
           }
         }}
       />
