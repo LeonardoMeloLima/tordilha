@@ -52,6 +52,7 @@ const ContextualFAB = ({ activeTab, onClick }: { activeTab: string, onClick?: ()
     <div className="relative -top-5 mx-1">
       <button
         onClick={onClick}
+        aria-label="Ação rápida"
         className="w-16 h-16 rounded-full bg-[#4E593F] text-white flex items-center justify-center shadow-xl hover:scale-105 active:scale-95 transition-all duration-200"
       >
         <Icon size={28} strokeWidth={2.5} />
@@ -75,6 +76,8 @@ function NavItemButton({
     <button
       key={item.id}
       onClick={onClick}
+      aria-label={item.label}
+      aria-current={isActive ? "page" : undefined}
       className={`flex flex-col items-center justify-center gap-1.5 min-w-[48px] transition-all duration-300 relative ${
         isActive ? "text-[#4E593F]" : "text-slate-400 hover:text-slate-600"
       }`}
