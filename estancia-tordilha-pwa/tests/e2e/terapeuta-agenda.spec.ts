@@ -33,13 +33,24 @@ test.describe("agenda do terapeuta", () => {
   test("C6: pendências não mostram 'Aprovar' falso na proposta própria do terapeuta", async ({
     page,
   }) => {
-    // A aba Pendências não tem label acessível no BottomNav (só ícone), então
-    // navegamos pela rota interna via evento da própria app não é trivial.
-    // Marcamos como fixme até adicionarmos aria-label aos botões de navegação
-    // (ver recomendação no resumo). O critério C6 fica documentado.
-    test.fixme(
-      true,
-      "Requer aria-label nos botões do BottomNav para navegar até Pendências de forma estável"
-    );
+    await login(page);
+
+    // Navega até a aba Pendências (agora com aria-label no BottomNav).
+    await page.getByRole("button", { name: "Pendências" }).click();
+    await expect(page.getByRole("heading", { name: /minhas pendências/i })).toBeVisible({
+      timeout: 15_000,
+    });
+
+    // Garante que a aba "Pendentes" está ativa (tem solicitações pendentes).
+    // Numa proposta criada pelo PRÓPRIO terapeuta (solicitante = professor),
+    // a regra bilateral diz que quem aprova é o responsável — então a UI deve
+    // mostrar "Aguardando aprovação do(a) responsável", NÃO o botão "Aprovar".
+    // Como todas as pendentes da terapeuta de teste são propostas dela,
+    // não deve existir NENHUM botão "Aprovar" clicável na lista.
+    const aguardando = page.getByText(/aguardando aprovação/i);
+    await expect(aguardando.first()).toBeVisible({ timeout: 15_000 });
+
+    // Não há botão "Aprovar" (próprias propostas → quem aprova é a família).
+    await expect(page.getByRole("button", { name: /^aprovar$/i })).toHaveCount(0);
   });
 });
