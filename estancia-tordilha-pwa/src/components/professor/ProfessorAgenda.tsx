@@ -64,7 +64,7 @@ export const ProfessorAgenda = () => {
   const meusAlunoIds = useMemo(() => meusAlunos.map(a => a.id), [meusAlunos]);
 
   // Recorrências dos MEUS praticantes (pra view "Recorrências" e pra "propor mudança")
-  const { recorrentes } = useSessoesRecorrentes(meusAlunoIds);
+  const { recorrentes, createRecorrente } = useSessoesRecorrentes(meusAlunoIds);
 
   // Solicitações pendentes — pra refletir nos cards + bloquear "propor mudança" duplicada
   const { byAlvo: pendentesByAlvo } = usePendentesByAlvo();
@@ -109,17 +109,20 @@ export const ProfessorAgenda = () => {
 
     try {
       if (isRecorrente) {
-        // Aula recorrente: vira solicitação pendente do responsável (bilateral).
-        await criarSol.mutateAsync({
-          tipo: "nova_recorrencia",
+        // Atendimento recorrente NOVO: criado direto pelo terapeuta, sem
+        // aprovação da família (autoridade clínica — mesma lógica da sessão
+        // pontual abaixo). A aprovação bilateral foi removida para o sentido
+        // terapeuta→família por gerar fricção (recorrências ficavam paradas).
+        // Mudança/remarcação de recorrência existente CONTINUA pedindo aval.
+        await createRecorrente.mutateAsync({
           aluno_id: newSession.alunoId,
-          payload: {
-            dia_semana: diaSemana,
-            horario: newSession.hora,
-            cavalo_id: newSession.cavaloId,
-          },
+          cavalo_id: newSession.cavaloId,
+          dia_semana: diaSemana,
+          horario: newSession.hora,
+          professor_id: userId,
+          ativo: true,
         });
-        sonnerToast.success("Proposta enviada ao responsável. Após aprovação, o atendimento recorrente será criado.");
+        sonnerToast.success("Atendimento recorrente criado!");
       } else {
         // Sessão pontual: criada direto (terapeuta tem autoridade clínica).
         const [hours, minutes] = newSession.hora.split(':').map(Number);
@@ -343,9 +346,9 @@ export const ProfessorAgenda = () => {
       <ActionSheet
         isOpen={showForm}
         onClose={() => { setShowForm(false); setIsRecorrente(false); }}
-        title={isRecorrente ? "Propor atendimento recorrente" : "Nova Sessão"}
+        title={isRecorrente ? "Novo atendimento recorrente" : "Nova Sessão"}
         subtitle={isRecorrente
-          ? "Será enviada pra aprovação do responsável"
+          ? "Será criado para o praticante (toda semana no dia/horário escolhido)"
           : `Para ${format(parseISO(selectedDay), "EEEE, d 'de' MMMM", { locale: ptBR })}`}
       >
         <div className="space-y-5 py-2">
@@ -469,12 +472,12 @@ export const ProfessorAgenda = () => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={createSessao.isPending || criarSol.isPending || meusAlunos.length === 0}
+            disabled={createSessao.isPending || createRecorrente.isPending || meusAlunos.length === 0}
             className="w-full h-14 rounded-full bg-[#4E593F] hover:bg-[#3E4732] text-white font-bold text-lg mt-4 shadow-lg shadow-[#4E593F]/20 transition-all active:scale-[0.98] disabled:opacity-50"
           >
-            {createSessao.isPending || criarSol.isPending
-              ? (isRecorrente ? "Enviando..." : "Agendando...")
-              : (isRecorrente ? "Enviar proposta" : "Agendar Sessão")}
+            {createSessao.isPending || createRecorrente.isPending
+              ? (isRecorrente ? "Criando..." : "Agendando...")
+              : (isRecorrente ? "Criar atendimento recorrente" : "Agendar Sessão")}
           </button>
         </div>
       </ActionSheet>
@@ -547,20 +550,20 @@ export const ProfessorAgenda = () => {
         alunoOptions={meusAlunos.map(a => ({ id: a.id, nome: a.nome }))}
         onSubmit={async (data) => {
           try {
-            await criarSol.mutateAsync({
-              tipo: "nova_recorrencia",
+            // Recorrência NOVA criada direto (sem aprovação da família). O
+            // cavalo é opcional aqui (definido depois na agenda) — este modal
+            // não coleta cavalo.
+            await createRecorrente.mutateAsync({
               aluno_id: data.aluno_id,
-              alvo_id: null,
-              payload: {
-                dia_semana: data.dia_semana,
-                horario: data.horario,
-              },
+              cavalo_id: null,
+              dia_semana: data.dia_semana,
+              horario: data.horario,
+              professor_id: userId,
+              ativo: true,
             });
-            sonnerToast.success("Proposta enviada ao responsável.");
+            sonnerToast.success("Atendimento recorrente criado!");
           } catch (e: any) {
-            sonnerToast.error(e?.message === "DUPLICATE_PENDING"
-              ? "Já existe uma proposta pendente pra esse praticante."
-              : "Erro ao enviar proposta.");
+            sonnerToast.error("Erro ao criar atendimento recorrente.");
           }
         }}
       />
